@@ -3,6 +3,7 @@ import time
 
 import serial
 
+from .AndroidUSB import AndroidSerial, is_android
 from .XMODEM import XMODEM
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ class USBStream:
     # ----------------------------------------------------------------------
     def open(self, address, baud=115200):
         self._address = address.replace("\\", "\\\\")
-        self.serial = serial.serial_for_url(
+        self.serial = self._serial_for_address(
             self._address,
             baud,
             bytesize=serial.EIGHTBITS,
@@ -100,6 +101,18 @@ class USBStream:
 
         return True
 
+    @staticmethod
+    def _serial_for_address(address, baud, **kwargs):
+        if is_android():
+            return AndroidSerial(
+                address,
+                baud,
+                timeout=kwargs["timeout"],
+                write_timeout=kwargs["write_timeout"],
+                do_not_open=kwargs.get("do_not_open", False),
+            )
+        return serial.serial_for_url(address, baud, **kwargs)
+
     # ----------------------------------------------------------------------
     def reopen_at_baud(self, baud):
         """
@@ -124,7 +137,7 @@ class USBStream:
                 pass
         time.sleep(0.1)
         try:
-            ser = serial.serial_for_url(
+            ser = self._serial_for_address(
                 self._address,
                 baud,
                 bytesize=serial.EIGHTBITS,

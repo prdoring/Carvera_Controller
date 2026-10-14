@@ -75,7 +75,24 @@ class ToolTipContentLabel(Label):
             self.texture_update()
 
 
-class ToolTipSwitch(Switch):
+class _TooltipBehavior:
+    _tooltip_mouse_bound = False
+
+    def _sync_tooltip_enabled(self, *args):
+        enabled = self.show_tooltips and sys.platform != "ios"
+        if enabled and not self._tooltip_mouse_bound:
+            Window.bind(mouse_pos=self.on_mouse_pos)
+        elif not enabled and self._tooltip_mouse_bound:
+            Window.unbind(mouse_pos=self.on_mouse_pos)
+            self.close_tooltip()
+        self._tooltip_mouse_bound = enabled
+
+    def _reset_tooltip(self, *args):
+        self.close_tooltip()
+        self._tooltip = None
+
+
+class ToolTipSwitch(_TooltipBehavior, Switch):
     tooltip_txt = StringProperty("")
     tooltip_cls = ObjectProperty(Tooltip)
     tooltip_image = StringProperty("")
@@ -90,13 +107,13 @@ class ToolTipSwitch(Switch):
         if sys.platform == "ios":
             return
         fbind = self.fbind
-        fbind("tooltip_cls", self._build_tooltip)
+        fbind("tooltip_cls", self._reset_tooltip)
         fbind("tooltip_txt", self._update_tooltip)
         fbind("tooltip_image", self._update_image)
         fbind("tooltip_image_size", self._update_image_size)
-        Window.bind(mouse_pos=self.on_mouse_pos)
+        fbind("show_tooltips", self._sync_tooltip_enabled)
         self.bind(on_release=self.close_tooltip)
-        self._build_tooltip()
+        self._sync_tooltip_enabled()
 
     def _is_blocked_by_modal(self):
         for child in Window.children:
@@ -130,6 +147,8 @@ class ToolTipSwitch(Switch):
         self._update_tooltip()
 
     def _update_tooltip(self, *largs):
+        if not self._tooltip:
+            return
         txt = self.tooltip_txt
         if txt:
             self._tooltip.ids.tooltip_label.text = txt
@@ -141,6 +160,8 @@ class ToolTipSwitch(Switch):
         self._update_tooltip_size()
 
     def _update_image(self, *largs):
+        if not self._tooltip:
+            return
         imgpath = self.tooltip_image
         if imgpath:
             self._tooltip.ids.tooltip_image.source = imgpath
@@ -163,6 +184,8 @@ class ToolTipSwitch(Switch):
             tooltip_image.size = (0, 0)
 
     def _update_tooltip_size(self):
+        if not self._tooltip:
+            return
         tooltip_label = self._tooltip.ids.tooltip_label
         tooltip_image = self._tooltip.ids.tooltip_image
 
@@ -201,6 +224,10 @@ class ToolTipSwitch(Switch):
             return
 
         pos = args[1]
+        if not self.collide_point(*self.to_widget(*pos)):
+            self.close_tooltip()
+            return
+        self._build_tooltip()
         tooltip_width, tooltip_height = self._tooltip.size
         window_width, window_height = Window.size
         tooltip_label = self._tooltip.ids.tooltip_label
@@ -232,14 +259,17 @@ class ToolTipSwitch(Switch):
             Clock.schedule_once(self.display_tooltip, self.tooltip_delay)
 
     def close_tooltip(self, *args):
+        Clock.unschedule(self.display_tooltip)
         if self._tooltip:  # for memory leaks
             Window.remove_widget(self._tooltip)
 
     def display_tooltip(self, *args):
+        if not self.show_tooltips or self.disabled or not self.get_root_window() or self._is_blocked_by_modal():
+            return
         Window.add_widget(self._tooltip)
 
 
-class ToolTipTextInput(TextInput):
+class ToolTipTextInput(_TooltipBehavior, TextInput):
     tooltip_txt = StringProperty("")
     tooltip_cls = ObjectProperty(Tooltip)
     tooltip_image = StringProperty("")
@@ -254,13 +284,13 @@ class ToolTipTextInput(TextInput):
         if sys.platform == "ios":
             return
         fbind = self.fbind
-        fbind("tooltip_cls", self._build_tooltip)
+        fbind("tooltip_cls", self._reset_tooltip)
         fbind("tooltip_txt", self._update_tooltip)
         fbind("tooltip_image", self._update_image)
         fbind("tooltip_image_size", self._update_image_size)
-        Window.bind(mouse_pos=self.on_mouse_pos)
+        fbind("show_tooltips", self._sync_tooltip_enabled)
         self.bind(on_release=self.close_tooltip)
-        self._build_tooltip()
+        self._sync_tooltip_enabled()
 
     def on_input_focus(self, instance, value):
         if value:
@@ -298,6 +328,8 @@ class ToolTipTextInput(TextInput):
         self._update_tooltip()
 
     def _update_tooltip(self, *largs):
+        if not self._tooltip:
+            return
         txt = self.tooltip_txt
         if txt:
             self._tooltip.ids.tooltip_label.text = txt
@@ -309,6 +341,8 @@ class ToolTipTextInput(TextInput):
         self._update_tooltip_size()
 
     def _update_image(self, *largs):
+        if not self._tooltip:
+            return
         imgpath = self.tooltip_image
         if imgpath:
             self._tooltip.ids.tooltip_image.source = imgpath
@@ -331,6 +365,8 @@ class ToolTipTextInput(TextInput):
             tooltip_image.size = (0, 0)
 
     def _update_tooltip_size(self):
+        if not self._tooltip:
+            return
         tooltip_label = self._tooltip.ids.tooltip_label
         tooltip_image = self._tooltip.ids.tooltip_image
 
@@ -369,6 +405,10 @@ class ToolTipTextInput(TextInput):
             return
 
         pos = args[1]
+        if not self.collide_point(*self.to_widget(*pos)):
+            self.close_tooltip()
+            return
+        self._build_tooltip()
         tooltip_width, tooltip_height = self._tooltip.size
         window_width, window_height = Window.size
         tooltip_label = self._tooltip.ids.tooltip_label
@@ -400,14 +440,17 @@ class ToolTipTextInput(TextInput):
             Clock.schedule_once(self.display_tooltip, self.tooltip_delay)
 
     def close_tooltip(self, *args):
+        Clock.unschedule(self.display_tooltip)
         if self._tooltip:  # for memory leaks
             Window.remove_widget(self._tooltip)
 
     def display_tooltip(self, *args):
+        if not self.show_tooltips or self.disabled or not self.get_root_window() or self._is_blocked_by_modal():
+            return
         Window.add_widget(self._tooltip)
 
 
-class ToolTipButton(Button):
+class ToolTipButton(_TooltipBehavior, Button):
     tooltip_txt = StringProperty("")
     tooltip_cls = ObjectProperty(Tooltip)
     tooltip_image = StringProperty("")
@@ -434,16 +477,16 @@ class ToolTipButton(Button):
         if sys.platform == "ios":
             return
         fbind = self.fbind
-        fbind("tooltip_cls", self._build_tooltip)
+        fbind("tooltip_cls", self._reset_tooltip)
         fbind("tooltip_txt", self._update_tooltip)
         fbind("tooltip_image", self._update_image)
         fbind("tooltip_texture", self._update_image)
         fbind("tooltip_image_size", self._update_image_size)
         fbind("tooltip_horizontal", self._update_tooltip_layout)
         fbind("tooltip_markup", self._update_tooltip_markup)
-        Window.bind(mouse_pos=self.on_mouse_pos)
+        fbind("show_tooltips", self._sync_tooltip_enabled)
         self.bind(on_release=self.close_tooltip)
-        self._build_tooltip()
+        self._sync_tooltip_enabled()
 
     def _is_blocked_by_modal(self):
         for child in Window.children:
@@ -491,6 +534,8 @@ class ToolTipButton(Button):
         self._update_tooltip_size()
 
     def _update_tooltip(self, *largs):
+        if not self._tooltip:
+            return
         txt = self.tooltip_txt
         if txt:
             self._tooltip.ids.tooltip_label.text = txt
@@ -600,6 +645,10 @@ class ToolTipButton(Button):
             return
 
         pos = args[1]
+        if not self.collide_point(*self.to_widget(*pos)):
+            self.close_tooltip()
+            return
+        self._build_tooltip()
         self._layout_tooltip_at(pos)
 
         Clock.unschedule(self.display_tooltip)
@@ -639,10 +688,13 @@ class ToolTipButton(Button):
         self._tooltip.pos = (x, y)
 
     def close_tooltip(self, *args):
+        Clock.unschedule(self.display_tooltip)
         if self._tooltip:  # for memory leaks
             Window.remove_widget(self._tooltip)
 
     def display_tooltip(self, *args):
+        if not self.show_tooltips or self.disabled or not self.get_root_window() or self._is_blocked_by_modal():
+            return
         # Rasterizing is expensive, so it waits until the hover delay has
         # elapsed rather than running on every mouse move across the widget.
         # The box then has to be re-measured around the new image.
@@ -651,7 +703,7 @@ class ToolTipButton(Button):
         Window.add_widget(self._tooltip)
 
 
-class ToolTipDropDown(DropDown):
+class ToolTipDropDown(_TooltipBehavior, DropDown):
     tooltip_txt = StringProperty("")
     tooltip_cls = ObjectProperty(Tooltip)
     tooltip_image = StringProperty("")
@@ -666,13 +718,13 @@ class ToolTipDropDown(DropDown):
         if sys.platform == "ios":
             return
         fbind = self.fbind
-        fbind("tooltip_cls", self._build_tooltip)
+        fbind("tooltip_cls", self._reset_tooltip)
         fbind("tooltip_txt", self._update_tooltip)
         fbind("tooltip_image", self._update_image)
         fbind("tooltip_image_size", self._update_image_size)
-        Window.bind(mouse_pos=self.on_mouse_pos)
+        fbind("show_tooltips", self._sync_tooltip_enabled)
         self.bind(on_release=self.close_tooltip)
-        self._build_tooltip()
+        self._sync_tooltip_enabled()
 
     def _is_blocked_by_modal(self):
         for child in Window.children:
@@ -706,6 +758,8 @@ class ToolTipDropDown(DropDown):
         self._update_tooltip()
 
     def _update_tooltip(self, *largs):
+        if not self._tooltip:
+            return
         txt = self.tooltip_txt
         if txt:
             self._tooltip.ids.tooltip_label.text = txt
@@ -717,6 +771,8 @@ class ToolTipDropDown(DropDown):
         self._update_tooltip_size()
 
     def _update_image(self, *largs):
+        if not self._tooltip:
+            return
         imgpath = self.tooltip_image
         if imgpath:
             self._tooltip.ids.tooltip_image.source = imgpath
@@ -739,6 +795,8 @@ class ToolTipDropDown(DropDown):
             tooltip_image.size = (0, 0)
 
     def _update_tooltip_size(self):
+        if not self._tooltip:
+            return
         tooltip_label = self._tooltip.ids.tooltip_label
         tooltip_image = self._tooltip.ids.tooltip_image
 
@@ -777,6 +835,10 @@ class ToolTipDropDown(DropDown):
             return
 
         pos = args[1]
+        if not self.collide_point(*self.to_widget(*pos)):
+            self.close_tooltip()
+            return
+        self._build_tooltip()
         tooltip_width, tooltip_height = self._tooltip.size
         window_width, window_height = Window.size
         tooltip_label = self._tooltip.ids.tooltip_label
@@ -808,14 +870,17 @@ class ToolTipDropDown(DropDown):
             Clock.schedule_once(self.display_tooltip, self.tooltip_delay)
 
     def close_tooltip(self, *args):
+        Clock.unschedule(self.display_tooltip)
         if self._tooltip:  # for memory leaks
             Window.remove_widget(self._tooltip)
 
     def display_tooltip(self, *args):
+        if not self.show_tooltips or self.disabled or not self.get_root_window() or self._is_blocked_by_modal():
+            return
         Window.add_widget(self._tooltip)
 
 
-class ToolTipLabel(Label):
+class ToolTipLabel(_TooltipBehavior, Label):
     tooltip_txt = StringProperty("")
     tooltip_cls = ObjectProperty(Tooltip)
     tooltip_image = StringProperty("")
@@ -830,13 +895,13 @@ class ToolTipLabel(Label):
         if sys.platform == "ios":
             return
         fbind = self.fbind
-        fbind("tooltip_cls", self._build_tooltip)
+        fbind("tooltip_cls", self._reset_tooltip)
         fbind("tooltip_txt", self._update_tooltip)
         fbind("tooltip_image", self._update_image)
         fbind("tooltip_image_size", self._update_image_size)
-        Window.bind(mouse_pos=self.on_mouse_pos)
+        fbind("show_tooltips", self._sync_tooltip_enabled)
         self.bind(on_release=self.close_tooltip)
-        self._build_tooltip()
+        self._sync_tooltip_enabled()
 
     def _is_blocked_by_modal(self):
         for child in Window.children:
@@ -871,6 +936,8 @@ class ToolTipLabel(Label):
         self._update_tooltip()
 
     def _update_tooltip(self, *largs):
+        if not self._tooltip:
+            return
         txt = self.tooltip_txt
         if txt:
             self._tooltip.ids.tooltip_label.text = txt
@@ -882,6 +949,8 @@ class ToolTipLabel(Label):
         self._update_tooltip_size()
 
     def _update_image(self, *largs):
+        if not self._tooltip:
+            return
         imgpath = self.tooltip_image
         if imgpath:
             self._tooltip.ids.tooltip_image.source = imgpath
@@ -904,6 +973,8 @@ class ToolTipLabel(Label):
             tooltip_image.size = (0, 0)
 
     def _update_tooltip_size(self):
+        if not self._tooltip:
+            return
         tooltip_label = self._tooltip.ids.tooltip_label
         tooltip_image = self._tooltip.ids.tooltip_image
 
@@ -942,6 +1013,10 @@ class ToolTipLabel(Label):
             return
 
         pos = args[1]
+        if not self.collide_point(*self.to_widget(*pos)):
+            self.close_tooltip()
+            return
+        self._build_tooltip()
         tooltip_width, tooltip_height = self._tooltip.size
         window_width, window_height = Window.size
         tooltip_label = self._tooltip.ids.tooltip_label
@@ -973,10 +1048,13 @@ class ToolTipLabel(Label):
             Clock.schedule_once(self.display_tooltip, self.tooltip_delay)
 
     def close_tooltip(self, *args):
+        Clock.unschedule(self.display_tooltip)
         if self._tooltip:  # for memory leaks
             Window.remove_widget(self._tooltip)
 
     def display_tooltip(self, *args):
+        if not self.show_tooltips or self.disabled or not self.get_root_window() or self._is_blocked_by_modal():
+            return
         Window.add_widget(self._tooltip)
 
 

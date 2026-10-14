@@ -249,6 +249,7 @@ from .GcodeViewer import (
     VISIBILITY_ALL_BUCKET_BITS,
     VISIBILITY_MAX_TOOLS,
     GCodeViewer,
+    MeshManager,
 )
 from .ui import widget_helpers
 from .ui.PlayProgressBar import play_percent_from_line, tool_change_markers_to_percents
@@ -1430,6 +1431,7 @@ class ConfigPopup(ModalView):
                     yield widget
 
     def on_open(self):
+        App.get_running_app().root._ensure_controller_settings_panels()
         self._widget_snapshot = {}
         for widget in self._all_setting_items():
             self._widget_snapshot[(widget.section, widget.key)] = widget.value
@@ -2983,7 +2985,7 @@ class Makera(RelativeLayout):
     gcode_playing = BooleanProperty(False)
     gcode_cannot_visualise = BooleanProperty(False)
 
-    probing_popup = ObjectProperty()
+    probing_popup = ObjectProperty(None, allownone=True)
     coord_config = {}
 
     progress_info = StringProperty()
@@ -3172,14 +3174,15 @@ class Makera(RelativeLayout):
         self.input_popup = InputPopup()
         self.manual_wifi_popup = ManualWifiPopup()
 
-        self.probing_popup = ProbingPopup(self.controller)
+        self.probing_popup = None
         self.cmm_workbench_popup = None
-        self.facing_popup = FacingWizardPopup()
-        self.adv_calibrate_popup = AdvCalibratePopup()
+        self.facing_popup = None
+        self.adv_calibrate_popup = None
         self.wcs_settings_popup = WCSSettingsPopup(self.controller, self.wcs_names)
         self.set_rotation_popup = SetRotationPopup(self.controller, self.cnc)
         self.comports_drop_down = DropDown(auto_width=False, width="250dp")
         self.wifi_conn_drop_down = DropDown(auto_width=False, width="250dp")
+        self.wifi_conn_drop_down.bind(on_dismiss=self._cancel_machine_scan)
 
         self.wifi_ap_drop_down = DropDown(auto_width=False, width="300dp")
         self.wifi_ap_drop_down.bind(on_select=lambda instance, x: self.connWIFI(x))
@@ -3229,6 +3232,7 @@ class Makera(RelativeLayout):
         self.machine_config_data_model = None
         self.machine_settings_model = None
         self.controller_setting_change_list = {}
+        self._pending_settings_panels = []
         self.load_controller_config()
         self.load_gcode_viewer_config()
         self.load_pendant_config()
@@ -3389,7 +3393,7 @@ class Makera(RelativeLayout):
                 setting.pop("default", None)
             controller_config.append(setting)
 
-        self.config_popup.settings_panel.add_json_panel(tr._("Controller"), Config, data=json.dumps(controller_config))
+        self._pending_settings_panels.append((tr._("Controller"), json.dumps(controller_config)))
 
         self._update_macro_button_text()
 
@@ -3409,9 +3413,7 @@ class Makera(RelativeLayout):
                 setting.pop("default", None)
             gcode_viewer_config.append(setting)
 
-        self.config_popup.settings_panel.add_json_panel(
-            tr._("G-Code Viewer"), Config, data=json.dumps(gcode_viewer_config)
-        )
+        self._pending_settings_panels.append((tr._("G-Code Viewer"), json.dumps(gcode_viewer_config)))
 
     def load_pendant_config(self):
         config_def_file = os.path.join(os.path.dirname(__file__), "pendant_config.json")
@@ -3429,7 +3431,13 @@ class Makera(RelativeLayout):
             pendant_config.append(setting)
 
         SettingPendantSelector.pendant_types_map = pendant_types_map
-        self.config_popup.settings_panel.add_json_panel(tr._("Pendant"), Config, data=json.dumps(pendant_config))
+        self._pending_settings_panels.append((tr._("Pendant"), json.dumps(pendant_config)))
+
+    def _ensure_controller_settings_panels(self):
+        while self._pending_settings_panels:
+            title, data = self._pending_settings_panels[0]
+            self.config_popup.settings_panel.add_json_panel(title, Config, data=data)
+            self._pending_settings_panels.pop(0)
 
     def _update_macro_button_text(self):
         for macro_config_key in ["touch_macro_1", "touch_macro_2", "touch_macro_3"]:
@@ -3508,6 +3516,10 @@ class Makera(RelativeLayout):
             # But save the state to restore after probing is closed
             self._pre_modal_keyboard_jog = self.keyboard_jog_control
             self.toggle_keyboard_jog_control(True)
+            if self.probing_popup is None:
+                self.probing_popup = ProbingPopup(self.controller)
+                self.probing_popup.delayed_bind(0)
+                self._set_jog_step_inputs_disabled(self.controller.jog_mode == Controller.JOG_MODE_CONTINUOUS)
             self.probing_popup.open()
         else:
             self.select_probe_popup = SelectAndCalibrateProbePopup()
@@ -3545,6 +3557,8 @@ class Makera(RelativeLayout):
             return
         self._pre_modal_keyboard_jog = self.keyboard_jog_control
         self.toggle_keyboard_jog_control(True)
+        if self.facing_popup is None:
+            self.facing_popup = FacingWizardPopup()
         self.facing_popup.open()
 
     def open_adv_calibrate_popup(self):
@@ -3552,6 +3566,8 @@ class Makera(RelativeLayout):
         if not app.is_community_firmware:
             self.show_message_popup(tr._("Adv Calibrate requires the Community firmware."), False)
             return
+        if self.adv_calibrate_popup is None:
+            self.adv_calibrate_popup = AdvCalibratePopup()
         self.adv_calibrate_popup.open()
 
     def open_update_popup(self):
@@ -4051,15 +4067,7 @@ class Makera(RelativeLayout):
 
         # WiFi
         if self.past_machine_addr:
-            if not self.machine_detector.is_machine_busy(self.past_machine_addr):
-                self.openWIFI(self.past_machine_addr)
-                return True
-            if not quiet:
-                Clock.schedule_once(
-                    partial(self.show_message_popup, tr._("Cannot connect, machine is busy or not available."), False),
-                    0,
-                )
-            return False
+            return self.openWIFI(self.past_machine_addr, quiet=quiet)
         if not quiet:
             Clock.schedule_once(
                 partial(self.show_message_popup, tr._("No previous machine network address stored."), False), 0
@@ -4069,7 +4077,11 @@ class Makera(RelativeLayout):
 
     # -----------------------------------------------------------------------
     def _reconnect_in_progress(self):
-        return bool(getattr(self, "_usb_connect_in_progress", False) or getattr(self.controller, "_connecting", False))
+        return bool(
+            getattr(self, "_usb_connect_in_progress", False)
+            or getattr(self, "_wifi_connect_in_progress", False)
+            or getattr(self.controller, "_connecting", False)
+        )
 
     def _auto_attempt_reconnect(self):
         """Quiet retry used by the popup countdown."""
@@ -4101,6 +4113,7 @@ class Makera(RelativeLayout):
         self.controller.cancel_reconnection()
 
     def open_wifi_conn_drop_down(self, button):
+        self._cancel_machine_scan()
         self.wifi_conn_drop_down.clear_widgets()
         btn = MachineButton(
             text=tr._("Searching for nearby machines..."),
@@ -4112,6 +4125,10 @@ class Makera(RelativeLayout):
         self.wifi_conn_drop_down.open(button)
         self.machine_detector.query_for_machines()
         Clock.schedule_interval(self.load_machine_list, 0.1)
+
+    def _cancel_machine_scan(self, *args):
+        Clock.unschedule(self.load_machine_list)
+        self.machine_detector.close()
 
     def load_machine_list(self, *args):
         machines = self.machine_detector.check_for_responses()
@@ -6633,13 +6650,14 @@ class Makera(RelativeLayout):
     # -----------------------------------------------------------------------
     def openUSB(self, device):
         # Serial open + DTR reset sleeps (~1s) + protocol probe must not run on the UI thread.
-        if getattr(self, "_usb_connect_in_progress", False):
+        if self._reconnect_in_progress():
             return
         self._usb_connect_in_progress = True
         self.heartbeat_time = time.time()
         self.status_drop_down.select("")
         # Keep VID:PID + serial in sync even when reconnecting by resolved path.
-        self._store_usb_device_id_for_path(device)
+        if kivy_platform != "android":
+            self._store_usb_device_id_for_path(device)
         label = device
         for entry in Utils.list_identifiable_usb_serial_ports():
             if Utils.same_usb_device_path(entry["device_path"], device):
@@ -6654,10 +6672,15 @@ class Makera(RelativeLayout):
     def _open_usb_worker(self, device):
         success = False
         try:
+            if kivy_platform == "android":
+                from .AndroidUSB import request_permission
+
+                request_permission(device)
             success = bool(self.controller.open(CONN_USB, device))
             self.controller.connection_type = CONN_USB
-        except Exception:
+        except Exception as error:
             logger.exception("USB connection failed for %s", device)
+            self.controller.log.put((self.controller.MSG_ERROR, str(error)))
             success = False
         Clock.schedule_once(lambda dt, ok=success: self._finish_usb_open(ok), 0)
 
@@ -6667,6 +6690,8 @@ class Makera(RelativeLayout):
             self.progress_popup.dismiss()
         if success:
             self.heartbeat_time = time.time()
+            if kivy_platform == "android":
+                self._store_usb_device_id_for_path(self.controller.connection_address)
             self._remember_connection_method("usb")
             # Fallback: attempt baud upgrade after 10s if version is > 2.1.0c and conditions met
             Clock.schedule_once(self.attempt_usb_baud_upgrade_if_eligible, 10)
@@ -6703,16 +6728,37 @@ class Makera(RelativeLayout):
             ).start()
 
     # -----------------------------------------------------------------------
-    def openWIFI(self, address):
-        try:
-            if self.controller.open(CONN_WIFI, address):
-                self.controller.connection_type = CONN_WIFI
-                self.store_machine_address(address.split(":")[0])
-                self._remember_connection_method("wifi")
-        except Exception:
-            logger.error(sys.exc_info()[1])
-        self.updateStatus()
+    def openWIFI(self, address, quiet=False):
+        if self._reconnect_in_progress():
+            return False
+        self._wifi_connect_in_progress = True
+        self.heartbeat_time = time.time()
         self.status_drop_down.select("")
+        if not quiet:
+            self.progressStart(tr._("Connecting via Wi-Fi..."), None)
+        threading.Thread(target=self._open_wifi_worker, args=(address, quiet), daemon=True).start()
+        return True
+
+    def _open_wifi_worker(self, address, quiet):
+        success = False
+        try:
+            success = bool(self.controller.open(CONN_WIFI, address))
+            self.controller.connection_type = CONN_WIFI
+        except Exception:
+            logger.exception("Wi-Fi connection failed for %s", address)
+        Clock.schedule_once(partial(self._finish_wifi_open, address, quiet, success), 0)
+
+    def _finish_wifi_open(self, address, quiet, success, *args):
+        self._wifi_connect_in_progress = False
+        if not quiet and self.progress_popup._is_open:
+            self.progress_popup.dismiss()
+        if success:
+            self.heartbeat_time = time.time()
+            self.store_machine_address(address.split(":")[0])
+            self._remember_connection_method("wifi")
+        elif not quiet:
+            self.show_message_popup(tr._("Cannot connect, machine is busy or not available."), False)
+        self.updateStatus()
 
     # -----------------------------------------------------------------------
     def connWIFI(self, ssid):
@@ -6780,6 +6826,7 @@ class Makera(RelativeLayout):
 
     # -----------------------------------------------------------------------
     def load_machine_config(self):
+        self._ensure_controller_settings_panels()
         app = App.get_running_app()
         panels = self.config_popup.settings_panel.interface.content.panels
 
@@ -6950,7 +6997,10 @@ class Makera(RelativeLayout):
 
     def _set_jog_step_inputs_disabled(self, disabled: bool) -> None:
         # Main window and probing popup
-        for ids_map in (self.ids, self.probing_popup.ids):
+        ids_maps = [self.ids]
+        if self.probing_popup is not None:
+            ids_maps.append(self.probing_popup.ids)
+        for ids_map in ids_maps:
             for name in ("step_xy", "step_a", "step_z"):
                 if name in ids_map:
                     ids_map[name].disabled = disabled
@@ -6961,7 +7011,7 @@ class Makera(RelativeLayout):
             jog.set_step_widgets_disabled(disabled)
 
     def _popup_prevents_jogging(self):
-        modals = [self.probing_popup]
+        modals = [self.probing_popup] if self.probing_popup is not None else []
         if self.cmm_workbench_popup is not None:
             modals.append(self.cmm_workbench_popup)
         return self._is_popup_open() and not any(m.allows_external_jog() for m in modals)
@@ -7171,9 +7221,9 @@ class Makera(RelativeLayout):
             self.progress_popup._is_open,
             self.input_popup._is_open,
             self.config_popup._is_open,
-            self.probing_popup._is_open,
+            (self.probing_popup._is_open if self.probing_popup is not None else False),
             (self.cmm_workbench_popup._is_open if self.cmm_workbench_popup is not None else False),
-            self.facing_popup._is_open,
+            (self.facing_popup._is_open if self.facing_popup is not None else False),
         ]
 
         return any(popups_to_check)
@@ -7684,6 +7734,9 @@ class Makera(RelativeLayout):
     # ------------------------------------------------------------------------
     def load_start(self, *args):
         self.loading_file = True
+        self.used_tools = []
+        self._page_generation = getattr(self, "_page_generation", 0) + 1
+        App.get_running_app().loading_page = False
         self._clear_play_bar_tool_markers()
         self.cmd_manager.transition.direction = "right"
         self.cmd_manager.current = "gcode_cmd_page"
@@ -7691,6 +7744,8 @@ class Makera(RelativeLayout):
         self.init_path_visibility()
         self.gcode_viewer.clearDisplay()
         self.gcode_viewer.begin_new_file_load()
+        self.gcode_viewer.tool_table = {}
+        self.gcode_viewer.tool_unit_scale = 1.0
         self.gcode_viewer.set_display_offset(self.content.x, self.content.y)
         self.gcode_viewer.set_move_speed(GCODE_VIEW_SPEED)
         self.gcode_playing = False
@@ -7706,21 +7761,26 @@ class Makera(RelativeLayout):
             page_no = 1 if app.curr_page == 1 else app.curr_page - 1
         elif page_no == 0:
             page_no = app.curr_page + 1
-        if page_no > app.total_pages:
-            page_no = app.total_pages
-        self.gcode_rv.data = []
+        page_no = max(1, min(page_no, app.total_pages))
+        self._page_generation = getattr(self, "_page_generation", 0) + 1
+        generation = self._page_generation
         hl_enabled = getattr(self, "gcode_highlight_enabled", False)
-        hl_colors = getattr(self, "gcode_highlight_colors", None)
+        hl_colors = dict(getattr(self, "gcode_highlight_colors", None) or {})
+        lines = self.lines[(page_no - 1) * MAX_LOAD_LINES : MAX_LOAD_LINES * page_no]
+        threading.Thread(
+            target=self._load_page_worker, args=(generation, page_no, lines, hl_enabled, hl_colors), daemon=True
+        ).start()
+
+    def _load_page_worker(self, generation, page_no, lines, hl_enabled, hl_colors):
+        rows = []
         line_no = (page_no - 1) * MAX_LOAD_LINES + 1
-        for line in self.lines[(page_no - 1) * MAX_LOAD_LINES : MAX_LOAD_LINES * page_no]:
-            line_txt = line.rstrip("\r\n")
-            plain = line_txt.strip()
-            if hl_enabled:
-                hl = highlight_gcode_line(plain, hl_colors)
-            else:
-                hl = escape_gcode_markup(plain)
-            try:
-                self.gcode_rv.data.append(
+        try:
+            for line in lines:
+                if generation != self._page_generation or self.stop.is_set():
+                    return
+                plain = line.strip()
+                hl = highlight_gcode_line(plain, hl_colors) if hl_enabled else escape_gcode_markup(plain)
+                rows.append(
                     {
                         "line_no": line_no,
                         "text": plain,
@@ -7728,10 +7788,17 @@ class Makera(RelativeLayout):
                         "color": (200 / 255, 200 / 255, 200 / 255, 1),
                     }
                 )
-            except IndexError:
-                logger.error("Tried to write to recycle view data at same time as reading, ignore (indexError)")
-            line_no = line_no + 1
-        self.gcode_rv.data_length = len(self.gcode_rv.data)
+                line_no += 1
+        except Exception:
+            logger.exception("Could not prepare G-code page %s", page_no)
+        Clock.schedule_once(partial(self._finish_load_page, generation, page_no, rows), 0)
+
+    def _finish_load_page(self, generation, page_no, rows, *args):
+        if generation != self._page_generation or self.stop.is_set():
+            return
+        app = App.get_running_app()
+        self.gcode_rv.data = rows
+        self.gcode_rv.data_length = len(rows)
         app.curr_page = page_no
         app.loading_page = False
 
@@ -7740,17 +7807,31 @@ class Makera(RelativeLayout):
         self.load_canceled = True
 
     # ------------------------------------------------------------------------
-    def load_gcodes(self, line_no, parsed_list, *args):
-        is_end = line_no == self.selected_file_line_count
-        if parsed_list or is_end:
-            self.gcode_viewer.load_array(parsed_list, is_end)
+    def load_gcodes(self, line_no, prepared, *args):
+        try:
+            if line_no == self.selected_file_line_count and not self.load_canceled:
+                self.gcode_viewer.tool_table = self.tool_table
+                self.gcode_viewer.tool_unit_scale = unit_scale_to_mm(self.document_unit)
+                self.gcode_viewer.load_prepared(prepared)
+            self.progress_popup.cancel = self.cancel_load_gcodes
+            self.progress_popup.btn_cancel.disabled = False
+            self.progress_popup.progress_value = line_no * 100.0 / max(1, self.selected_file_line_count)
+        finally:
+            self.load_event.set()
 
-        self.progress_popup.cancel = self.cancel_load_gcodes
-        self.progress_popup.btn_cancel.disabled = False
+    def _start_gcode_page(self, total_pages, line_count, *args):
+        self.selected_file_line_count = line_count
+        App.get_running_app().total_pages = total_pages
+        self.load_page(1)
 
-        self.progress_popup.progress_value = line_no * 100.0 / self.selected_file_line_count
+    def _set_loaded_tools(self, used_tools, *args):
+        self.used_tools = used_tools
 
-        self.load_event.set()
+    def _load_gcode_error(self, message, *args):
+        self.heartbeat_time = time.time()
+        self.loading_file = False
+        self.gcode_cannot_visualise = True
+        self.load_error(message)
 
     # ------------------------------------------------------------------------
     def _update_startline_checkbox_disabled(self, *args):
@@ -7849,12 +7930,11 @@ class Makera(RelativeLayout):
         self.load_event.set()
         self.upcoming_tool = 0
         self.file_has_ocodes = False
-        self.used_tools = []
+        used_tools = []
         self.tool_change_markers = []
         self.tool_table = {}
         self.document_unit = "mm"
-        self.gcode_viewer.tool_table = {}
-        self.gcode_viewer.tool_unit_scale = 1.0
+        prepared = MeshManager()
         Clock.schedule_once(self.load_start)
         f = None
         try:
@@ -7879,18 +7959,13 @@ class Makera(RelativeLayout):
             self.cnc.init()
             f = open(filepath, encoding="utf-8")
             self.lines = f.readlines()
-            self.selected_file_line_count = len(self.lines)
+            line_count = len(self.lines)
             f.close()
 
             self.document_unit = detect_document_unit(self.lines)
             self.tool_table = extract_tool_table(self.lines)
-            self.gcode_viewer.tool_table = self.tool_table
-            self.gcode_viewer.tool_unit_scale = unit_scale_to_mm(self.document_unit)
-            app = App.get_running_app()
-            app.total_pages = int(self.selected_file_line_count / MAX_LOAD_LINES) + (
-                0 if self.selected_file_line_count % MAX_LOAD_LINES == 0 else 1
-            )
-            Clock.schedule_once(partial(self.load_page, 1), 0)
+            total_pages = (line_count + MAX_LOAD_LINES - 1) // MAX_LOAD_LINES
+            Clock.schedule_once(partial(self._start_gcode_page, total_pages, line_count), 0)
             f = None
             line_no = 1
             # now = time.time()
@@ -7904,8 +7979,8 @@ class Makera(RelativeLayout):
                 self.cnc.parseLine(line, line_no)
                 if self.upcoming_tool == 0:
                     self.upcoming_tool = self.cnc.tool
-                if (self.cnc.tool_cmd or self.cnc.tool != prev_tool) and self.cnc.tool not in self.used_tools:
-                    self.used_tools.append(self.cnc.tool)
+                if (self.cnc.tool_cmd or self.cnc.tool != prev_tool) and self.cnc.tool not in used_tools:
+                    used_tools.append(self.cnc.tool)
                 tool_change_label = None
                 if self.cnc.mval == 321 or self.cnc.tool == LASER_TOOL_NUMBER:
                     tool_change_label = "L"
@@ -7919,24 +7994,27 @@ class Makera(RelativeLayout):
                     if not (self.tool_change_markers and self.tool_change_markers[-1][1] == tool_change_label):
                         self.tool_change_markers.append((line_no, tool_change_label))
 
-                if line_no % LOAD_INTERVAL == 0 or line_no == self.selected_file_line_count:
-                    parsed_list = self.cnc.coordinates
-                    self.load_event.wait()
+                if line_no % LOAD_INTERVAL == 0 or line_no == line_count:
+                    prepared.add_path_data(self.cnc.coordinates, line_no == line_count)
+                    while not self.load_event.wait(0.1):
+                        if self.load_canceled or self.stop.is_set():
+                            break
+                    if self.load_canceled or self.stop.is_set():
+                        break
                     self.load_event.clear()
-                    # temp_list.extend(self.cnc.coordinates)
-                    Clock.schedule_once(partial(self.load_gcodes, line_no, parsed_list), 0)
+                    Clock.schedule_once(partial(self.load_gcodes, line_no, prepared), 0)
                     self.cnc.coordinates = []
                 line_no += 1
+            if not self.lines:
+                prepared.generate_meshes()
+                Clock.schedule_once(partial(self.load_gcodes, 0, prepared), 0)
             # print('Load time: ' + str(time.time() - now))
             # with open("laser.txt", "w") as output:
             #     output.write(str(temp_list))
         except Exception:
             logger.error(sys.exc_info()[1])
-            self.heartbeat_time = time.time()
-            self.loading_file = False
             if f:
                 f.close()
-            self.gcode_cannot_visualise = True
             self.controller.log.put(
                 (
                     Controller.MSG_ERROR,
@@ -7945,12 +8023,14 @@ class Makera(RelativeLayout):
             )
             Clock.schedule_once(
                 partial(
-                    self.load_error, "Gcode cannot be visualised (parser error or complexity). Playback is unaffected."
+                    self._load_gcode_error,
+                    "Gcode cannot be visualised (parser error or complexity). Playback is unaffected."
                 ),
                 0,
             )
             return
 
+        Clock.schedule_once(partial(self._set_loaded_tools, used_tools), 0)
         Clock.schedule_once(self.load_end, 0)
 
     # -----------------------------------------------------------------------
@@ -8228,6 +8308,7 @@ class MakeraApp(App):
     safe_area_padding = ListProperty([0, 0, 0, 0])
 
     def on_stop(self):
+        self.root._cancel_machine_scan()
         # Cancel any ongoing reconnection attempts to prevent hanging
         if hasattr(self.root, "controller") and self.root.controller:
             self.root.controller.cancel_reconnection()
@@ -8246,6 +8327,9 @@ class MakeraApp(App):
         self.use_kivy_settings = True
         self.title = tr._("Carvera Controller Community") + " v" + __version__
         self.icon = os.path.join(os.path.dirname(__file__), "icon.png")
+        self.show_tooltips = Config.getboolean("carvera", "show_tooltips", fallback=True)
+        tooltip_delay = Config.getfloat("carvera", "tooltip_delay", fallback=0.5)
+        self.tooltip_delay = tooltip_delay if tooltip_delay >= 0 else 0.5
 
         return Makera(ctl_version=__version__)
 

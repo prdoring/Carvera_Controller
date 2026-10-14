@@ -39,8 +39,7 @@ class MachineDetector:
         self.machine_list = []
         self.machine_name_list = []
         self.sock = None
-        self.t = None
-        self.tr = None
+        self.deadline = None
 
     def is_machine_busy(self, addr):
         """Tries to connect to the machine, if machine is available returns true else false"""
@@ -52,40 +51,54 @@ class MachineDetector:
             return True
 
     def query_for_machines(self):
-        UDP_IP = "0.0.0.0"
-        # test
-        # self.machine_list.append({'machine': 'Dummy machine', 'ip': '127.0.0.1', 'port': 7777, 'busy': False})
+        self.close()
+        self.machine_list = []
+        self.machine_name_list = []
         try:
-            self.machine_list = []
-            self.machine_name_list = []
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.sock.settimeout(1)
-            self.sock.bind((UDP_IP, UDP_PORT))
-            self.t = self.tr = time.time()
-        except:
-            print(sys.exc_info()[1])
+            self.sock.setblocking(False)
+            self.sock.bind(("0.0.0.0", UDP_PORT))
+            self.deadline = time.monotonic() + 3
+        except OSError:
+            logger.exception("Could not listen for nearby machines")
+            self.close()
+
+    def close(self):
+        if self.sock is not None:
+            self.sock.close()
+        self.sock = None
+        self.deadline = None
 
     def check_for_responses(self):
-        try:
-            if self.t - self.tr < 3:
-                fields = []
-                try:
-                    data, addr = self.sock.recvfrom(128)  # buffer size is 1024 bytes
-                    fields = data.decode("utf-8").split(",")
-                except:
-                    pass
-                if len(fields) > 3 and fields[0] not in self.machine_name_list:
-                    self.machine_name_list.append(fields[0])
-                    self.machine_list.append(
-                        {"machine": fields[0], "ip": fields[1], "port": int(fields[2]), "busy": fields[3] == "1"}
-                    )
-                    print(self.machine_list[-1])
-                self.t = time.time()
-                return None
-            self.sock.close()
+        if self.sock is None:
             return self.machine_list
-        except:
-            print(sys.exc_info()[1])
+        # Limit work per frame even if unrelated devices flood the UDP port.
+        for _ in range(64):
+            try:
+                data, _addr = self.sock.recvfrom(128)
+            except BlockingIOError:
+                break
+            except OSError:
+                logger.exception("Machine discovery failed")
+                self.close()
+                return self.machine_list
+            try:
+                fields = data.decode("utf-8").split(",")
+                if len(fields) < 4 or not fields[0] or fields[0] in self.machine_name_list:
+                    continue
+                port = int(fields[2])
+                if not 0 < port < 65536:
+                    continue
+            except (UnicodeError, ValueError):
+                continue
+            self.machine_name_list.append(fields[0])
+            self.machine_list.append(
+                {"machine": fields[0], "ip": fields[1], "port": port, "busy": fields[3] == "1"}
+            )
+        if time.monotonic() >= self.deadline:
+            self.close()
+            return self.machine_list
+        return None
 
 
 # ==============================================================================

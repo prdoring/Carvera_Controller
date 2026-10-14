@@ -397,7 +397,12 @@ def list_identifiable_usb_serial_ports(port_iter=None):
     """
     if port_iter is None:
         try:
-            from serial.tools.list_ports import comports as list_ports_comports
+            from .AndroidUSB import is_android
+
+            if is_android():
+                from .AndroidUSB import comports as list_ports_comports
+            else:
+                from serial.tools.list_ports import comports as list_ports_comports
         except ImportError:
             return []
         # include_links=False avoids duplicate /dev/serial/by-id entries on Linux.

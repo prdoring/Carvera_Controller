@@ -207,6 +207,9 @@ android.api = 34
 
 # (list) Gradle dependencies to add
 #android.gradle_dependencies =
+android.gradle_dependencies = com.github.mik3y:usb-serial-for-android:3.8.1
+android.enable_androidx = True
+android.add_gradle_repositories = maven { url 'https://jitpack.io' }
 
 # (bool) Enable AndroidX support. Enable when 'android.gradle_dependencies'
 # contains an 'androidx' package, or any package from Kotlin source.
