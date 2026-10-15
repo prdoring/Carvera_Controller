@@ -26,6 +26,7 @@ def test_hook_is_idempotent_and_preserves_normal_sdl_deletion():
     assert "super.deleteSurroundingText(beforeLength, afterLength)" in patched
     assert "super.deleteSurroundingTextInCodePoints(beforeLength, afterLength)" in patched
     assert "editable.length() != 0 || !mCommittedText.isEmpty()" in patched
+    assert "beforeLength != 1" in patched
 
 
 def test_hook_refuses_changed_sdl_source():

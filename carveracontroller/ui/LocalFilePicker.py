@@ -12,9 +12,34 @@ from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.dropdown import DropDown
 from kivy.uix.popup import Popup
+from kivy.uix.filechooser import FileChooserListView
+from kivy.utils import platform
 
 from carveracontroller import Utils
 from carveracontroller.translation import tr
+from .touch import Gesture
+
+
+class TouchFileChooserListView(FileChooserListView):
+    def entry_touched(self, entry, touch):
+        if platform != "android":
+            return super().entry_touched(entry, touch)
+        if not getattr(touch, "is_mouse_scrolling", False):
+            touch.ud[self] = (entry, entry.path, Gesture(touch))
+
+    def entry_released(self, entry, touch):
+        if platform != "android":
+            return super().entry_released(entry, touch)
+        candidate = touch.ud.pop(self, None)
+        if candidate is None:
+            return
+        original, path, gesture = candidate
+        if not gesture.finish() or original is not entry or path != entry.path:
+            return
+        if self.file_system.is_dir(path):
+            self.open_entry(entry)
+        else:
+            super().entry_touched(entry, touch)
 
 
 class LocalFilePickerDirButton(ButtonBehavior, BoxLayout):

@@ -16,6 +16,14 @@
         "default": "2.0"
     },
     {
+        "type": "numeric",
+        "title": "Android Interface Size",
+        "desc": "1 follows Android display size. Larger values enlarge text and controls. Restart the app to apply.",
+        "section": "carvera",
+        "key": "android_ui_scale",
+        "default": "1.0"
+    },
+    {
         "type": "bool",
         "title": "Show Tooltips",
         "desc": "Should the controller display tooltips?",

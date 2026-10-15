@@ -26,6 +26,12 @@ def test_numeric_keyboard_includes_sign_and_decimal_flags():
     assert keyboard_flags("filename") & 0x80000
 
 
+def test_integer_validation_does_not_round_or_accept_fractional_notation():
+    assert is_complete_number("9007199254740993", integer=True)
+    assert not is_complete_number("1.0", integer=True)
+    assert not is_complete_number("1e2", integer=True)
+
+
 def test_select_all_is_bound_once_and_blur_cancels_it():
     widget = EditingTextInput(text="123")
     widget.select_all = Mock()

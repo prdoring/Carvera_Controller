@@ -519,3 +519,18 @@ CMM sketch controls provide zoom/Fit, captured pan/pinch, completed feature
 selection and an overlap chooser. Host widget checks cover slider ownership and
 outside release, menu dismissal, completed toggles, cancelled holds and
 finger-count transitions. Physical CA1 jogging remains pending.
+
+Android sizing now uses display density with a separate interface-size setting;
+an explicit old density override migrates to the equivalent scale. Controls and
+actionable rows have a minimum 48 Android dp target. Splitter grab areas have a
+thin visible divider. Dialogs reserve keyboard space and expose scrolling forms,
+wrapping action rows and touch-accessible help. Back dismisses the keyboard
+first, then idle dialogs/navigation, and confirms unapplied coordinate edits or
+exit. Active operations retain their explicit cancellation controls.
+
+The constrained desktop preview exposed compressed A/Z jog step selectors in
+probing. Their fractional height competed with spacer labels. Selectors now use
+fixed touch heights inside full-height rows. The probing jog panel stays outside
+the form scroll view and is hidden/disabled during keyboard editing. Tests check
+selector alignment and parent bounds, in addition to six keyboard-visible forms.
+Final packaged layout checks on the Pi remain pending.

@@ -7,6 +7,7 @@
 #:import _ carveracontroller.ui.DropDownSplitter
 #:import _ carveracontroller.ui.CollapsibleSplitter
 #:import play_progress_bar carveracontroller.ui.PlayProgressBar
+#:import TouchActionRow carveracontroller.ui.android_layout.TouchActionRow
 #:import GcodeColorSchemePanel carveracontroller.ui.GcodeColorSchemePanel.GcodeColorSchemePanel
 #:import CameraView carveracontroller.addons.camera.CameraView.CameraView
 #:import LASER_TOOL_NUMBER carveracontroller.CNC.LASER_TOOL_NUMBER
@@ -313,6 +314,7 @@
 <GridBoxLayout@BoxLayout>:
     orientation: 'vertical'
     padding: '5dp'
+    size_hint_min_y: app.touch_target + dp(10) if app.android_touch else 0
 
 <RoundButton@Button>:
     background_color: 0,0,0,0  # the last zero is the critical on, make invisible

@@ -30,6 +30,7 @@
         GridLayout:
             cols:2
             rows:2
+            size_hint_min_y: app.touch_target * 9 if app.android_touch else 0
             spacing: dp(10)
             padding: dp(3)
 
@@ -468,9 +469,10 @@
 
         #jogging controls
         BoxLayout:
+            id: jog_panel
             spacing: '0dp'
-            size_hint_y: 0.3
-            height: '120dp'
+            size_hint_y: None if app.android_touch else 0.3
+            height: 3 * (app.touch_target + dp(10)) + dp(12) if app.android_touch else dp(120)
             GridLayout:
                 cols:5
                 rows:1
@@ -553,7 +555,7 @@
                             size: self.size
                             radius: [5,5]
                     GridLayout:
-                        size_hint_y: 0.9
+                        size_hint_y: 1 if app.android_touch else 0.9
                         cols: 2
                         rows: 3
                         GridBoxLayout:
@@ -573,7 +575,7 @@
                             Spinner:
                                 id: step_a
                                 center: 0.5, 0.5
-                                size_hint_y: 0.9
+                                size_hint_y: None
                                 height: app.touch_target if app.android_touch else dp(30)
                                 text: app.jog_step_a
                                 on_text: app.jog_step_a = self.text
@@ -584,7 +586,7 @@
                             Spinner:
                                 id: step_z
                                 center: 0.5, 0.5
-                                size_hint_y: 0.9
+                                size_hint_y: None
                                 height: app.touch_target if app.android_touch else dp(30)
                                 text: app.jog_step_z
                                 on_text: app.jog_step_z = self.text

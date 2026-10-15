@@ -607,7 +607,7 @@
                     pos: self.pos[0], self.pos[1] + self.height - dp(1)
                     size: self.width, dp(1)
 
-            BoxLayout:
+            TouchActionRow:
                 spacing: dp(10)
                 size_hint_y: None
                 height: app.touch_target if app.android_touch else dp(44)

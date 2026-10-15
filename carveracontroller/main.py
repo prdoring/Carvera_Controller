@@ -42,10 +42,8 @@ if is_android():
         activity = PythonActivity.mActivity
         metrics = DisplayMetrics()
         activity.getWindowManager().getDefaultDisplay().getMetrics(metrics)
-        screen_width_density = int(metrics.widthPixels * 10 / 1000) / 10
-        screen_height_density = int(metrics.heightPixels * 10 / 550) / 10
-
-        os.environ["KIVY_METRICS_DENSITY"] = str(min(screen_width_density, screen_height_density))
+        os.environ["CARVERA_ANDROID_DENSITY"] = str(metrics.density)
+        os.environ["KIVY_METRICS_DENSITY"] = str(metrics.density)
 
     except ImportError:
         print("Pyjnius Import Fail.")
@@ -488,7 +486,6 @@ class FloatBox(FloatLayout):
     camera_controls = ObjectProperty(None)
     camera_view = ObjectProperty(None)
     tool_bar = ObjectProperty(None)
-
 
 class BoxStencil(BoxLayout, StencilView):
     pass
@@ -1782,7 +1779,11 @@ class SetRotationPopup(ModalView):
 
 class MakeraConfigPanel(SettingsWithSidebar):
     def __init__(self, *args, **kwargs):
+        from .ui.settings_fields import EditingSettingNumeric, EditingSettingString
+
         super().__init__(*args, **kwargs)
+        self.register_type("string", EditingSettingString)
+        self.register_type("numeric", EditingSettingNumeric)
         self.register_type("pendant", SettingPendantSelector)
         self.register_type("gcodesnippet", custom_widgets.SettingGCodeSnippet)
         self.register_type("colorpicker", custom_widgets.SettingColorPicker)
@@ -3375,6 +3376,10 @@ class Makera(RelativeLayout):
             if "default" in setting:
                 Config.setdefault(setting["section"], setting["key"], setting["default"])
                 setting.pop("default", None)
+            if kivy_platform == "android" and setting.get("key") in ("ui_density", "ui_density_override"):
+                continue
+            if kivy_platform != "android" and setting.get("key") == "android_ui_scale":
+                continue
             controller_config.append(setting)
 
         self._pending_settings_panels.append((tr._("Controller"), json.dumps(controller_config)))
@@ -7233,6 +7238,9 @@ class Makera(RelativeLayout):
             logger.debug("Light state manually refreshed from CNC.vars")
 
     def _global_keyboard_keydown(self, window, key, scancode, codepoint, modifiers):
+        app = App.get_running_app()
+        if key == 27 and getattr(app, "_touch_layout", None) is not None:
+            return app._touch_layout.back()
         COMMA_KEY = 44
         M_KEY = 109
         cmd_mod = "meta" if sys.platform == "darwin" else "ctrl"
@@ -7303,9 +7311,7 @@ class Makera(RelativeLayout):
         self.message_popup.open()
 
     def apply_controller_setting_changes(self):
-        if self.controller_setting_change_list.get("ui_density_override") or self.controller_setting_change_list.get(
-            "ui_density"
-        ):
+        if any(key in self.controller_setting_change_list for key in ("ui_density_override", "ui_density", "android_ui_scale")):
             self.message_popup.lb_content.text = tr._("UI Density changed, restart application to apply.")
             self.message_popup.open()
 
@@ -8287,13 +8293,12 @@ class MakeraApp(App):
     jog_keyboard_enable = StringProperty("normal")
     jog_pendant_enable = StringProperty("normal")
     jog_pendant_text = StringProperty(tr._("No Pendant"))
-    # [left, top, right, bottom] in pixels — populated on iOS from
-    # UIWindow.safeAreaInsets (see _update_safe_area_padding).
+    # [left, top, right, bottom] system-bar and cutout insets in pixels.
     safe_area_padding = ListProperty([0, 0, 0, 0])
-    android_keyboard_height = NumericProperty(0)
     android_touch = BooleanProperty(kivy_platform == "android")
     touch_target = NumericProperty(48 * float(os.environ.get("CARVERA_ANDROID_DENSITY", "1")))
     _touch_layout = None
+    android_keyboard_height = NumericProperty(0)
     _android_input = None
 
     def on_stop(self):
@@ -8302,11 +8307,15 @@ class MakeraApp(App):
 
         ConfigUtils.flush_saves()
 
+        if self._touch_layout is not None:
+            self._touch_layout.stop()
         if self._android_input is not None:
             self._android_input.stop()
             EventLoop.remove_postproc_module(self._android_input)
         if hasattr(self, "_touch_postprocessor"):
             EventLoop.remove_postproc_module(self._touch_postprocessor)
+        if hasattr(self, "_focus_touch"):
+            Window.unbind(focus=self._focus_touch, children=self._modal_touch)
         cancel_all_touches()
         self.root.controller.stopContinuousJog()
         self.root._cancel_machine_scan()
@@ -8342,10 +8351,16 @@ class MakeraApp(App):
 
             self._android_input = AndroidInput(self)
             EventLoop.add_postproc_module(self._android_input)
+        if self.android_touch:
+            from .ui.android_layout import AndroidTouchLayout
+
+            self.touch_target = max(self.touch_target, dp(48))
+            self._touch_layout = AndroidTouchLayout(self)
         self._touch_postprocessor = TouchPostprocessor()
         EventLoop.add_postproc_module(self._touch_postprocessor)
-        Window.bind(focus=lambda _window, focused: cancel_all_touches() if not focused else None)
-        Window.bind(children=lambda *_: cancel_jog())
+        self._focus_touch = lambda _window, focused: cancel_all_touches() if not focused else None
+        self._modal_touch = lambda *_: cancel_jog()
+        Window.bind(focus=self._focus_touch, children=self._modal_touch)
         # Workaround for Android blank screen issue
         # https://github.com/kivy/python-for-android/issues/2720
         viewport_update_count = 0
@@ -8391,7 +8406,21 @@ class MakeraApp(App):
 
 
 def load_app_configs():
-    if Config.has_option("carvera", "ui_density_override") and Config.get("carvera", "ui_density_override") == "1":
+    if kivy_platform == "android":
+        density = float(os.environ.get("CARVERA_ANDROID_DENSITY", "1"))
+        if not Config.has_option("carvera", "android_ui_scale"):
+            legacy = Config.getboolean("carvera", "ui_density_override", fallback=False)
+            scale = Config.getfloat("carvera", "ui_density", fallback=density) / density if legacy else 1.0
+            Config.set("carvera", "android_ui_scale", str(scale))
+        try:
+            scale = Config.getfloat("carvera", "android_ui_scale")
+            if not 0 < scale < float("inf"):
+                raise ValueError("Interface size must be positive")
+        except ValueError:
+            scale = 1.0
+            Config.set("carvera", "android_ui_scale", "1.0")
+        Metrics.set_density(density * scale)
+    elif Config.getboolean("carvera", "ui_density_override", fallback=False):
         Metrics.set_density(float(Config.get("carvera", "ui_density")))
 
     # Configure logging level from config
@@ -8550,7 +8579,7 @@ def set_config_defaults(default_lang):
 
 
 def load_constants():
-    Window.softinput_mode = "below_target"
+    Window.softinput_mode = "" if kivy_platform == "android" else "below_target"
 
     _device = None
     _baud = None

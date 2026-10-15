@@ -7,13 +7,11 @@ EMPTY_EDITOR_DELETE = r'''
     // The native editor can be empty while Kivy still owns text after refocus.
     private boolean deleteFromEmptyEditor(int beforeLength, int afterLength) {
         Editable editable = getEditable();
-        if (beforeLength <= 0 || afterLength != 0 || editable == null
+        if (beforeLength != 1 || afterLength != 0 || editable == null
                 || editable.length() != 0 || !mCommittedText.isEmpty()) {
             return false;
         }
-        while (beforeLength-- > 0) {
-            nativeGenerateScancodeForUnichar('\b');
-        }
+        nativeGenerateScancodeForUnichar('\b');
         return true;
     }
 
@@ -32,9 +30,16 @@ CODEPOINT_DELETE = '''
 
 
 def patch_sdl_keyboard(source):
-    if "private boolean deleteFromEmptyEditor(" in source:
-        return source
     method = "    @Override\n    public boolean deleteSurroundingText(int beforeLength, int afterLength) {"
+    if "private boolean deleteFromEmptyEditor(" in source:
+        if EMPTY_EDITOR_DELETE.strip() in source:
+            return source
+        start = source.index("    // The native editor can be empty")
+        end = source.index(method, start)
+        previous = source[start:end]
+        if "beforeLength <= 0" not in previous or "while (beforeLength-- > 0)" not in previous:
+            raise RuntimeError("Unexpected SDL2 empty-editor deletion fix; review before building")
+        return source[:start] + EMPTY_EDITOR_DELETE.lstrip("\n") + source[end:]
     insertion = "        if (!super.deleteSurroundingText(beforeLength, afterLength)) {"
     update = "    protected void updateText() {"
     for anchor in (method, insertion, update):

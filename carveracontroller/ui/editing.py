@@ -14,8 +14,11 @@ def is_complete_number(text, integer=False, allow_empty=False):
     if not text:
         return allow_empty
     try:
+        if integer:
+            int(text)
+            return True
         value = float(text)
-        return math.isfinite(value) and (not integer or value.is_integer())
+        return math.isfinite(value)
     except (ValueError, TypeError, OverflowError):
         return False
 

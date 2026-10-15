@@ -15,6 +15,7 @@ from kivy.uix.behaviors import ToggleButtonBehavior
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
+from kivy.uix.settings import SettingItem
 from kivy.utils import platform
 
 from carveracontroller.addons.tooltips.Tooltips import ToolTipButton
@@ -41,6 +42,9 @@ def cancel_touch(touch):
     touch.ud[TOUCH_CANCELLED] = True
     for ref in list(touch.grab_list):
         widget = ref()
+        if isinstance(widget, SettingItem):
+            widget.selected_alpha = 0
+            touch.ungrab(widget)
         if isinstance(widget, ButtonBehavior):
             if isinstance(widget, JogTouchButton):
                 widget.cancel_jog()

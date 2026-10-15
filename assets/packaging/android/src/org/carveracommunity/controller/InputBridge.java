@@ -135,7 +135,7 @@ public final class InputBridge {
 
     private static void addEdge(int id, String action) {
         float[] start = starts.get(id);
-        edges.put(new JSONArray().put(id).put(action).put(start == null ? 0 : start[2]));
+        edges.put(new JSONArray().put(id).put(action).put(start == null ? 0 : (int) Math.ceil(start[2])));
         if (!action.equals("down")) starts.remove(id);
     }
 
