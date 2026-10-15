@@ -966,6 +966,7 @@
                             padding: [dp(4), dp(4), dp(20), dp(10)]
 
             TouchActionRow:
+                id: cmm_actions
                 size_hint_y: None
                 height: dp(58)
                 spacing: dp(6)
@@ -995,6 +996,10 @@
                     disabled: root.is_probing
                     on_release: root.open_jog_popup()
                 Button:
+                    text: tr._('Cancel probe')
+                    disabled: not root.is_probing
+                    on_release: root._cancel_probe_run()
+                Button:
                     text: tr._('Close')
                     size_hint_x: 1
                     on_release: root.dismiss()
@@ -1005,10 +1010,10 @@
             id: probing_banner
             orientation: 'horizontal'
             size_hint: None, None
-            height: dp(40) if root.is_probing else 0
+            height: max(app.touch_target, dp(64)) if root.is_probing else 0
             width: (cmm_workbench_body.width - cmm_workbench_body.padding[0] - cmm_workbench_body.padding[2]) if root.is_probing else 0
             x: cmm_workbench_body.x + cmm_workbench_body.padding[0]
-            y: cmm_workbench_body.y + cmm_workbench_body.padding[3] + dp(58) + dp(6)
+            y: cmm_workbench_body.y + cmm_workbench_body.padding[3] + cmm_actions.height + dp(6)
             opacity: 1 if root.is_probing else 0
             padding: dp(10), dp(6), dp(10), dp(6)
             spacing: dp(8)

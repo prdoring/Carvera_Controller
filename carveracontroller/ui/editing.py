@@ -35,6 +35,7 @@ def keyboard_flags(policy):
 
 class EditingTextInput(TextInput):
     input_policy = OptionProperty("auto", options=("auto", "text", "filename", "gcode", "integer", "decimal"))
+    saves_immediately = BooleanProperty(False)
     draft_valid = BooleanProperty(True)
     validation_error = BooleanProperty(False)
 

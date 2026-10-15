@@ -259,7 +259,8 @@ class CMMWorkbenchPopup(ModalView):
             set_status_text=lambda v: setattr(self, "probing_status_text", v),
             on_is_probing_changed=self._on_probe_is_probing_changed,
             controller_abort=self.controller.abortCommand,
-            get_machine_state=lambda: App.get_running_app().state,
+            get_machine_state=lambda: CNC.vars.get("state", "N/A"),
+            get_status_revision=lambda: self.controller.status_revision,
             on_timeout=self._on_probe_timeout_toast,
             on_invalid_state=self._on_probe_invalid_state,
         )

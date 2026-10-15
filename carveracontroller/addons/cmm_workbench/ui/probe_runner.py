@@ -25,6 +25,7 @@ class ProbeRunner:
         get_machine_state: Callable[[], str],
         on_timeout: Callable[[], None],
         on_invalid_state: Callable[[str], None],
+        get_status_revision: Callable[[], int] = lambda: 0,
     ) -> None:
         self._set_is_probing = set_is_probing
         self._set_status_text = set_status_text
@@ -33,6 +34,9 @@ class ProbeRunner:
         self._get_machine_state = get_machine_state
         self._on_timeout_cb = on_timeout
         self._on_invalid_state_cb = on_invalid_state
+        self._get_status_revision = get_status_revision
+        self.cancellation_pending = False
+        self._cancel_event = None
 
         self._gen: int = 0
         self._active_token: int | None = None
@@ -42,6 +46,8 @@ class ProbeRunner:
 
     def start(self) -> int:
         """Start a probe run. Returns the run token for deferred validation."""
+        if self.cancellation_pending:
+            raise RuntimeError("Waiting for a fresh stopped-machine status")
         self._gen += 1
         self._active_token = self._gen
         self._anim_frame = 0
@@ -74,6 +80,8 @@ class ProbeRunner:
 
     def complete(self) -> None:
         """Mark the current probe run as finished (success path)."""
+        if self._active_token is None:
+            return
         self._invalidate_token()
         self._clear_events()
         self._set_is_probing(False)
@@ -82,13 +90,35 @@ class ProbeRunner:
 
     def cancel(self, *, abort_machine: bool = False) -> None:
         """Cancel the current probe run and optionally abort the machine."""
+        was_active = self._active_token is not None
         self._invalidate_token()
         self._clear_events()
-        if abort_machine and self._get_machine_state() != "Idle":
+        if self.cancellation_pending:
+            return
+        if abort_machine and was_active:
+            self.cancellation_pending = True
+            self._cancel_revision = self._get_status_revision()
+            self._set_status_text(tr._("Cancelling probe — waiting for machine status"))
             self._controller_abort()
+            self._cancel_event = Clock.schedule_interval(self._check_cancelled, .1)
+            return
         self._set_is_probing(False)
         self._set_status_text("")
         self._on_is_probing_changed()
+
+    def _check_cancelled(self, _dt):
+        state = self._get_machine_state()
+        if state in ("N/A", "Wait"):
+            self._set_status_text(tr._("Connection lost — probe stop is unconfirmed"))
+            return None
+        if self._get_status_revision() <= self._cancel_revision or state not in ("Idle", "Alarm", "Sleep", "Disable"):
+            return None
+        self.cancellation_pending = False
+        self._cancel_event = None
+        self._set_is_probing(False)
+        self._set_status_text(tr._("Probe cancelled") if state == "Idle" else tr._("Probe stopped:") + " " + state)
+        self._on_is_probing_changed()
+        return False
 
     def shutdown(self) -> None:
         """Silently cancel all events without firing callbacks (use on popup dismiss)."""

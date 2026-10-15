@@ -1689,7 +1689,7 @@
         tab_width: root.width / 2 - dp(2)
         TouchTabbedPanelItem:
             text: tr._('Auto-Set By Offset')
-            BoxLayout:
+            DialogSurface:
                 padding: '15dp'
                 orientation: 'vertical'
                 BoxLayout:
@@ -1784,7 +1784,7 @@
                         text: tr._('Note: Work origin will be set immediately when clicking OK.')
                         color: 52/255, 152/255, 219/255, 1
 
-                BoxLayout:
+                TouchActionRow:
                     spacing: '5dp'
                     size_hint_y: None
                     height: app.touch_target if app.android_touch else dp(40)
@@ -1800,7 +1800,7 @@
 
         TouchTabbedPanelItem:
             text: tr._('Set By XYZ Probe')
-            BoxLayout:
+            DialogSurface:
                 padding: '15dp'
                 orientation: 'vertical'
                 BoxLayout:
@@ -1844,7 +1844,7 @@
                         valign: "middle"
                         text_size: self.size
                         color: 52/255, 152/255, 219/255, 1
-                BoxLayout:
+                TouchActionRow:
                     spacing: '5dp'
                     size_hint_y: None
                     height: app.touch_target if app.android_touch else dp(40)
@@ -1865,7 +1865,7 @@
     cbx_origin2: cbx_origin2
     txt_x_offset: txt_x_offset
     txt_y_offset: txt_y_offset
-    BoxLayout:
+    DialogSurface:
         padding: '15dp'
         orientation: 'vertical'
         Label:
@@ -1929,7 +1929,7 @@
                 input_filter: 'float'
         BoxLayout:
             id: empty
-        BoxLayout:
+        TouchActionRow:
             spacing: '5dp'
             size_hint_y: None
             height: app.touch_target if app.android_touch else dp(40)
@@ -1949,7 +1949,7 @@
     origin: 0
     txt_probe_height: txt_probe_height
     txt_tool_diameter: txt_tool_diameter
-    BoxLayout:
+    DialogSurface:
         padding: '15dp'
         orientation: 'vertical'
         Label:
@@ -2007,7 +2007,7 @@
                 valign: "middle"
                 text_size: self.size
                 color: 52/255, 152/255, 219/255, 1
-        BoxLayout:
+        TouchActionRow:
             spacing: '5dp'
             size_hint_y: None
             height: app.touch_target if app.android_touch else dp(40)
@@ -2090,7 +2090,7 @@
     lb_max_y: lb_max_y
     lb_step_y: lb_step_y
 
-    BoxLayout:
+    DialogSurface:
         padding: '15dp'
         orientation: 'vertical'
         Label:
@@ -2253,7 +2253,7 @@
 
         BoxLayout:
             id: empty
-        BoxLayout:
+        TouchActionRow:
             spacing: '5dp'
             size_hint_y: None
             height: app.touch_target if app.android_touch else dp(40)
@@ -2977,11 +2977,21 @@
                 valign: "middle"
                 text_size: self.size
 
+        ToggleButton:
+            id: show_illustration
+            size_hint_y: None
+            height: app.touch_target if app.android_touch and app.compact_layout else 0
+            opacity: 1 if self.height else 0
+            disabled: not self.height
+            text: tr._('Hide illustration') if self.state == 'down' else tr._('Show illustration')
         BoxLayout:
             padding: '5dp'
             spacing: '5dp'
             orientation: 'horizontal'
             AnchorLayout:
+                size_hint_x: 0 if app.android_touch and app.compact_layout and show_illustration.state != 'down' else 1
+                opacity: 0 if app.android_touch and app.compact_layout and show_illustration.state != 'down' else 1
+                disabled: app.android_touch and app.compact_layout and show_illustration.state != 'down'
                 anchor_x: 'center'
                 anchor_y: 'center'
                 canvas:
@@ -2992,306 +3002,310 @@
                         size: self.size
                 CNCWorkspace:
                     id: cnc_workspace
-            BoxLayout:
-                size_hint_x: None
-                width: '200dp'
-                orientation: 'vertical'
+            ScrollView:
+                do_scroll_x: False
+                size_hint_x: 1 if app.android_touch else None
+                width: dp(260)
                 BoxLayout:
-                    padding: '5dp', '0dp', '5dp', '10dp'
-                    spacing: '5dp'
+                    size_hint_x: 1
                     size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(40)
-                    Label:
-                        text: tr._("Background:")
-                    Spinner:
-                        id: background_image_spinner
-                        text: "None"
-                        size_hint_x: 1.75
-                        on_text: root.update_background_image(self.text)
+                    height: self.minimum_height
+                    orientation: 'vertical'
+                    BoxLayout:
+                        padding: '5dp', '0dp', '5dp', '10dp'
+                        spacing: '5dp'
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(40)
+                        Label:
+                            text: tr._("Background:")
+                        Spinner:
+                            id: background_image_spinner
+                            text: "None"
+                            size_hint_x: 1.75
+                            on_text: root.update_background_image(self.text)
 
-                BoxLayout:
-                    padding: '0.5dp'
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(30)
-                    disabled: app.model != 'C1'
+                    BoxLayout:
+                        padding: '0.5dp'
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(30)
+                        disabled: app.model != 'C1'
+                        Label:
+                            text: tr._("Auto Vacuum")
+                            halign: "left"
+                            valign: "middle"
+                            font_size: '13sp'
+                            text_size: self.size
+
+                            canvas.before:
+                                Color:
+                                    rgba: 50/255, 50/255, 50/255, 1
+                                Rectangle:
+                                    pos: self.pos
+                                    size: self.size
+                        Switch:
+                            id: vacuum_switch_play
+                            canvas.before:
+                                Color:
+                                    rgba: 50/255, 50/255, 50/255, 1
+                                Rectangle:
+                                    pos: self.pos
+                                    size: self.size
+                            active: True if root.vacuummode == 1 else False
+                            on_active:
+                                app.root.update_control('vacuum_mode', self.active)
+
+                    BoxLayout:
+                        padding: '0.5dp'
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(30)
+                        disabled: not (app.is_community_firmware and app.fw_version_digitized >= digitize_v("2.2.0"))
+                        Label:
+                            text: tr._("Auto Ext. Out")
+                            halign: "left"
+                            valign: "middle"
+                            font_size: '13sp'
+                            text_size: self.size
+
+                            canvas.before:
+                                Color:
+                                    rgba: 50/255, 50/255, 50/255, 1
+                                Rectangle:
+                                    pos: self.pos
+                                    size: self.size
+                        ToolTipSwitch:
+                            id: extout_switch_play
+                            tooltip_txt: tr._("Automatically toggles on/off the External Output pin. This can be used to control a vacuum or compressor")
+                            canvas.before:
+                                Color:
+                                    rgba: 50/255, 50/255, 50/255, 1
+                                Rectangle:
+                                    pos: self.pos
+                                    size: self.size
+                            set_flag: False
+                            active: True if root.extoutmode == 1 else False
+                            on_active:
+                                if self.set_flag: self.set_flag = False
+                                else: app.root.update_control('extout_mode', self.active)
+
                     Label:
-                        text: tr._("Auto Vacuum")
+                        size_hint_y: None
+                        height: '15dp'
+
+                    BoxLayout:
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(25)
+                        canvas.before:
+                            Color:
+                                rgba: 65/255, 65/255, 65/255, 1
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
+                        Label:
+                            text: tr._(" Work Origin")
+                            halign: "left"
+                            valign: "middle"
+                            font_size: '13sp'
+                            text_size: self.size
+                        Widget:
+                            size_hint_x: None
+                            width: '25dp'
+                            canvas.before:
+                                Color:
+                                    rgba: 52/255, 152/255, 219/255, 1
+                                Ellipse:
+                                    pos: self.center_x - dp(2.5), self.center_y - dp(5)
+                                    size: dp(10), dp(10)
+                    Label:
+                        id: lb_origin
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(40)
+                        text: tr._(" (0, 0) from Anchor1")
                         halign: "left"
                         valign: "middle"
                         font_size: '13sp'
                         text_size: self.size
+                    BoxLayout:
+                        padding: '5dp', '0dp', '5dp', '10dp'
+                        spacing: '5dp'
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(40)
+                        Label:
+                        Button:
+                            id: btn_origin
+                            text: tr._("Config")
+                            font_size: '13sp'
+                            on_release: root.origin_popup.open()
 
+                    BoxLayout:
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(25)
+                        disabled:  (root.mode != 'Run' and root.mode != 'Margin') or app.lasering
                         canvas.before:
                             Color:
-                                rgba: 50/255, 50/255, 50/255, 1
+                                rgba: 65/255, 65/255, 65/255, 1
                             Rectangle:
                                 pos: self.pos
                                 size: self.size
-                    Switch:
-                        id: vacuum_switch_play
-                        canvas.before:
-                            Color:
-                                rgba: 50/255, 50/255, 50/255, 1
-                            Rectangle:
-                                pos: self.pos
-                                size: self.size
-                        active: True if root.vacuummode == 1 else False
-                        on_active:
-                            app.root.update_control('vacuum_mode', self.active)
-
-                BoxLayout:
-                    padding: '0.5dp'
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(30)
-                    disabled: not (app.is_community_firmware and app.fw_version_digitized >= digitize_v("2.2.0"))
+                        MCQCheckBox:
+                            id: cbx_margin
+                            on_active:
+                                root.set_config('margin', 'active', self.active)
+                                root.toggle_config()
+                        MCQLabel:
+                            on_release: cbx_margin._do_press()
+                            text: tr._(' Scan Margin')
+                        Widget:
+                            size_hint_x: None
+                            width: '25dp'
+                            canvas.before:
+                                Color:
+                                    rgba: 0, 0.8, 0, 1
+                                Ellipse:
+                                    pos: self.center_x - dp(2.5), self.center_y - dp(5)
+                                    size: dp(10), dp(10)
                     Label:
-                        text: tr._("Auto Ext. Out")
+                        size_hint_y: None
+                        height: '15dp'
+
+                    BoxLayout:
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(25)
+                        disabled:  (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active or app.lasering
+                        canvas.before:
+                            Color:
+                                rgba: 65/255, 65/255, 65/255, 1
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
+                        MCQCheckBox:
+                            id: cbx_zprobe
+                            on_active:
+                                root.lb_zprobe.disabled = not self.active or (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active
+                                root.btn_zprobe.disabled = not self.active or app.has_4axis or (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active
+                                root.set_config('zprobe', 'active', self.active)
+                                root.toggle_config()
+                        MCQLabel:
+                            on_release: cbx_zprobe._do_press()
+                            text: tr._(' Auto Z Probe')
+                        Widget:
+                            size_hint_x: None
+                            width: '25dp'
+                            canvas.before:
+                                Color:
+                                    rgba: 231/255, 76/255, 60/255, 1
+                                Ellipse:
+                                    pos: self.center_x - dp(2.5), self.center_y - dp(5)
+                                    size: dp(10), dp(10)
+                    Label:
+                        id: lb_zprobe
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(25)
+                        disabled:  (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active or app.lasering
+                        text: tr._(" (10, 10) from Path Origin")
                         halign: "left"
                         valign: "middle"
                         font_size: '13sp'
                         text_size: self.size
+                    BoxLayout:
+                        padding: '5dp', '0dp', '5dp', '10dp'
+                        spacing: '5dp'
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(40)
+                        Label:
+                        Button:
+                            id: btn_zprobe
+                            text: tr._("Config")
+                            font_size: '13sp'
+                            disabled:  (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active or app.has_4axis
+                            on_release: root.zprobe_popup.open()
 
+                    BoxLayout:
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(25)
+                        disabled:  (root.mode != 'Run' and root.mode != 'Leveling') or app.has_4axis or app.lasering
                         canvas.before:
                             Color:
-                                rgba: 50/255, 50/255, 50/255, 1
+                                rgba: 65/255, 65/255, 65/255, 1
                             Rectangle:
                                 pos: self.pos
                                 size: self.size
-                    ToolTipSwitch:
-                        id: extout_switch_play
-                        tooltip_txt: tr._("Automatically toggles on/off the External Output pin. This can be used to control a vacuum or compressor")
-                        canvas.before:
-                            Color:
-                                rgba: 50/255, 50/255, 50/255, 1
-                            Rectangle:
-                                pos: self.pos
-                                size: self.size
-                        set_flag: False
-                        active: True if root.extoutmode == 1 else False
-                        on_active:
-                            if self.set_flag: self.set_flag = False
-                            else: app.root.update_control('extout_mode', self.active)
-
-                Label:
-                    size_hint_y: None
-                    height: '15dp'
-
-                BoxLayout:
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(25)
-                    canvas.before:
-                        Color:
-                            rgba: 65/255, 65/255, 65/255, 1
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
+                        MCQCheckBox:
+                            id: cbx_leveling
+                            on_active:
+                                root.lb_leveling.disabled = not self.active or app.has_4axis or (root.mode != 'Run' and root.mode != 'Leveling')
+                                root.btn_leveling.disabled = not self.active or app.has_4axis or (root.mode != 'Run' and root.mode != 'Leveling')
+                                root.set_config('leveling', 'active', self.active)
+                                if self.active:\
+                                root.cbx_zprobe.active = True;\
+                                root.set_config('zprobe', 'active', True);\
+                                root.set_config('zprobe', 'origin', 2);\
+                                root.set_config('zprobe', 'x_offset', 0);\
+                                root.set_config('zprobe', 'y_offset', 0);\
+                                root.load_zprobe_label()
+                                root.toggle_config()
+                        MCQLabel:
+                            on_release: cbx_leveling._do_press()
+                            text: tr._(' Auto Leveling')
+                        Widget:
+                            size_hint_x: None
+                            width: '25dp'
+                            canvas.before:
+                                Color:
+                                    rgba: 244/255, 208/255, 63/255, 1
+                                Ellipse:
+                                    pos: self.center_x - dp(2.5), self.center_y - dp(5)
+                                    size: dp(10), dp(10)
                     Label:
-                        text: tr._(" Work Origin")
-                        halign: "left"
-                        valign: "middle"
-                        font_size: '13sp'
-                        text_size: self.size
-                    Widget:
-                        size_hint_x: None
-                        width: '25dp'
-                        canvas.before:
-                            Color:
-                                rgba: 52/255, 152/255, 219/255, 1
-                            Ellipse:
-                                pos: self.center_x - dp(2.5), self.center_y - dp(5)
-                                size: dp(10), dp(10)
-                Label:
-                    id: lb_origin
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(40)
-                    text: tr._(" (0, 0) from Anchor1")
-                    halign: "left"
-                    valign: "middle"
-                    font_size: '13sp'
-                    text_size: self.size
-                BoxLayout:
-                    padding: '5dp', '0dp', '5dp', '10dp'
-                    spacing: '5dp'
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(40)
-                    Label:
-                    Button:
-                        id: btn_origin
-                        text: tr._("Config")
-                        font_size: '13sp'
-                        on_release: root.origin_popup.open()
-
-                BoxLayout:
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(25)
-                    disabled:  (root.mode != 'Run' and root.mode != 'Margin') or app.lasering
-                    canvas.before:
-                        Color:
-                            rgba: 65/255, 65/255, 65/255, 1
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
-                    MCQCheckBox:
-                        id: cbx_margin
-                        on_active:
-                            root.set_config('margin', 'active', self.active)
-                            root.toggle_config()
-                    MCQLabel:
-                        on_release: cbx_margin._do_press()
-                        text: tr._(' Scan Margin')
-                    Widget:
-                        size_hint_x: None
-                        width: '25dp'
-                        canvas.before:
-                            Color:
-                                rgba: 0, 0.8, 0, 1
-                            Ellipse:
-                                pos: self.center_x - dp(2.5), self.center_y - dp(5)
-                                size: dp(10), dp(10)
-                Label:
-                    size_hint_y: None
-                    height: '15dp'
-
-                BoxLayout:
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(25)
-                    disabled:  (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active or app.lasering
-                    canvas.before:
-                        Color:
-                            rgba: 65/255, 65/255, 65/255, 1
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
-                    MCQCheckBox:
-                        id: cbx_zprobe
-                        on_active:
-                            root.lb_zprobe.disabled = not self.active or (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active
-                            root.btn_zprobe.disabled = not self.active or app.has_4axis or (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active
-                            root.set_config('zprobe', 'active', self.active)
-                            root.toggle_config()
-                    MCQLabel:
-                        on_release: cbx_zprobe._do_press()
-                        text: tr._(' Auto Z Probe')
-                    Widget:
-                        size_hint_x: None
-                        width: '25dp'
-                        canvas.before:
-                            Color:
-                                rgba: 231/255, 76/255, 60/255, 1
-                            Ellipse:
-                                pos: self.center_x - dp(2.5), self.center_y - dp(5)
-                                size: dp(10), dp(10)
-                Label:
-                    id: lb_zprobe
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(25)
-                    disabled:  (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active or app.lasering
-                    text: tr._(" (10, 10) from Path Origin")
-                    halign: "left"
-                    valign: "middle"
-                    font_size: '13sp'
-                    text_size: self.size
-                BoxLayout:
-                    padding: '5dp', '0dp', '5dp', '10dp'
-                    spacing: '5dp'
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(40)
-                    Label:
-                    Button:
-                        id: btn_zprobe
-                        text: tr._("Config")
-                        font_size: '13sp'
-                        disabled:  (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active or app.has_4axis
-                        on_release: root.zprobe_popup.open()
-
-                BoxLayout:
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(25)
-                    disabled:  (root.mode != 'Run' and root.mode != 'Leveling') or app.has_4axis or app.lasering
-                    canvas.before:
-                        Color:
-                            rgba: 65/255, 65/255, 65/255, 1
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
-                    MCQCheckBox:
-                        id: cbx_leveling
-                        on_active:
-                            root.lb_leveling.disabled = not self.active or app.has_4axis or (root.mode != 'Run' and root.mode != 'Leveling')
-                            root.btn_leveling.disabled = not self.active or app.has_4axis or (root.mode != 'Run' and root.mode != 'Leveling')
-                            root.set_config('leveling', 'active', self.active)
-                            if self.active:\
-                            root.cbx_zprobe.active = True;\
-                            root.set_config('zprobe', 'active', True);\
-                            root.set_config('zprobe', 'origin', 2);\
-                            root.set_config('zprobe', 'x_offset', 0);\
-                            root.set_config('zprobe', 'y_offset', 0);\
-                            root.load_zprobe_label()
-                            root.toggle_config()
-                    MCQLabel:
-                        on_release: cbx_leveling._do_press()
-                        text: tr._(' Auto Leveling')
-                    Widget:
-                        size_hint_x: None
-                        width: '25dp'
-                        canvas.before:
-                            Color:
-                                rgba: 244/255, 208/255, 63/255, 1
-                            Ellipse:
-                                pos: self.center_x - dp(2.5), self.center_y - dp(5)
-                                size: dp(10), dp(10)
-                Label:
-                    id: lb_leveling
-                    size_hint_y: None
-                    height: '50dp'
-                    text: tr._(" X Points: 10, Y Points: 10, Height: 5")
-                    disabled:  (root.mode != 'Run' and root.mode != 'Leveling') or app.has_4axis
-                    halign: "left"
-                    valign: "middle"
-                    font_size: '13sp'
-                    text_size: self.size
-                BoxLayout:
-                    padding: '5dp', '0dp', '5dp', '10dp'
-                    spacing: '5dp'
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(40)
-                    Label:
-                    Button:
-                        id: btn_leveling
-                        text: tr._("Config")
-                        font_size: '13sp'
+                        id: lb_leveling
+                        size_hint_y: None
+                        height: '50dp'
+                        text: tr._(" X Points: 10, Y Points: 10, Height: 5")
                         disabled:  (root.mode != 'Run' and root.mode != 'Leveling') or app.has_4axis
-                        on_release: root.auto_level_popup.init_and_open(False)
+                        halign: "left"
+                        valign: "middle"
+                        font_size: '13sp'
+                        text_size: self.size
+                    BoxLayout:
+                        padding: '5dp', '0dp', '5dp', '10dp'
+                        spacing: '5dp'
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(40)
+                        Label:
+                        Button:
+                            id: btn_leveling
+                            text: tr._("Config")
+                            font_size: '13sp'
+                            disabled:  (root.mode != 'Run' and root.mode != 'Leveling') or app.has_4axis
+                            on_release: root.auto_level_popup.init_and_open(False)
 
-                BoxLayout:
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(25)
-                    padding: '5dp', 0, 0, 0
-                    disabled: root.mode != 'Run'
-                    canvas.before:
-                        Color:
-                            rgba: 65/255, 65/255, 65/255, 1
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
-                    MCQCheckBox:
-                        id: cbx_startline
-                    MCQLabel:
-                        on_release: cbx_startline._do_press()
-                        text: tr._('  Resume at line:')
-                    EditingTextInput:
-                        id: txt_startline
-                        hint_text: tr._('Number')
-                        multiline: False
-                        size_hint_x: None
-                        width: '80dp'  # 10 chars ought to be enough for anybody :)
-                        text: ''
-                        halign: "right"
-                        input_type: 'number'
-                        input_filter: 'int'
-                Label:  # This empty label is needed to keep the right box top aligned
-
-        BoxLayout:
+                    BoxLayout:
+                        size_hint_y: None
+                        height: app.touch_target if app.android_touch else dp(25)
+                        padding: '5dp', 0, 0, 0
+                        disabled: root.mode != 'Run'
+                        canvas.before:
+                            Color:
+                                rgba: 65/255, 65/255, 65/255, 1
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
+                        MCQCheckBox:
+                            id: cbx_startline
+                        MCQLabel:
+                            on_release: cbx_startline._do_press()
+                            text: tr._('  Resume at line:')
+                        EditingTextInput:
+                            id: txt_startline
+                            hint_text: tr._('Number')
+                            multiline: False
+                            size_hint_x: None
+                            width: '80dp'  # 10 chars ought to be enough for anybody :)
+                            text: ''
+                            halign: "right"
+                            input_type: 'number'
+                            input_filter: 'int'
+                    Label:  # This empty label is needed to keep the right box top aligned
+        TouchActionRow:
             spacing: '5dp'
             padding: '5dp'
             size_hint_y: None
@@ -4633,6 +4647,11 @@
             valign: 'middle'
             text_size: self.size
         
+        DialogLabel:
+            text: root.apply_error
+            color: 1, .55, .3, 1
+            size_hint_y: None
+            height: self.texture_size[1] + dp(12) if self.text else 0
         ScrollView:
             GridLayout:
                 id: wcs_grid
@@ -5478,7 +5497,7 @@
                     disabled: True
                     on_text: root.change_wcs_description('G59.3')
         
-        BoxLayout:
+        TouchActionRow:
             size_hint_y: None
             height: app.touch_target if app.android_touch else dp(40)
             spacing: '5dp'
@@ -5495,8 +5514,7 @@
                 id: btn_ok
                 text: tr._('Ok')
                 on_release:
-                    root.apply_changes()
-                    root.dismiss()
+                    if root.apply_changes(): root.dismiss()
             BoxLayout:
                 size_hint_x: 0.2
                 HelpButton:
@@ -5509,7 +5527,7 @@
     auto_dismiss: False
     txt_rotation: txt_rotation
     
-    BoxLayout:
+    DialogSurface:
         padding: '15dp'
         orientation: 'vertical'
         
@@ -5552,7 +5570,7 @@
         BoxLayout:
             id: empty
         
-        BoxLayout:
+        TouchActionRow:
             spacing: '5dp'
             size_hint_y: None
             height: app.touch_target if app.android_touch else dp(40)

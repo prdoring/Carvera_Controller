@@ -654,3 +654,13 @@ and pendant access before constructing the application, and isolate probe
 preferences as well as Kivy preferences. No Pi or mill was accessed.
 
 Device acceptance for this work is pending the user's release of the device.
+
+Job setup now owns a scrolling options column and a compact illustration toggle.
+Numeric dialogs use explicit bodies and fixed actions. WCS has compact cards,
+retains editor instances through reflow, and validates every applicable numeric
+draft before any G10 command. Invalid or interrupted sends retain drafts.
+Descriptions remain immediately saved and are excluded from numeric discard.
+CMM has a separate Cancel probe action; cancellation invalidates results before
+sending the existing abort and waits for a newer stopped-machine report.
+Local WCS validation/reflow and cancellation transition tests pass. Actual
+probe-stop behavior remains unverified for this change until machine testing.

@@ -94,11 +94,36 @@ class DialogSurface(BoxLayout):
         viewport.bind(height=lambda *_: setattr(viewport, "do_scroll_y", content.height > viewport.height + 1))
         content.bind(height=lambda *_: setattr(viewport, "do_scroll_y", content.height > viewport.height + 1))
         for child in children:
+            self._natural_height(child)
             content.add_widget(child)
         viewport.add_widget(content)
         self.add_widget(viewport)
         if footer is not None:
             self.add_widget(footer)
+
+    def _natural_height(self, widget):
+        if isinstance(widget, ScrollView):
+            return
+        if isinstance(widget, BoxLayout) and widget.orientation == "vertical":
+            for child in widget.children:
+                self._natural_height(child)
+            widget.size_hint_y = None
+            widget.bind(minimum_height=widget.setter("height"))
+            widget.height = widget.minimum_height
+        elif isinstance(widget, GridLayout) and not isinstance(widget, TouchActionRow):
+            widget.size_hint_y = None
+            widget.row_force_default = True
+            widget.row_default_height = max(dp(48), sp(16) * 2 + dp(16))
+            widget.bind(minimum_height=widget.setter("height"))
+        elif isinstance(widget, BoxLayout):
+            widget.size_hint_y = None
+            widget.height = max(dp(48), sp(16) * 2 + dp(16)) if widget.children else 0
+        elif isinstance(widget, Label):
+            widget.size_hint_y = None
+            widget.text_size = (max(1, widget.width - dp(8)), None)
+            widget.bind(width=lambda item, width: setattr(item, "text_size", (max(1, width - dp(8)), None)))
+            widget.bind(texture_size=lambda item, size: setattr(item, "height", size[1] + dp(12) if item.text else 0))
+            widget.height = widget.texture_size[1] + dp(12) if widget.text else 0
 
 
 class AndroidTouchLayout:
@@ -159,8 +184,10 @@ class AndroidTouchLayout:
                                    and not getattr(field, "saves_immediately", False)}
         Clock.schedule_once(remember_drafts, 0.2)
         content = modal.content if isinstance(modal, Popup) else next(iter(modal.children), None)
-        if isinstance(content, DialogSurface):
-            content.prepare()
+        surfaces = [w for w in modal.walk() if isinstance(w, DialogSurface)]
+        if surfaces:
+            for surface in surfaces:
+                surface.prepare()
             state["managed"] = True
             return
         # Existing tabbed and split-pane forms own their scrolling.
@@ -297,4 +324,3 @@ class AndroidTouchLayout:
         Window.unbind(children=self._update, size=self._update, on_resize=self._update)
         self.app.unbind(android_keyboard_height=self._update, safe_area_padding=self._update)
         self.app.root.content.unbind(current=self._page_changed)
-

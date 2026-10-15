@@ -127,6 +127,7 @@ from carveracontroller.addons.pendant import (
 from carveracontroller.addons.probing.ProbingPopup import ProbingPopup
 from carveracontroller.serial_listeners import dispatch_serial_line
 from carveracontroller.ui.editing import EditingTextInput as TextInput
+from carveracontroller.ui.editing import is_complete_number
 
 
 # Custom Property to monitor CNC.vars["sw_light"] changes
@@ -1479,13 +1480,21 @@ class ConfigPopup(ModalView):
 
 
 class WCSSettingsPopup(ModalView):
+    apply_error = StringProperty("")
     def __init__(self, controller, wcs_names, **kwargs):
         super().__init__(**kwargs)
         self.controller = controller
         self.original_values = {}  # Store original values for comparison
         self.wcs_names = wcs_names
         self.current_active_wcs = None  # Track current active WCS
-        self.has_changes = False  # Track if any values have changed
+        self.has_changes = False
+        for name, field in self.ids.items():
+            if name.endswith("_description"):
+                field.saves_immediately = True
+        from .ui.mobile_forms import WorkspaceLayout
+
+        self._workspace_layout = WorkspaceLayout(self)
+        App.get_running_app().bind(compact_layout=self._workspace_layout.update)
 
     def load_wcs_descriptions(self):
         """Update the WCS descriptions when popup opens"""
@@ -1514,6 +1523,8 @@ class WCSSettingsPopup(ModalView):
 
     def on_open(self):
         """Parse WCS values from machine and populate fields when popup opens"""
+        self.apply_error = ""
+        self._workspace_layout.update()
         if self.controller:
             # Register callback for WCS data
             self.controller.wcs_popup_callback = self.populate_wcs_values
@@ -1563,49 +1574,42 @@ class WCSSettingsPopup(ModalView):
             self.update_active_wcs_button(active_wcs)
 
     def apply_changes(self):
-        """Apply all changed values when OK is pressed"""
+        """Validate the complete draft before sending any workspace changes."""
+        self.apply_error = ""
         if not self.controller:
-            return
-
-        # Get coordinate system index mapping
+            self.apply_error = tr._("No controller connection.")
+            return False
+        pending = []
         for wcs in self.wcs_names:
-            if wcs not in self.original_values:
+            original = self.original_values.get(wcs)
+            if original is None:
                 continue
-
-            original = self.original_values[wcs]
-            changed_values = {}
-
-            wcs_txt = wcs.replace(".", "_")
-            # Check each axis for changes
-            for axis in ["X", "Y", "Z", "A"]:
-                try:
-                    current_value = float(getattr(self.ids, f"{wcs_txt.lower()}_{axis.lower()}").text)
-                    if abs(current_value - original[axis]) > 0.001:  # Allow small floating point differences
-                        changed_values[axis] = current_value
-                except (ValueError, AttributeError):
+            changes = {}
+            for axis in ("X", "Y", "Z", "A", "R"):
+                field = self.ids.get(f"{wcs.replace('.', '_').lower()}_{axis.lower()}")
+                if field is None or field.disabled:
                     continue
-
-            # Check rotation for changes
+                if not is_complete_number(field.text):
+                    field.focus = True
+                    field.validation_error = True
+                    self.apply_error = tr._("Enter a complete, finite number:") + f" {wcs} {axis}"
+                    return False
+                value = float(field.text)
+                if abs(value - original[axis]) > .001:
+                    changes[axis] = value
+            if changes:
+                command = f"G10L2P{self.wcs_names.index(wcs) + 1}"
+                command += "".join(f"{axis}{value:.3f}" for axis, value in changes.items())
+                pending.append(command)
+        for sent, command in enumerate(pending):
             try:
-                current_rotation = float(getattr(self.ids, f"{wcs_txt.lower()}_r").text)
-                if abs(current_rotation - original["R"]) > 0.001:
-                    changed_values["R"] = current_rotation
-            except (ValueError, AttributeError):
-                pass
-
-            # Send commands for changed values
-            if changed_values:
-                coord_index = self.wcs_names.index(wcs) + 1  # G54=1, G55=2, etc.
-                cmd = f"G10L2P{coord_index}"
-                # Build offset command if any offsets changed
-                offset_changes = {k: v for k, v in changed_values.items() if k in ["X", "Y", "Z", "A"]}
-                if offset_changes:
-                    for axis, value in offset_changes.items():
-                        cmd += f"{axis}{value:.3f}"
-                # Send rotation command if rotation changed
-                if "R" in changed_values:
-                    cmd += f"R{changed_values['R']:.3f}"
-                self.controller.executeCommand(cmd)
+                accepted = self.controller.executeCommand(command)
+            except Exception:
+                accepted = False
+            if accepted is False:
+                self.apply_error = tr._("Could not send all changes. Drafts retained.") + f" {sent}/{len(pending)} " + tr._("commands sent; check the mill before retrying.")
+                return False
+        return True
 
     def clear_wcs_offsets(self, wcs):
         """Clear all offsets (X, Y, Z, A) for the specified WCS"""

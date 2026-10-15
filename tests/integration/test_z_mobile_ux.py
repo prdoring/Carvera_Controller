@@ -77,3 +77,48 @@ def test_large_text_choices_grow_instead_of_shrinking(mobile):
         row._columns()
         assert row.row_default_height >= dp(48)
         assert all(w.height >= dp(48) for w in row.children)
+
+
+def test_wcs_preflights_every_draft_and_preserves_descriptions(mobile, monkeypatch):
+    from unittest.mock import Mock
+
+    app, _ = mobile
+    popup = app.root.wcs_settings_popup
+    popup.original_values = {name: dict.fromkeys(("X", "Y", "Z", "A", "R"), 0.0) for name in ("G54", "G55")}
+    for name in ("g54", "g55"):
+        for axis in ("x", "y", "z", "a", "r"):
+            field = popup.ids[f"{name}_{axis}"]
+            field.disabled = False
+            field.text = "0"
+    send = Mock(return_value=True)
+    monkeypatch.setattr(popup.controller, "executeCommand", send)
+    popup.ids.g54_x.text = "-12.5"
+    popup.ids.g55_z.text = "-."
+    assert popup.apply_changes() is False
+    send.assert_not_called()
+    assert popup.ids.g55_z.validation_error
+    assert popup.ids.g54_description.saves_immediately
+    popup.ids.g55_z.text = "2.5"
+    assert popup.apply_changes() is True
+    assert [call.args[0] for call in send.call_args_list] == ["G10L2P1X-12.500", "G10L2P2Z2.500"]
+    send.reset_mock()
+    send.side_effect = [True, False]
+    assert popup.apply_changes() is False
+    assert "1/2" in popup.apply_error
+    assert popup.ids.g54_x.text == "-12.5"
+    assert popup.ids.g55_z.text == "2.5"
+
+
+def test_wcs_reflow_preserves_existing_editors_and_drafts(mobile):
+    app, _ = mobile
+    popup = app.root.wcs_settings_popup
+    field = popup.ids.g54_x
+    field.text = "-17.125"
+    for compact in (True, False, True, False, True):
+        app.compact_layout = compact
+        popup._workspace_layout.update()
+        assert popup.ids.wcs_grid.cols == (1 if compact else 8)
+        pump_frames(3)
+        assert popup.ids.g54_x is field
+        assert field.text == "-17.125"
+        assert field.parent is not None
