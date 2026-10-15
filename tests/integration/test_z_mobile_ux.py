@@ -144,3 +144,51 @@ def test_main_reflow_and_disclosures_keep_views_and_send_no_commands(mobile):
     finally:
         app.compact_layout = False
         main.stop()
+
+
+def test_compact_probing_chooser_keeps_lazy_settings_and_hides_collapsed_jog(mobile):
+    from carveracontroller.addons.probing.ProbingPopup import DeferredProbeSettings, ProbingPopup
+
+    app, layout = mobile
+    Window.size = (640, 384)
+    layout.update()
+    popup = ProbingPopup(app.root.controller)
+    popup.open(animation=False)
+    pump_frames(12, sleep=.02)
+    panel = popup.ids.tabbedpanelid
+    assert panel.mobile_selector.height >= app.touch_target
+    assert panel.tab_height == 0
+    assert popup.ids.jog_panel.height == 0
+    assert popup.ids.jog_panel.opacity == 0
+    deferred = [w for tab in panel.tab_list for w in tab.content.walk() if isinstance(w, DeferredProbeSettings)]
+    assert sum(w._settings is not None for w in deferred) == 1
+    panel.mobile_selector.text = next(tab.text for tab in panel.tab_list if tab is not panel.current_tab)
+    pump_frames(8)
+    assert sum(w._settings is not None for w in deferred) == 2
+    popup.toggle_jog_panel()
+    pump_frames(8)
+    assert popup.ids.jog_panel.opacity == 1
+    assert popup.ids.jog_panel.height > 0
+    popup.dismiss(force=True, animation=False)
+
+
+def test_cmm_full_session_save_state_and_facing_generation_feedback(mobile):
+    from carveracontroller.addons.cmm_workbench.core.session import CMMWorkbenchFeature
+    from carveracontroller.addons.facing.FacingWizardPopup import FacingWizardPopup
+
+    app, _ = mobile
+    cmm = app.root._ensure_cmm_workbench_popup()
+    cmm._mark_session_saved()
+    cmm.session.features.append(CMMWorkbenchFeature.new_point("Test point", 1, 2, 3))
+    cmm._update_save_state()
+    assert cmm.session_dirty
+    cmm._mark_session_saved()
+    assert not cmm.session_dirty
+    cmm.session.features[-1].label = "Renamed point"
+    cmm._update_save_state()
+    assert cmm.session_dirty
+    facing = FacingWizardPopup()
+    assert facing.program_state == "Not generated"
+    facing._gcode_plain = "G1 X1"
+    facing._mark_facing_gcode_stale_from_ui()
+    assert "Out of date" in facing.program_state

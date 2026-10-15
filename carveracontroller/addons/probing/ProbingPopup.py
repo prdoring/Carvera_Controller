@@ -1,7 +1,7 @@
 import logging
 
 from kivy.clock import Clock
-from kivy.properties import StringProperty
+from kivy.properties import BooleanProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.modalview import ModalView
 
@@ -48,6 +48,10 @@ class DeferredProbeSettings(BoxLayout):
             )}
             self._settings = classes[self.settings_type]()
             self.ids.update(self._settings.ids)
+            if App.get_running_app().android_touch:
+                from carveracontroller.ui.mobile_tools import adapt_probe_settings
+
+                adapt_probe_settings(self._settings)
             self.add_widget(self._settings)
             if "ProbeTipDiameter" in self.ids:
                 self.ids.ProbeTipDiameter.hint_text = get_machine_config_hint("zprobe.probe_tip_diameter") or tr._("config")
@@ -61,6 +65,14 @@ class DeferredProbeSettings(BoxLayout):
 
 
 class ProbingPopup(ModalView):
+    jog_expanded = BooleanProperty(False)
+
+    def toggle_jog_panel(self):
+        from carveracontroller.ui.touch import cancel_jog
+
+        cancel_jog()
+        self.jog_expanded = not self.jog_expanded
+
     controller: Controller
 
     def __init__(self, controller, **kwargs):

@@ -12,6 +12,10 @@
 
 
 
+<ProbeJogCell@GridBoxLayout>:
+    padding: 0 if app.android_touch else dp(5)
+    size_hint_min_y: app.touch_target if app.android_touch else 0
+
 <ProbingPopup>:
     title:"Probing"
     size_hint: 0.8, 0.8
@@ -22,15 +26,18 @@
     step_a: step_a
     overlay_color: 0,0,0,0.3
 
-    GridLayout:
-        cols:1
-        rows:4
+    BoxLayout:
+        orientation: 'vertical'
         spacing: dp(0)
         padding: dp(3)
         GridLayout:
             cols:2
             rows:2
-            size_hint_min_y: app.touch_target * 9 if app.android_touch else 0
+            size_hint_min_y: 0
+            size_hint_y: None if app.android_touch and app.compact_layout and root.jog_expanded and not app.android_keyboard_height else 1
+            height: 0 if app.android_touch and app.compact_layout and root.jog_expanded and not app.android_keyboard_height else dp(200)
+            opacity: 0 if app.android_touch and app.compact_layout and root.jog_expanded and not app.android_keyboard_height else 1
+            disabled: app.android_touch and app.compact_layout and root.jog_expanded and not app.android_keyboard_height
             spacing: dp(10)
             padding: dp(3)
 
@@ -50,7 +57,7 @@
                         spacing:dp(10)
                         padding:dp(10)
                         GridLayout:
-                            size_hint_x: 0.4
+                            size_hint_x: 0.3 if app.android_touch else 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -82,7 +89,7 @@
                                 image: 'addons/probing/data/icons_1024x768/outside_corner/X-Y+.png'
 
                         BoxLayout:
-                            size_hint_x: 0.6
+                            size_hint_x: 0.7 if app.android_touch else 0.6
                             halign: "right"
                             DeferredProbeSettings:
                                 settings_type: 'OutsideCornerSettings'
@@ -98,7 +105,7 @@
                         spacing:dp(10)
                         padding:dp(10)
                         GridLayout:
-                            size_hint_x: 0.4
+                            size_hint_x: 0.3 if app.android_touch else 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -130,7 +137,7 @@
                                 image: 'addons/probing/data/icons_1024x768/inside_corner/inX-Y+.png'
 
                         BoxLayout:
-                            size_hint_x: 0.6
+                            size_hint_x: 0.7 if app.android_touch else 0.6
                             DeferredProbeSettings:
                                 settings_type: 'InsideCornerSettings'
                                 id: inside_corner_settings
@@ -145,7 +152,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.4
+                            size_hint_x: 0.3 if app.android_touch else 0.4
                             cols: 3
                             rows: 3
                             spacing: dp(8)
@@ -203,7 +210,7 @@
                                 #nothing
 
                         BoxLayout:
-                            size_hint_x: 0.6
+                            size_hint_x: 0.7 if app.android_touch else 0.6
                             DeferredProbeSettings:
                                 settings_type: 'SingleAxisProbeSettings'
                                 id: single_axis_settings
@@ -218,7 +225,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.4
+                            size_hint_x: 0.3 if app.android_touch else 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -250,7 +257,7 @@
                                 image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_rectangular_pocket.png'
 
                         BoxLayout:
-                            size_hint_x: 0.6
+                            size_hint_x: 0.7 if app.android_touch else 0.6
                             DeferredProbeSettings:
                                 settings_type: 'BoreSettings'
                                 id: bore_settings
@@ -265,7 +272,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.4
+                            size_hint_x: 0.3 if app.android_touch else 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -297,7 +304,7 @@
                                 image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_rect_boss.png'
 
                         BoxLayout:
-                            size_hint_x: 0.6
+                            size_hint_x: 0.7 if app.android_touch else 0.6
                             DeferredProbeSettings:
                                 settings_type: 'BossSettings'
                                 id: boss_settings
@@ -312,7 +319,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.4
+                            size_hint_x: 0.3 if app.android_touch else 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -345,7 +352,7 @@
                                 image: 'addons/probing/data/icons_1024x768/angle/probe_angle_y_right.png'
 
                         BoxLayout:
-                            size_hint_x: 0.6
+                            size_hint_x: 0.7 if app.android_touch else 0.6
                             DeferredProbeSettings:
                                 settings_type: 'AngleSettings'
                                 id: angle_settings
@@ -360,7 +367,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.4
+                            size_hint_x: 0.3 if app.android_touch else 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -391,7 +398,7 @@
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_BossY.png'
 
                         BoxLayout:
-                            size_hint_x: 0.6
+                            size_hint_x: 0.7 if app.android_touch else 0.6
                             DeferredProbeSettings:
                                 settings_type: 'ProbeTipSettings'
                                 id: probeTipSettings
@@ -405,7 +412,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.4
+                            size_hint_x: 0.3 if app.android_touch else 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -438,7 +445,7 @@
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_Anchor_2.png'
 
                         BoxLayout:
-                            size_hint_x: 0.6
+                            size_hint_x: 0.7 if app.android_touch else 0.6
                             DeferredProbeSettings:
                                 settings_type: 'CalibrationSettings'
                                 id: calibration_settings_id
@@ -453,7 +460,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.4
+                            size_hint_x: 0.3 if app.android_touch else 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -469,19 +476,28 @@
                             EmptySpace:
 
                         BoxLayout:
-                            size_hint_x: 0.6
+                            size_hint_x: 0.7 if app.android_touch else 0.6
                             DeferredProbeSettings:
                                 settings_type: 'FourthAxisSettings'
                                 id: fourth_axis_settings
 
                 
 
+        ToggleButton:
+            text: tr._('Hide jog controls') if root.jog_expanded else tr._('Show jog controls')
+            size_hint_y: None
+            height: app.touch_target if app.android_touch and app.compact_layout else 0
+            opacity: 1 if self.height else 0
+            disabled: not self.height
+            on_release: root.toggle_jog_panel()
         #jogging controls
         BoxLayout:
             id: jog_panel
             spacing: '0dp'
             size_hint_y: None if app.android_touch else 0.3
-            height: 3 * (app.touch_target + dp(10)) + dp(12) if app.android_touch else dp(120)
+            height: min(3 * app.touch_target + dp(12), root.height - 2 * app.touch_target - dp(16)) if app.android_touch and not app.android_keyboard_height and (not app.compact_layout or root.jog_expanded) else 0 if app.android_touch else dp(120)
+            opacity: 1 if self.height else 0
+            disabled: app.android_touch and not self.height
             GridLayout:
                 cols:5
                 rows:1
@@ -490,6 +506,7 @@
                 padding:dp(0)
                 #X and Y controls
                 BoxLayout:
+                    size_hint_x: 3 if app.android_touch else 1
                     orientation: 'horizontal'
                     padding: '0dp'
                     canvas.before:
@@ -511,19 +528,19 @@
                         GridLayout:
                             cols: 3
                             rows: 3
-                            GridBoxLayout:
-                            GridBoxLayout:
+                            ProbeJogCell:
+                            ProbeJogCell:
                                 JogTouchButton:
                                     text: 'Y+' if app.invert_y_axis_jogging else 'Y-'
                                     jog_command: "Y{}{}".format('' if app.invert_y_axis_jogging else '-', step_xy.text)
 
-                            GridBoxLayout:
-                            GridBoxLayout:
+                            ProbeJogCell:
+                            ProbeJogCell:
                                 JogTouchButton:
                                     text: 'X-'
                                     jog_command: "X-{}".format(step_xy.text)
 
-                            GridBoxLayout:
+                            ProbeJogCell:
                                 Label:
                                 Spinner:
                                     id: step_xy
@@ -534,18 +551,18 @@
                                     on_text: app.jog_step_xy = self.text
                                     values: '10', '1', '0.1', '0.01', '0.005'
                                 Label:
-                            GridBoxLayout:
+                            ProbeJogCell:
                                 JogTouchButton:
                                     text: 'X+'
                                     jog_command: "X{}".format(step_xy.text)
 
-                            GridBoxLayout:
-                            GridBoxLayout:
+                            ProbeJogCell:
+                            ProbeJogCell:
                                 JogTouchButton:
                                     text: 'Y-' if app.invert_y_axis_jogging else 'Y+'
                                     jog_command: "Y{}{}".format('-' if app.invert_y_axis_jogging else '', step_xy.text)
 
-                            GridBoxLayout:
+                            ProbeJogCell:
                 BoxLayout:
                     size_hint_x: 0.1
                     disabled: not app.jog_controls_enabled
@@ -553,6 +570,7 @@
                     orientation: 'horizontal'
                 #A and Z controls
                 BoxLayout:
+                    size_hint_x: 2 if app.android_touch else 1
                     disabled: not app.jog_controls_enabled
                     padding: '0dp'
                     orientation: 'horizontal'
@@ -567,19 +585,19 @@
                         size_hint_y: 1 if app.android_touch else 0.9
                         cols: 2
                         rows: 3
-                        GridBoxLayout:
+                        ProbeJogCell:
                             JogTouchButton:
                                 text: 'A+'
                                 height: 30
                                 jog_command: "A{}".format(step_a.text)
 
-                        GridBoxLayout:
+                        ProbeJogCell:
                             JogTouchButton:
                                 text: 'Z+'
                                 height: 30
                                 jog_command: "Z{}".format(step_z.text)
 
-                        GridBoxLayout:
+                        ProbeJogCell:
                             Label:
                             Spinner:
                                 id: step_a
@@ -590,7 +608,7 @@
                                 on_text: app.jog_step_a = self.text
                                 values: '90', '10', '1', '0.1'
                             Label:
-                        GridBoxLayout:
+                        ProbeJogCell:
                             Label:
                             Spinner:
                                 id: step_z
@@ -601,13 +619,13 @@
                                 on_text: app.jog_step_z = self.text
                                 values: '10', '1', '0.1', '0.01', '0.005'
                             Label:
-                        GridBoxLayout:
+                        ProbeJogCell:
                             JogTouchButton:
                                 text: 'A-'
                                 height: 30
                                 jog_command: "A-{}".format(step_a.text)
 
-                        GridBoxLayout:
+                        ProbeJogCell:
                             JogTouchButton:
                                 text: 'Z-'
                                 height: 30
@@ -620,6 +638,7 @@
                     orientation: 'horizontal'
                 BoxLayout:
                     orientation: 'vertical'
+                    size_hint_x: 2 if app.android_touch else 1
                     padding: '3dp'
                     size_hint_y: 0.7
                     size_hint_min_y: '79dp'  # 35dp button x2 + 3dp spacing between buttons + 3dp padding top + 3dp padding bottom
@@ -636,7 +655,7 @@
                             cols: 2
                             rows: 2
                             spacing: '3dp'
-                            GridBoxLayout:
+                            ProbeJogCell:
                                 Button:
                                     text: app.jog_speed_text
                                     id: jog_speed_btn_probing
@@ -644,7 +663,7 @@
                                     height: app.touch_target if app.android_touch else dp(35)
                                     on_release: app.root.jog_speed_drop_down.open(self)
 
-                            GridBoxLayout:
+                            ProbeJogCell:
                                 Button:
                                     id: jog_mode_btn_probing
                                     disabled: not (app.is_community_firmware and app.fw_version_digitized >= digitize_v("2.0.0"))
@@ -652,7 +671,7 @@
                                     height: app.touch_target if app.android_touch else dp(35)
                                     on_release: app.root.toggle_jog_mode()
 
-                            GridBoxLayout:
+                            ProbeJogCell:
                                 TouchToggleButton:
                                     id: kb_jog_btn_probing
                                     text: tr._('Keyboard Jogging')
@@ -660,7 +679,7 @@
                                     state: app.jog_keyboard_enable
                                     on_release: app.root.toggle_keyboard_jog_control()
                         
-                            GridBoxLayout:
+                            ProbeJogCell:
                                 TouchToggleButton:
                                     id: pendant_jogging_en_btn_probing
                                     text: app.jog_pendant_text
@@ -672,7 +691,9 @@
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: app.touch_target if app.android_touch else dp(40)
+            height: (0 if app.compact_layout and root.jog_expanded else app.touch_target) if app.android_touch else dp(40)
+            opacity: 0 if app.android_touch and app.compact_layout and root.jog_expanded else 1
+            disabled: app.android_touch and app.compact_layout and root.jog_expanded
             halign: 'center'
 
             Label:
@@ -682,7 +703,7 @@
                 valign: 'middle'
                 text_size: self.size
                 multiline: False
-                text: tr._('Note: Most of these operations require a true 3 axis probe, not the manual probe supplied with the Carvera. See the documentation for more info')
+                text: tr._('Most operations require a true 3-axis probe. See Help.') if app.android_touch else tr._('Note: Most of these operations require a true 3 axis probe, not the manual probe supplied with the Carvera. See the documentation for more info')
 
             HelpButton:
                 helpPath: "https://carvera-community.gitbook.io/docs/firmware/features/3d-probe-support"

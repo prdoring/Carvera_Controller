@@ -6,6 +6,7 @@ from functools import partial
 
 from kivy.app import App
 from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp, sp
@@ -143,13 +144,15 @@ class JogCMMWorkbenchPopup(ModalView):
         self.set_step_widgets_disabled(disabled)
 
     def _snap_modal_height_to_inner(self, _dt=None):
+        if getattr(self, "_mobile_jog_ready", False):
+            return
         try:
             inner = self.ids.jog_modal_inner
         except KeyError:
             return
         mh = inner.minimum_height
         if mh > 0:
-            self.height = max(mh, 1)
+            self.height = min(max(mh, 1), Window.height - dp(16) - App.get_running_app().android_keyboard_height)
 
     def _ensure_jog_height_tracking(self, _dt=None):
         try:
@@ -240,9 +243,22 @@ class CMMWorkbenchPopup(ModalView):
     can_make_tangent = BooleanProperty(False)
     has_construct_selection = BooleanProperty(False)
 
+    session_dirty = BooleanProperty(False)
+    session_status = StringProperty("")
+
+    def _update_save_state(self, *_args):
+        self.session_dirty = self.session.dumps() != self._saved_session
+        self.session_status = tr._("Unsaved session changes") if self.session_dirty else tr._("No unsaved session changes")
+
+    def _mark_session_saved(self):
+        self._saved_session = self.session.dumps()
+        self._update_save_state()
+
     def __init__(self, controller: Controller, **kwargs):
         self.controller = controller
         self.session = CMMWorkbenchSession()
+        self._saved_session = self.session.dumps()
+        self._dirty_trigger = Clock.create_trigger(self._update_save_state, .1)
         self._selection_order: list[str] = []
         self._preview_focus_id: str | None = None
         self._angle_variant: str | None = None
@@ -384,6 +400,7 @@ class CMMWorkbenchPopup(ModalView):
             jog.bind(on_open=self._on_jog_modal_open)
             jog.bind(on_dismiss=self._on_jog_modal_dismiss)
             self._jog_popup = jog
+        Window.release_all_keyboards()
         jog.open()
 
     def _on_jog_modal_open(self, *_args):
@@ -786,18 +803,19 @@ class CMMWorkbenchPopup(ModalView):
         return True
 
     def _refresh_feature_ui(self):
+        self._dirty_trigger()
         try:
             self._sanitize_feature_ui_state()
             self._recompute_construct_buttons()
             fl = self.ids.feature_rows
             fl.clear_widgets()
             by_id = index_by_id(self.session.features)
-            title_font = sp(13)
-            detail_font = sp(11)
+            title_font = sp(16) if App.get_running_app().android_touch else sp(13)
+            detail_font = sp(14) if App.get_running_app().android_touch else sp(11)
             for i, feat in enumerate(self.session.features):
                 line1 = f"{i + 1}. {feat.label}"
                 line2 = feature_secondary_line(feat, by_id)
-                row_h = dp(50) if line2 else dp(40)
+                row_h = max(dp(72), sp(16) * 2 + dp(16)) if App.get_running_app().android_touch else dp(50) if line2 else dp(40)
                 row = BoxLayout(
                     orientation="horizontal",
                     size_hint_y=None,
@@ -1439,7 +1457,16 @@ class CMMWorkbenchPopup(ModalView):
         cp.open(root)
 
     def on_load_session(self):
-        self._prompt_load_session_file()
+        self._update_save_state()
+        if self.session_dirty:
+            prompt = App.get_running_app().root.confirm_popup
+            prompt.lb_title.text = tr._("Replace unsaved session?")
+            prompt.lb_content.text = tr._("Loading replaces this session. Save its full JSON first to keep it.")
+            prompt.confirm = self._prompt_load_session_file
+            prompt.cancel = None
+            prompt.open()
+        else:
+            self._prompt_load_session_file()
 
     def _prompt_load_session_file(self):
         root = App.get_running_app().root
@@ -1451,6 +1478,10 @@ class CMMWorkbenchPopup(ModalView):
                 from ..core.io_import import load_session_from_path
 
                 self.session, report = load_session_from_path(dest)
+                if os.path.splitext(dest)[1].lower() == ".json" and not report.warnings and not report.skipped:
+                    self._mark_session_saved()
+                else:
+                    self._saved_session = ""
                 self._clear_construct_selection()
                 self._refresh_feature_ui()
                 popup.dismiss()
@@ -1504,6 +1535,10 @@ class CMMWorkbenchPopup(ModalView):
                         blob = export_dxf(self.session)
                     with open(path, "w", encoding="utf-8") as fp:
                         fp.write(blob)
+                    if kind == "JSON":
+                        self._mark_session_saved()
+                    else:
+                        self._update_save_state()
                     popup.dismiss()
                     self._toast(tr._("Saved:\n%s") % path)
                 except OSError as e:

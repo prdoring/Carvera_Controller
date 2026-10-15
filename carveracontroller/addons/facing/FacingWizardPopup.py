@@ -10,6 +10,7 @@ from functools import partial
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.metrics import dp
+from kivy.properties import BooleanProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
@@ -139,6 +140,12 @@ class FacingSavePresetContent(BoxLayout):
 
 class FacingWizardPopup(ModalView):
     """Facing toolpath parameters plus optional Z-grid probe; facing is always generated."""
+
+    show_form_help = BooleanProperty(False)
+    show_sketch = BooleanProperty(False)
+    show_gcode_preview = BooleanProperty(False)
+    _facing_gcode_stale = BooleanProperty(False)
+    program_state = StringProperty("Not generated")
 
     def __init__(self, **kwargs):
         self._m6_collet_pairs_list = None
@@ -381,6 +388,7 @@ class FacingWizardPopup(ModalView):
             self._facing_suspend_stale = False
         if self._gcode_plain.strip():
             self._facing_gcode_stale = True
+            self.program_state = tr._("Out of date — generate again")
         self._preview_trigger()
 
     def _confirm_delete_preset_by_name(self, name: str):
@@ -750,6 +758,7 @@ class FacingWizardPopup(ModalView):
             return
         if self._gcode_plain.strip():
             self._facing_gcode_stale = True
+            self.program_state = tr._("Out of date — generate again")
 
     def _build_probe_params_from_ui(self) -> ProbeGridParams:
         self._ensure_wizard_lists()
@@ -899,6 +908,7 @@ class FacingWizardPopup(ModalView):
             combined = "\n".join(blocks) + "\n"
             self._gcode_plain = combined
             self._facing_gcode_stale = False
+            self.program_state = tr._("Generated — current")
             self._refresh_gcode_preview()
         except ValueError as e:
             App.get_running_app().root.show_message_popup(str(e), False)

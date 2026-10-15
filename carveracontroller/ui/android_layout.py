@@ -1,11 +1,13 @@
 """Android touch sizing, keyboard space, help and Back navigation."""
 
 import weakref
+from functools import lru_cache
 
 from kivy.app import App
 from kivy.clock import Clock
+from kivy.core.text import Label as CoreLabel
 from kivy.core.window import Window
-from kivy.metrics import dp, sp
+from kivy.metrics import Metrics, dp, sp
 from kivy.properties import BooleanProperty
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
@@ -29,6 +31,13 @@ from carveracontroller.translation import tr
 from .touch import TapBehavior
 
 
+@lru_cache(maxsize=256)
+def _text_width(text, font, size):
+    label = CoreLabel(text=text, font_name=font, font_size=size)
+    label.refresh()
+    return label.texture.size[0]
+
+
 class TouchActionRow(GridLayout):
     """Action buttons wrap into full touch rows on a narrow interface."""
 
@@ -45,16 +54,22 @@ class TouchActionRow(GridLayout):
     def _columns(self, *_args):
         app = App.get_running_app()
         mobile = app is not None and app.android_touch
-        self.cols = (1 if self.stacked else max(1, min(len(self.children) or 1, int(self.width / dp(160))))) if mobile else max(1, len(self.children))
+        width = max([app.touch_target if mobile else dp(48)] + [
+            min(dp(200), _text_width(str(child.text), getattr(child, "font_name", "Roboto"), sp(16)) + dp(24))
+            for child in self.children if mobile and hasattr(child, "text")])
+        self.cols = (1 if self.stacked else max(1, min(len(self.children) or 1, int(self.width / width)))) if mobile else max(1, len(self.children))
         self.row_force_default = True
         self.row_default_height = max(app.touch_target, sp(16) * 2 + dp(16)) if mobile else dp(40)
         if mobile:
             for child in self.children:
+                child.size_hint_x = 1
                 if isinstance(child, Button):
                     child.font_size = sp(16)
                     child.text_size = (max(1, self.width / self.cols - dp(24)), None)
                     child.halign = "center"
                     child.valign = "middle"
+                    child.texture_update()
+                    self.row_default_height = max(self.row_default_height, child.texture_size[1] + dp(16))
 
 
 class DialogLabel(Label):
@@ -134,6 +149,7 @@ class AndroidTouchLayout:
         self._history = []
         self._last_page = app.root.content.current
         Window.bind(children=self._update, size=self._update, on_resize=self._update)
+        Metrics.bind(density=self._update, fontscale=self._update)
         app.bind(android_keyboard_height=self._update, safe_area_padding=self._update)
         app.root.content.bind(current=self._page_changed)
         self.size_controls(app.root)
@@ -157,17 +173,24 @@ class AndroidTouchLayout:
                 if widget.size_hint_x is None and widget.width:
                     widget.width = max(widget.width, target)
                 if isinstance(widget, TextInput):
-                    widget.font_size = max(widget.font_size, sp(16))
+                    widget._mobile_text_sp = getattr(widget, "_mobile_text_sp", max(16, widget.font_size / sp(1)))
+                    widget.font_size = sp(widget._mobile_text_sp)
+                    if not getattr(widget, "_mobile_focus_bound", False):
+                        widget.bind(focus=lambda field, focused: self.focus_field(field) if focused else None)
+                        widget._mobile_focus_bound = True
                 if isinstance(widget, Button) and widget.text:
-                    widget.font_size = max(widget.font_size, sp(16))
+                    widget._mobile_text_sp = getattr(widget, "_mobile_text_sp", max(16, widget.font_size / sp(1)))
+                    widget.font_size = sp(widget._mobile_text_sp)
                     widget.text_size = (max(1, widget.width - dp(12)), None)
                     if not getattr(widget, "_mobile_wrap_bound", False):
                         widget.bind(width=lambda item, width: setattr(item, "text_size", (max(1, width - dp(12)), None)))
                         widget._mobile_wrap_bound = True
                     widget.halign = "center"
                     widget.valign = "middle"
-            if isinstance(widget, GridLayout) and widget.row_force_default:
-                widget.row_default_height = max(widget.row_default_height, target)
+            if isinstance(widget, TouchActionRow):
+                widget._columns()
+            elif isinstance(widget, GridLayout) and widget.row_force_default:
+                widget.row_default_height = max(target, sp(16) * 2 + dp(16))
             if isinstance(widget, RecycleBoxLayout):
                 width, height = widget.default_size
                 if height is not None:
@@ -175,16 +198,20 @@ class AndroidTouchLayout:
             if isinstance(widget, Splitter):
                 widget.strip_size = target
             if isinstance(widget, TabbedPanel):
-                widget.tab_height = max(widget.tab_height, target)
+                widget.tab_height = 0 if getattr(widget, "mobile_selector", None) is not None and self.app.compact_layout else max(widget.tab_height, target)
             if isinstance(widget, Label) and widget.text:
-                widget.font_size = max(widget.font_size, sp(16))
+                widget._mobile_text_sp = getattr(widget, "_mobile_text_sp", max(16, widget.font_size / sp(1)))
+                widget.font_size = sp(widget._mobile_text_sp)
 
     def _prepare_dialog(self, modal):
+        from .mobile_tools import prepare_tool_dialog
+
+        prepare_tool_dialog(modal, self.app)
         self.size_controls(modal)
         state = {"size_hint_y": modal.size_hint_y, "height": modal.height, "pos_hint": dict(modal.pos_hint)}
         self.dialogs[modal] = state
         jog_panel = modal.ids.get("jog_panel")
-        if jog_panel is not None:
+        if jog_panel is not None and type(modal).__name__ != "ProbingPopup":
             state["jog_panel"] = (jog_panel, jog_panel.height)
         state["drafts"] = {}
         def remember_drafts(_dt):
@@ -203,6 +230,7 @@ class AndroidTouchLayout:
         # Existing tabbed and split-pane forms own their scrolling.
 
     def update(self, _dt=0):
+        self.size_controls(self.app.root)
         keyboard = self.app.android_keyboard_height
         available = max(dp(96), Window.height - keyboard)
         self.app.root.size_hint = (None, None)
@@ -216,6 +244,7 @@ class AndroidTouchLayout:
                 self._prepare_dialog(modal)
                 Clock.schedule_once(lambda _dt, modal=modal: self.size_controls(modal), 0.1)
             state = self.dialogs[modal]
+            self.size_controls(modal)
             if "jog_panel" in state:
                 panel, height = state["jog_panel"]
                 if keyboard and panel.height:
@@ -332,5 +361,6 @@ class AndroidTouchLayout:
     def stop(self):
         self._update.cancel()
         Window.unbind(children=self._update, size=self._update, on_resize=self._update)
+        Metrics.unbind(density=self._update, fontscale=self._update)
         self.app.unbind(android_keyboard_height=self._update, safe_area_padding=self._update)
         self.app.root.content.unbind(current=self._page_changed)

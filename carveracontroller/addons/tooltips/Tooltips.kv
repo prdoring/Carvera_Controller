@@ -85,8 +85,8 @@
     halign: 'center'
     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
     size_hint: None, None
-    height: app.touch_target if app.android_touch else self.parent.height
-    width: app.touch_target if app.android_touch else self.parent.height * 2
+    height: app.touch_target if app.android_touch else (self.parent.height if self.parent else dp(48))
+    width: app.touch_target if app.android_touch else (self.parent.height * 2 if self.parent else dp(96))
     state_image: self.background_normal if self.state == 'normal' else self.background_down
     disabled_image: self.background_disabled_normal if self.state == 'normal' else self.background_disabled_down
     canvas:

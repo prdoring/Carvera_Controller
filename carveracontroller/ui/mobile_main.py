@@ -1,7 +1,7 @@
 """Android main-page arrangements that retain the existing controls and views."""
 
 from kivy.clock import Clock
-from kivy.metrics import dp, sp
+from kivy.metrics import Metrics, dp, sp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
@@ -28,6 +28,7 @@ class MobileMainLayout:
         self.root.coord_system_data_view.bind(main_text=self.refresh)
         self.root.content.bind(current=self.refresh)
         app.bind(android_keyboard_height=self._keyboard)
+        Metrics.bind(density=self._metrics, fontscale=self._metrics)
         self.update()
 
     def update(self, *_args):
@@ -86,6 +87,10 @@ class MobileMainLayout:
         self._coordinate_height = coord_height
         self._keyboard()
         self.refresh()
+
+    def _metrics(self, *_args):
+        self._key = None
+        self.update()
 
     def _keyboard(self, *_args):
         if not self.compact or not hasattr(self, "coordinate_row"):
@@ -166,3 +171,4 @@ class MobileMainLayout:
         self.root.coord_system_data_view.unbind(main_text=self.refresh)
         self.root.content.unbind(current=self.refresh)
         self.app.unbind(android_keyboard_height=self._keyboard)
+        Metrics.unbind(density=self._metrics, fontscale=self._metrics)

@@ -27,7 +27,7 @@
     spacing: dp(3)
     padding: dp(3)
     size_hint_max_x: dp(600)
-    size_hint_max_y: dp(33)
+    size_hint_max_y: None if app.android_touch else dp(33)
     label_text:''
     Label:
         text: root.label_text

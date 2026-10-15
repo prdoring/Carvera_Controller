@@ -675,3 +675,15 @@ filenames carry secondary metadata, local directory reads run off the UI
 thread, and access errors retain the current destination. Local renders found
 and corrected zero-size-hint clipping and zero-width viewer projection errors.
 Native keyboard and final device flows are still pending.
+
+Tool-screen changes retain the existing operation tabs and add a compact
+operation selector. Probing keeps settings deferred and uses full-width
+parameter rows; compact jog controls replace the form while expanded and
+cancel touch ownership when hidden. CMM exposes capture and features as
+retained panes, places optional construction/sketch views in bounded dialogs,
+and keeps Cancel probe directly available. Full JSON save/load controls its
+unsaved-session indicator; clipboard and partial exports do not clear it.
+Facing presents fields before optional help/sketch/program output and labels
+missing, current and stale generation states. Local widget checks cover
+operation selection, deferred panels and save-state changes. Physical probe
+and jog acceptance remains pending.

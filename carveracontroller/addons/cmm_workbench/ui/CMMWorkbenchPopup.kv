@@ -38,7 +38,7 @@
 
 
 <CMMWorkbenchFieldLabel@Label>:
-    font_size: dp(15)
+    font_size: '16sp' if app.android_touch else dp(15)
     color: 0.88, 0.88, 0.92, 1
     halign: 'center'
     valign: 'middle'
@@ -46,7 +46,7 @@
 
 <CMMWorkbenchFieldInput@EditingTextInput>:
     multiline: False
-    font_size: dp(15)
+    font_size: '16sp' if app.android_touch else dp(15)
     size_hint_y: None
     height: app.touch_target if app.android_touch else dp(40)
     halign: 'right'
@@ -115,10 +115,10 @@
                                         size_hint_x: 1
                                     Label:
                                         id: lbl_wcs_live
-                                        size_hint_x: None
+                                        size_hint_x: .65 if app.android_touch else None
                                         size_hint_y: 1
                                         width: dp(292)
-                                        font_size: dp(13)
+                                        font_size: '16sp' if app.android_touch else dp(13)
                                         halign: 'right'
                                         valign: 'middle'
                                         text_size: self.width, self.height
@@ -126,15 +126,15 @@
                                         color: 0.65, 0.92, 0.98, 1
                                         text: ''
                                     AnchorLayout:
-                                        size_hint_x: None
+                                        size_hint_x: .35 if app.android_touch else None
                                         width: dp(136)
                                         anchor_y: 'center'
                                         Button:
                                             size_hint: None, None
-                                            width: dp(136)
+                                            width: self.parent.width if app.android_touch else dp(136)
                                             height: dp(48)
                                             text: tr._('Load coordinates')
-                                            font_size: dp(12)
+                                            font_size: '16sp' if app.android_touch else dp(12)
                                             on_release: root.on_manual_sync_from_machine()
 
                                 GridLayout:
@@ -885,7 +885,7 @@
                         text: tr._('XY preview')
                         size_hint_y: None
                         height: app.touch_target if app.android_touch else dp(24)
-                        font_size: dp(14)
+                        font_size: '16sp' if app.android_touch else dp(14)
 
                     FloatLayout:
                         size_hint_y: 1
@@ -903,7 +903,7 @@
                             color: 0.45, 0.46, 0.52, 0.95
                             disabled_color: 0.45, 0.46, 0.52, 0.95
                             disabled: True
-                            font_size: dp(13)
+                            font_size: '16sp' if app.android_touch else dp(13)
                             halign: 'center'
                             valign: 'middle'
                             text_size: self.width, None
@@ -912,7 +912,7 @@
                         text: tr._('Features')
                         size_hint_y: None
                         height: app.touch_target if app.android_touch else dp(24)
-                        font_size: dp(14)
+                        font_size: '16sp' if app.android_touch else dp(14)
 
                     GridLayout:
                         cols: 4
@@ -965,6 +965,8 @@
                             spacing: dp(4)
                             padding: [dp(4), dp(4), dp(20), dp(10)]
 
+            DialogLabel:
+                text: root.session_status
             TouchActionRow:
                 id: cmm_actions
                 size_hint_y: None
@@ -976,6 +978,7 @@
                     disabled: root.is_probing or not root.can_use_local_file_picker
                     on_release: root.on_load_session()
                 Button:
+                    id: cmm_save
                     text: tr._('Save as...')
                     size_hint_x: 1
                     disabled: root.is_probing or not root.can_use_local_file_picker
@@ -996,10 +999,12 @@
                     disabled: root.is_probing
                     on_release: root.open_jog_popup()
                 Button:
+                    id: cmm_cancel_probe
                     text: tr._('Cancel probe')
                     disabled: not root.is_probing
                     on_release: root._cancel_probe_run()
                 Button:
+                    id: cmm_close
                     text: tr._('Close')
                     size_hint_x: 1
                     on_release: root.dismiss()
@@ -1028,7 +1033,7 @@
                 text: root.probing_status_text
                 color: 0.62, 0.98, 0.68, 1
                 disabled_color: 0.62, 0.98, 0.68, 1
-                font_size: dp(14)
+                font_size: '16sp' if app.android_touch else dp(14)
                 bold: True
                 halign: 'left'
                 valign: 'middle'
@@ -1225,7 +1230,7 @@
             BoxLayout:
                 orientation: 'vertical'
                 size_hint_x: None
-                width: dp(292)
+                width: dp(292) if not app.android_touch else self.parent.width * .65
                 padding: dp(4)
                 BoxLayout:
                     padding: dp(4)
