@@ -10,6 +10,7 @@ from kivy.uix.modalview import ModalView
 
 from carveracontroller.translation import tr
 from carveracontroller.ui import widget_helpers
+from carveracontroller.ui.editing import is_complete_number
 
 
 def _show_error(message: str) -> None:
@@ -24,7 +25,8 @@ def _validate_float(text: str, label: str) -> tuple[bool, str]:
     if not stripped:
         return False, tr._(f"Please enter a value for {label}.")
     try:
-        float(stripped)
+        if not is_complete_number(stripped):
+            raise ValueError
     except ValueError:
         return False, tr._(f"Please enter a valid number for {label}.")
     return True, ""
@@ -65,6 +67,9 @@ class ToolPopup(ModalView):
 
     def on_ok_pressed(self) -> None:
         app = App.get_running_app()
+        if not is_complete_number(self.ids.txt_offset.text, integer=True):
+            _show_error(tr._("Please enter a valid tool number."))
+            return
         self.machine_op(app.root.controller, self.ids.txt_offset.text)
         self.dismiss()
 

@@ -3,12 +3,38 @@ from __future__ import annotations
 import json
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor
+
+from kivy.clock import Clock
 
 logger = logging.getLogger(__name__)
 
 
 class ConfigUtils:
     CONFIG_DIR = os.path.expanduser("~/.kivy/")
+    _pending = {}
+    _writer = ThreadPoolExecutor(max_workers=1, thread_name_prefix="probe-settings")
+
+    @staticmethod
+    def schedule_save(config, filename):
+        previous = ConfigUtils._pending.pop(filename, None)
+        if previous is not None:
+            previous[1].cancel()
+        snapshot = dict(config)
+        event = Clock.schedule_once(lambda _dt: ConfigUtils._submit_save(filename), 0.3)
+        ConfigUtils._pending[filename] = (snapshot, event)
+
+    @staticmethod
+    def _submit_save(filename):
+        pending = ConfigUtils._pending.pop(filename, None)
+        if pending is not None:
+            pending[1].cancel()
+            ConfigUtils._writer.submit(ConfigUtils.save_config, pending[0], filename)
+
+    @staticmethod
+    def flush_saves():
+        for filename in list(ConfigUtils._pending):
+            ConfigUtils._submit_save(filename)
 
     @staticmethod
     def save_config(config: dict, filename: str):

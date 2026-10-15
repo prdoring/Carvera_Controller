@@ -16,7 +16,7 @@ from kivy.uix.modalview import ModalView
 from kivy.uix.popup import Popup
 from kivy.uix.spinner import Spinner
 from kivy.uix.switch import Switch
-from kivy.uix.textinput import TextInput
+from carveracontroller.ui.editing import EditingTextInput as TextInput
 
 # Minimum tooltip box width for short labels (matches previous wrap floor).
 TOOLTIP_MIN_WIDTH = 200

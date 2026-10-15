@@ -132,8 +132,9 @@
         font_size: dp(15)
         halign: 'left'
         text_size: self.width, None
-    TextInput:
+    EditingTextInput:
         id: ti_filename
+        input_policy: 'filename'
         multiline: False
         size_hint_y: None
         height: dp(36)

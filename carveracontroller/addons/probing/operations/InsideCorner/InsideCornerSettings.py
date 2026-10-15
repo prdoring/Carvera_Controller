@@ -1,4 +1,5 @@
 from kivy.uix.boxlayout import BoxLayout
+from carveracontroller.addons.probing.operations.drafts import ProbeSettingsDraft
 
 from carveracontroller.addons.probing.operations.ConfigUtils import ConfigUtils
 from carveracontroller.addons.probing.operations.InsideCorner.InsideCornerParameterDefinitions import (
@@ -6,7 +7,8 @@ from carveracontroller.addons.probing.operations.InsideCorner.InsideCornerParame
 )
 
 
-class InsideCornerSettings(BoxLayout):
+class InsideCornerSettings(ProbeSettingsDraft, BoxLayout):
+    parameter_definitions = InsideCornerParameterDefinitions
     config_filename = "inside-corner-settings.json"
     config = {}
 
@@ -22,7 +24,7 @@ class InsideCornerSettings(BoxLayout):
 
         self.config[param.code] = value
         self.config = self.order_config(self.config)
-        ConfigUtils.save_config(self.config, self.config_filename)
+        ConfigUtils.schedule_save(self.config, self.config_filename)
 
     def order_config(self, config: dict[str, float]):
         order = ["X", "Y", "J", "D", "H", "F", "K", "L", "R", "C", "Q", "E", "S", "I"]
@@ -40,4 +42,4 @@ class InsideCornerSettings(BoxLayout):
         return param.default
 
     def get_config(self):
-        return self.config
+        return self.draft_config()

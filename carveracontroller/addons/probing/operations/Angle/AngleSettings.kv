@@ -31,7 +31,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('XAxisDistance')
-                    on_text: root.setting_changed('XAxisDistance', self.text)
+                    on_text: root.draft_changed('XAxisDistance', self.text)
+                    on_focus: root.commit_draft('XAxisDistance') if not self.focus else None
+                    on_text_validate: root.commit_draft('XAxisDistance')
 
             BoxLayout:
                 ProbeSettingLabel:
@@ -49,7 +51,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('YAxisDistance')
-                    on_text: root.setting_changed('YAxisDistance', self.text)
+                    on_text: root.draft_changed('YAxisDistance', self.text)
+                    on_focus: root.commit_draft('YAxisDistance') if not self.focus else None
+                    on_text_validate: root.commit_draft('YAxisDistance')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'Probe Depth (E)'
@@ -66,7 +70,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('ProbeDepth')
-                    on_text: root.setting_changed('ProbeDepth', self.text)
+                    on_text: root.draft_changed('ProbeDepth', self.text)
+                    on_focus: root.commit_draft('ProbeDepth') if not self.focus else None
+                    on_text_validate: root.commit_draft('ProbeDepth')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'Tip Dia (D):'
@@ -84,7 +90,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('ProbeTipDiameter')
-                    on_text: root.setting_changed('ProbeTipDiameter', self.text)
+                    on_text: root.draft_changed('ProbeTipDiameter', self.text)
+                    on_focus: root.commit_draft('ProbeTipDiameter') if not self.focus else None
+                    on_text_validate: root.commit_draft('ProbeTipDiameter')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'Pocket Depth (H):'
@@ -101,7 +109,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('PocketProbeDepth')
-                    on_text: root.setting_changed('PocketProbeDepth', self.text)
+                    on_text: root.draft_changed('PocketProbeDepth', self.text)
+                    on_focus: root.commit_draft('PocketProbeDepth') if not self.focus else None
+                    on_text_validate: root.commit_draft('PocketProbeDepth')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'Feed Rate (F):'
@@ -118,7 +128,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('FastFeedRate')
-                    on_text: root.setting_changed('FastFeedRate', self.text)
+                    on_text: root.draft_changed('FastFeedRate', self.text)
+                    on_focus: root.commit_draft('FastFeedRate') if not self.focus else None
+                    on_text_validate: root.commit_draft('FastFeedRate')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'Rapid (K):'
@@ -135,7 +147,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('RapidFeedRate')
-                    on_text: root.setting_changed('RapidFeedRate', self.text)
+                    on_text: root.draft_changed('RapidFeedRate', self.text)
+                    on_focus: root.commit_draft('RapidFeedRate') if not self.focus else None
+                    on_text_validate: root.commit_draft('RapidFeedRate')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'Repeat (L):'
@@ -152,7 +166,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('RepeatOperationCount')
-                    on_text: root.setting_changed('RepeatOperationCount', self.text)
+                    on_text: root.draft_changed('RepeatOperationCount', self.text)
+                    on_focus: root.commit_draft('RepeatOperationCount') if not self.focus else None
+                    on_text_validate: root.commit_draft('RepeatOperationCount')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'Edge Retract (R):'
@@ -169,7 +185,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('EdgeRetractDistance')
-                    on_text: root.setting_changed('EdgeRetractDistance', self.text)
+                    on_text: root.draft_changed('EdgeRetractDistance', self.text)
+                    on_focus: root.commit_draft('EdgeRetractDistance') if not self.focus else None
+                    on_text_validate: root.commit_draft('EdgeRetractDistance')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'Btm Retract (C):'
@@ -186,7 +204,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('BottomSurfaceRetract')
-                    on_text: root.setting_changed('BottomSurfaceRetract', self.text)
+                    on_text: root.draft_changed('BottomSurfaceRetract', self.text)
+                    on_focus: root.commit_draft('BottomSurfaceRetract') if not self.focus else None
+                    on_text_validate: root.commit_draft('BottomSurfaceRetract')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'Angle (Q):'
@@ -203,7 +223,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('QAngle')
-                    on_text: root.setting_changed('QAngle', self.text)
+                    on_text: root.draft_changed('QAngle', self.text)
+                    on_focus: root.commit_draft('QAngle') if not self.focus else None
+                    on_text_validate: root.commit_draft('QAngle')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'V Visualize:'
@@ -220,7 +242,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('VisualizeDistance')
-                    on_text: root.setting_changed('VisualizeDistance', self.text)
+                    on_text: root.draft_changed('VisualizeDistance', self.text)
+                    on_focus: root.commit_draft('VisualizeDistance') if not self.focus else None
+                    on_text_validate: root.commit_draft('VisualizeDistance')
             BoxLayout:
                 ProbeSettingLabel:
                     label_text: 'S Set WCS Rotation:'

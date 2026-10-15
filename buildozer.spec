@@ -340,6 +340,7 @@ p4a.branch = v2026.05.09
 
 # (str) The directory in which python-for-android should look for your own build recipes (if any)
 p4a.local_recipes = ./assets/packaging/android/recipes
+p4a.hook = ./assets/packaging/android/hooks.py
 
 # (str) Filename to the hook for p4a
 #p4a.hook =

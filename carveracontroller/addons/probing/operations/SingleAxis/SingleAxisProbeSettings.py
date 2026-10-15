@@ -1,4 +1,5 @@
 from kivy.uix.boxlayout import BoxLayout
+from carveracontroller.addons.probing.operations.drafts import ProbeSettingsDraft
 from kivy.uix.switch import Switch
 from kivy.uix.textinput import TextInput
 
@@ -9,7 +10,8 @@ from carveracontroller.addons.probing.operations.SingleAxis.SingleAxisProbeParam
 )
 
 
-class SingleAxisProbeSettings(BoxLayout):
+class SingleAxisProbeSettings(ProbeSettingsDraft, BoxLayout):
+    parameter_definitions = SingleAxisProbeParameterDefinitions
     config_filename = "single-axis-probe-settings.json"
     config = {}
 
@@ -25,7 +27,7 @@ class SingleAxisProbeSettings(BoxLayout):
 
         self.config[param.code] = value
         self.config = self.order_config(self.config)
-        ConfigUtils.save_config(self.config, self.config_filename)
+        ConfigUtils.schedule_save(self.config, self.config_filename)
 
     def order_config(self, config: dict[str, float]):
         order = ["X", "Y", "Z", "J", "D", "H", "F", "K", "L", "R", "C", "Q", "E", "S", "I"]
@@ -43,4 +45,4 @@ class SingleAxisProbeSettings(BoxLayout):
         return param.default
 
     def get_config(self):
-        return self.config
+        return self.draft_config()

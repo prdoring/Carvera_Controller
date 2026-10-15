@@ -14,7 +14,7 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.settings import SettingItem
-from kivy.uix.textinput import TextInput
+from carveracontroller.ui.editing import EditingTextInput as TextInput
 from kivy.uix.widget import Widget
 
 from carveracontroller.translation import tr
@@ -349,7 +349,7 @@ class SettingGCodeSnippet(SettingItem):
         content.add_widget(Label(text=tr._("Name:"), size_hint_y=None, height=dp(20)))
         content.add_widget(self.name_input)
 
-        self.gcode_input = TextInput(text=gcode, size_hint=(1, 1))
+        self.gcode_input = TextInput(input_policy="gcode", text=gcode, size_hint=(1, 1))
         content.add_widget(Label(text=tr._("G-code:"), size_hint_y=None, height=dp(20)))
         content.add_widget(self.gcode_input)
 

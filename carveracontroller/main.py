@@ -117,7 +117,7 @@ from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.uix.settings import SettingItem, SettingsPanel, SettingsWithSidebar
 from kivy.uix.slider import Slider
 from kivy.uix.stencilview import StencilView
-from kivy.uix.textinput import TextInput
+from carveracontroller.ui.editing import EditingTextInput as TextInput
 from kivy.uix.widget import Widget
 
 from carveracontroller.addons.facing.FacingWizardPopup import FacingWizardPopup
@@ -328,6 +328,7 @@ def register_images(base_path):
 class MDITextInput(TextInput):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.input_policy = "gcode"
         self.past_mdi_commands = []
         self.active_past_mdi_index = 0
         self.bind(focus=self.on_focus)
@@ -3261,7 +3262,7 @@ class Makera(RelativeLayout):
         Clock.schedule_interval(self.check_model_metadata, 10)
 
         self.has_onscreen_keyboard = False
-        if sys.platform == "ios":
+        if kivy_platform in ("android", "ios"):
             self.has_onscreen_keyboard = True
 
         #
@@ -8275,6 +8276,9 @@ class MakeraApp(App):
 
     def on_stop(self):
         from kivy.base import EventLoop
+        from .addons.probing.operations.ConfigUtils import ConfigUtils
+
+        ConfigUtils.flush_saves()
 
         if self._android_input is not None:
             self._android_input.stop()
@@ -8356,6 +8360,9 @@ class MakeraApp(App):
             print(f"safe area query skipped: {e}")
 
     def on_pause(self):
+        from .addons.probing.operations.ConfigUtils import ConfigUtils
+
+        ConfigUtils.flush_saves()
         cancel_all_touches()
         self.root.controller.stopContinuousJog()
         return True

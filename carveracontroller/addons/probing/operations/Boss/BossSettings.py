@@ -1,10 +1,12 @@
 from kivy.uix.boxlayout import BoxLayout
+from carveracontroller.addons.probing.operations.drafts import ProbeSettingsDraft
 
 from carveracontroller.addons.probing.operations.Boss.BossParameterDefinitions import BossParameterDefinitions
 from carveracontroller.addons.probing.operations.ConfigUtils import ConfigUtils
 
 
-class BossSettings(BoxLayout):
+class BossSettings(ProbeSettingsDraft, BoxLayout):
+    parameter_definitions = BossParameterDefinitions
     config_filename = "Boss-probe-settings.json"
     config = {}
 
@@ -20,7 +22,7 @@ class BossSettings(BoxLayout):
 
         self.config[param.code] = value
         self.config = self.order_config(self.config)
-        ConfigUtils.save_config(self.config, self.config_filename)
+        ConfigUtils.schedule_save(self.config, self.config_filename)
 
     def order_config(self, config: dict[str, float]):
         order = ["X", "Y", "J", "D", "H", "F", "K", "L", "R", "C", "Q", "E", "S", "I"]
@@ -38,4 +40,4 @@ class BossSettings(BoxLayout):
         return param.default
 
     def get_config(self):
-        return self.config
+        return self.draft_config()

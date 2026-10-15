@@ -1,10 +1,12 @@
 from kivy.uix.boxlayout import BoxLayout
+from carveracontroller.addons.probing.operations.drafts import ProbeSettingsDraft
 
 from carveracontroller.addons.probing.operations.Angle.AngleParameterDefinitions import AngleParameterDefinitions
 from carveracontroller.addons.probing.operations.ConfigUtils import ConfigUtils
 
 
-class AngleSettings(BoxLayout):
+class AngleSettings(ProbeSettingsDraft, BoxLayout):
+    parameter_definitions = AngleParameterDefinitions
     config_filename = "Angle-probe-settings.json"
     config = {}
 
@@ -20,7 +22,7 @@ class AngleSettings(BoxLayout):
 
         self.config[param.code] = value
         self.config = self.order_config(self.config)
-        ConfigUtils.save_config(self.config, self.config_filename)
+        ConfigUtils.schedule_save(self.config, self.config_filename)
 
     def order_config(self, config: dict[str, float]):
         order = ["X", "Y", "E", "J", "D", "H", "F", "K", "L", "R", "C", "Q", "V", "S", "I"]
@@ -38,4 +40,4 @@ class AngleSettings(BoxLayout):
         return param.default
 
     def get_config(self):
-        return self.config
+        return self.draft_config()

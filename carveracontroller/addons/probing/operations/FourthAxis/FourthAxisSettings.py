@@ -1,4 +1,5 @@
 from kivy.uix.boxlayout import BoxLayout
+from carveracontroller.addons.probing.operations.drafts import ProbeSettingsDraft
 
 from carveracontroller.addons.probing.operations.ConfigUtils import ConfigUtils
 from carveracontroller.addons.probing.operations.FourthAxis.FourthAxisParameterDefinitions import (
@@ -6,7 +7,8 @@ from carveracontroller.addons.probing.operations.FourthAxis.FourthAxisParameterD
 )
 
 
-class FourthAxisSettings(BoxLayout):
+class FourthAxisSettings(ProbeSettingsDraft, BoxLayout):
+    parameter_definitions = FourthAxisParameterDefinitions
     config_filename = "fourth-axis-settings.json"
     config = {}
 
@@ -22,7 +24,7 @@ class FourthAxisSettings(BoxLayout):
 
         self.config[param.code] = value
         self.config = self.order_config(self.config)
-        ConfigUtils.save_config(self.config, self.config_filename)
+        ConfigUtils.schedule_save(self.config, self.config_filename)
 
     def order_config(self, config: dict) -> dict:
         order = ["Y", "H", "F", "K", "L", "R", "V", "S"]
@@ -42,4 +44,4 @@ class FourthAxisSettings(BoxLayout):
         return param.default
 
     def get_config(self):
-        return {k: str(v) for k, v in self.config.items()}
+        return self.draft_config()

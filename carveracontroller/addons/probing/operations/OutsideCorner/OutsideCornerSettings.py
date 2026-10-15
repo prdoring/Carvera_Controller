@@ -1,4 +1,5 @@
 from kivy.uix.boxlayout import BoxLayout
+from carveracontroller.addons.probing.operations.drafts import ProbeSettingsDraft
 from kivy.uix.switch import Switch
 from kivy.uix.textinput import TextInput
 
@@ -9,7 +10,8 @@ from carveracontroller.addons.probing.operations.OutsideCorner.OutsideCornerPara
 )
 
 
-class OutsideCornerSettings(BoxLayout):
+class OutsideCornerSettings(ProbeSettingsDraft, BoxLayout):
+    parameter_definitions = OutsideCornerParameterDefinitions
     config_filename = "outside-corner-settings.json"
     config = {}
 
@@ -25,7 +27,7 @@ class OutsideCornerSettings(BoxLayout):
 
         self.config[param.code] = value
         self.config = self.order_config(self.config)
-        ConfigUtils.save_config(self.config, self.config_filename)
+        ConfigUtils.schedule_save(self.config, self.config_filename)
 
     def order_config(self, config: dict[str, float]):
         order = ["X", "Y", "J", "D", "H", "F", "K", "L", "R", "C", "Q", "E", "S", "I"]
@@ -43,4 +45,4 @@ class OutsideCornerSettings(BoxLayout):
         return param.default
 
     def get_config(self):
-        return self.config
+        return self.draft_config()

@@ -29,8 +29,9 @@
         halign: 'left'
         valign: 'bottom'
         color: 0.78, 0.79, 0.82, 1
-    TextInput:
+    EditingTextInput:
         id: ti_name
+        input_policy: 'filename'
         size_hint_y: None
         height: dp(40)
         multiline: False
@@ -121,7 +122,7 @@
 
                                     Label:
                                         text: tr._('Width (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_w
                                         text: default_values.DEFAULT_TXT['txt_w']
                                         multiline: False
@@ -129,7 +130,7 @@
 
                                     Label:
                                         text: tr._('Length (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_l
                                         text: default_values.DEFAULT_TXT['txt_l']
                                         multiline: False
@@ -137,7 +138,7 @@
 
                                     Label:
                                         text: tr._('Margin ±X (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_mx
                                         text: default_values.DEFAULT_TXT['txt_mx']
                                         multiline: False
@@ -145,7 +146,7 @@
 
                                     Label:
                                         text: tr._('Margin ±Y (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_my
                                         text: default_values.DEFAULT_TXT['txt_my']
                                         multiline: False
@@ -153,7 +154,7 @@
 
                                     Label:
                                         text: tr._('Extra depth (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_mz
                                         text: default_values.DEFAULT_TXT['txt_mz']
                                         multiline: False
@@ -161,7 +162,7 @@
 
                                     Label:
                                         text: tr._('Clearance Z (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_clear
                                         text: default_values.DEFAULT_TXT['txt_clear']
                                         multiline: False
@@ -204,7 +205,7 @@
 
                                     Label:
                                         text: tr._('Spindle RPM')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_spindle
                                         text: default_values.DEFAULT_TXT['txt_spindle']
                                         multiline: False
@@ -212,7 +213,7 @@
 
                                     Label:
                                         text: tr._('Spindle dwell (s)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_spindle_dwell
                                         text: default_values.DEFAULT_TXT['txt_spindle_dwell']
                                         multiline: False
@@ -246,7 +247,7 @@
 
                                     Label:
                                         text: tr._('Rough feed (mm/min)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_rough_f
                                         text: default_values.DEFAULT_TXT['txt_rough_f']
                                         multiline: False
@@ -254,7 +255,7 @@
 
                                     Label:
                                         text: tr._('Rough plunge (mm/min)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_rough_plunge
                                         text: default_values.DEFAULT_TXT['txt_rough_plunge']
                                         multiline: False
@@ -262,7 +263,7 @@
 
                                     Label:
                                         text: tr._('Rough stepover (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_rough_step
                                         text: default_values.DEFAULT_TXT['txt_rough_step']
                                         multiline: False
@@ -270,7 +271,7 @@
 
                                     Label:
                                         text: tr._('Rough depth/pass (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_rough_doc
                                         text: default_values.DEFAULT_TXT['txt_rough_doc']
                                         multiline: False
@@ -278,7 +279,7 @@
 
                                     Label:
                                         text: tr._('Rough total depth (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_rough_total
                                         text: default_values.DEFAULT_TXT['txt_rough_total']
                                         multiline: False
@@ -293,7 +294,7 @@
 
                                     Label:
                                         text: tr._('Finish feed (mm/min)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_finish_f
                                         text: default_values.DEFAULT_TXT['txt_finish_f']
                                         multiline: False
@@ -301,7 +302,7 @@
 
                                     Label:
                                         text: tr._('Finish stepover (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_finish_step
                                         text: default_values.DEFAULT_TXT['txt_finish_step']
                                         multiline: False
@@ -309,7 +310,7 @@
 
                                     Label:
                                         text: tr._('Finish extra depth (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_finish_depth
                                         text: default_values.DEFAULT_TXT['txt_finish_depth']
                                         multiline: False
@@ -368,7 +369,7 @@
 
                                     Label:
                                         text: tr._('Grid NX')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_grid_nx
                                         text: default_values.DEFAULT_TXT['txt_grid_nx']
                                         multiline: False
@@ -376,7 +377,7 @@
 
                                     Label:
                                         text: tr._('Grid NY')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_grid_ny
                                         text: default_values.DEFAULT_TXT['txt_grid_ny']
                                         multiline: False
@@ -384,7 +385,7 @@
 
                                     Label:
                                         text: tr._('Probe approach Z (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_probe_approach
                                         text: default_values.DEFAULT_TXT['txt_probe_approach']
                                         multiline: False
@@ -392,7 +393,7 @@
 
                                     Label:
                                         text: tr._('Probe Z travel (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_probe_travel
                                         text: default_values.DEFAULT_TXT['txt_probe_travel']
                                         multiline: False
@@ -400,7 +401,7 @@
 
                                     Label:
                                         text: tr._('Probe feed (mm/min)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_probe_f
                                         text: default_values.DEFAULT_TXT['txt_probe_f']
                                         multiline: False
@@ -408,7 +409,7 @@
 
                                     Label:
                                         text: tr._('Grid inset (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_probe_inset
                                         text: default_values.DEFAULT_TXT['txt_probe_inset']
                                         multiline: False
@@ -452,7 +453,7 @@
 
                                     Label:
                                         text: tr._('Facing tool T')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_m6_t
                                         text: default_values.DEFAULT_TXT['txt_m6_t']
                                         multiline: False
@@ -460,7 +461,7 @@
 
                                     Label:
                                         text: tr._('Facing tool diameter (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_tool_d
                                         text: default_values.DEFAULT_TXT['txt_tool_d']
                                         multiline: False
@@ -477,7 +478,7 @@
 
                                     Label:
                                         text: tr._('TLO repeats (optional)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_tlo_r
                                         text: default_values.DEFAULT_TXT['txt_tlo_r']
                                         multiline: False
@@ -485,7 +486,7 @@
 
                                     Label:
                                         text: tr._('Setter offset X (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_m491_x
                                         text: default_values.DEFAULT_TXT['txt_m491_x']
                                         multiline: False
@@ -493,7 +494,7 @@
 
                                     Label:
                                         text: tr._('Setter offset Y (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_m491_y
                                         text: default_values.DEFAULT_TXT['txt_m491_y']
                                         multiline: False
@@ -501,7 +502,7 @@
 
                                     Label:
                                         text: tr._('Setter offset Z (mm)')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_m491_z
                                         text: default_values.DEFAULT_TXT['txt_m491_z']
                                         multiline: False
@@ -516,7 +517,7 @@
 
                                     Label:
                                         text: tr._('Ext. port PWM %')
-                                    TextInput:
+                                    EditingTextInput:
                                         id: txt_ext_port_s
                                         text: default_values.DEFAULT_TXT['txt_ext_port_s']
                                         multiline: False

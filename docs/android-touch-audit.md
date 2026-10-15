@@ -489,3 +489,18 @@ and keeps the existing launcher activity.
 Kivy dispatch tests cover outside release, slide-off/re-entry, a second finger,
 disabling, popup removal, lost connection, pending stop, cancelled button
 activation, and drag-away/return. Android APK and physical CA1 checks are pending.
+
+The packaged keyboard diagnostic reproduced missing deletion events after
+refocusing explicit text, G-code and numeric fields. The native SDL editor was
+empty while Kivy retained its text; composition was empty. The SDL input
+connection now emits deletion only for that empty-editor case. Normal Android
+composition and deletion keep their existing path. On the Pi, normal text and
+G-code reopened and deleted once, signed decimal entry worked, and held deletion
+cleared the field. The user repeated the test and confirmed all four fields work.
+Two simultaneous touchscreen contacts also reached Kivy independently.
+
+Shared editing policies configure signed/decimal keys and preserve exact G-code
+and filename text. Initial numeric selection is bound once and cancelled by
+editing or blur. Probe settings retain incomplete drafts without saving them;
+preview validates them before generating commands. Valid saves are coalesced.
+The existing probe storage location and probe defaults are unchanged.

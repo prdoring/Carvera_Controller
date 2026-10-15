@@ -31,7 +31,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('YTotalDistance')
-                    on_text: root.setting_changed('YTotalDistance', self.text)
+                    on_text: root.draft_changed('YTotalDistance', self.text)
+                    on_focus: root.commit_draft('YTotalDistance') if not self.focus else None
+                    on_text_validate: root.commit_draft('YTotalDistance')
 
             BoxLayout:
                 ProbeSettingLabel:
@@ -49,7 +51,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('ProbeHeight')
-                    on_text: root.setting_changed('ProbeHeight', self.text)
+                    on_text: root.draft_changed('ProbeHeight', self.text)
+                    on_focus: root.commit_draft('ProbeHeight') if not self.focus else None
+                    on_text_validate: root.commit_draft('ProbeHeight')
 
             BoxLayout:
                 ProbeSettingLabel:
@@ -67,7 +71,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('FeedRate')
-                    on_text: root.setting_changed('FeedRate', self.text)
+                    on_text: root.draft_changed('FeedRate', self.text)
+                    on_focus: root.commit_draft('FeedRate') if not self.focus else None
+                    on_text_validate: root.commit_draft('FeedRate')
 
             BoxLayout:
                 ProbeSettingLabel:
@@ -85,7 +91,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('RapidFeedRate')
-                    on_text: root.setting_changed('RapidFeedRate', self.text)
+                    on_text: root.draft_changed('RapidFeedRate', self.text)
+                    on_focus: root.commit_draft('RapidFeedRate') if not self.focus else None
+                    on_text_validate: root.commit_draft('RapidFeedRate')
 
             BoxLayout:
                 ProbeSettingLabel:
@@ -103,7 +111,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('RepeatCount')
-                    on_text: root.setting_changed('RepeatCount', self.text)
+                    on_text: root.draft_changed('RepeatCount', self.text)
+                    on_focus: root.commit_draft('RepeatCount') if not self.focus else None
+                    on_text_validate: root.commit_draft('RepeatCount')
 
             BoxLayout:
                 ProbeSettingLabel:
@@ -121,7 +131,9 @@
                     input_type: 'number'
                     input_filter: 'float'
                     text: root.get_setting('RetractDistance')
-                    on_text: root.setting_changed('RetractDistance', self.text)
+                    on_text: root.draft_changed('RetractDistance', self.text)
+                    on_focus: root.commit_draft('RetractDistance') if not self.focus else None
+                    on_text_validate: root.commit_draft('RetractDistance')
 
             BoxLayout:
                 ProbeSettingLabel:

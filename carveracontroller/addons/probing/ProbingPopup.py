@@ -144,6 +144,14 @@ class ProbingPopup(ModalView):
         self.show_preview(the_op, cfg)
 
     def show_preview(self, operation: OperationsBase, cfg):
+        from carveracontroller.ui.editing import is_complete_number
+
+        invalid = next((key for key, value in cfg.items() if not is_complete_number(value, allow_empty=True)), None)
+        if invalid is not None:
+            self.preview_popup.gcode = ""
+            self.preview_popup.probe_preview_label = tr._("Invalid numeric parameter: ") + invalid
+            self.preview_popup.open()
+            return
         missing_definition = operation.get_missing_config(cfg)
 
         if missing_definition is None:
