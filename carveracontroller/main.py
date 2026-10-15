@@ -8307,6 +8307,7 @@ class MakeraApp(App):
     # [left, top, right, bottom] system-bar and cutout insets in pixels.
     safe_area_padding = ListProperty([0, 0, 0, 0])
     android_touch = BooleanProperty(kivy_platform == "android")
+    compact_layout = BooleanProperty(False)
     touch_target = NumericProperty(48 * float(os.environ.get("CARVERA_ANDROID_DENSITY", "1")))
     _touch_layout = None
     android_keyboard_height = NumericProperty(0)
@@ -8361,6 +8362,9 @@ class MakeraApp(App):
 
     def on_start(self):
         from kivy.base import EventLoop
+
+        if getattr(self, "simulation", None) is not None:
+            self.title += " — SIMULATION"
 
         if os.path.isfile(os.path.join(self.user_data_dir, "interaction-profile.enabled")):
             from .ui.interaction_profile import InteractionProfile
@@ -8425,6 +8429,13 @@ class MakeraApp(App):
         cancel_all_touches()
         self.root.controller.stopContinuousJog()
         return True
+
+    def on_resume(self):
+        if self.android_touch:
+            Metrics.get_fontscale(force_recompute=True)
+            if self._touch_layout is not None:
+                self._touch_layout.size_controls(self.root)
+                self._touch_layout.update()
 
 
 def load_app_configs():
@@ -8643,6 +8654,11 @@ def load_constants():
 
 
 def main():
+    simulation = None
+    if os.environ.get("CARVERA_SIMULATION") == "1":
+        from .simulation import Simulation
+
+        simulation = Simulation().install()
     langname = None
     if Config.has_option("carvera", "language"):
         langname = Config.get("carvera", "language")
@@ -8655,6 +8671,8 @@ def main():
     global HALT_REASON
 
     set_config_defaults(tr.lang)
+    if simulation is not None:
+        simulation.configure()
     load_app_configs()
 
     HALT_REASON = load_halt_translations(tr)
@@ -8666,6 +8684,7 @@ def main():
     # Make it global to be able to access it from native APIs
     global global_app
     global_app = MakeraApp()
+    global_app.simulation = simulation
     global_app.run()
 
 

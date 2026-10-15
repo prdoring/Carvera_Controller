@@ -180,18 +180,17 @@ def kivy_app():
         register_images,
         set_config_defaults,
     )
+    from carveracontroller.simulation import Simulation
     from carveracontroller.translation import tr
 
-    # Replicate main() startup sequence (main.py:6470-6494)
+    simulation = Simulation().install()
     translation.init(None)
     load_constants()
     set_config_defaults(tr.lang)
     load_app_configs()
 
     # Suppress hardware access and network requests AFTER config sections exist
-    Config.set("carvera", "show_update", "0")
-    Config.set("carvera", "address", "")
-    Config.set("carvera", "pendant_type", "None")
+    simulation.configure()
 
     main_module.HALT_REASON = load_halt_translations(tr)
 
@@ -202,6 +201,7 @@ def kivy_app():
     # Create the app and build its widget tree without entering the event loop
     EventLoop.ensure_window()
     app = MakeraApp()
+    app.simulation = simulation
     app._run_prepare()
 
     # Disable screen transition animations so page switches are instant
@@ -220,6 +220,7 @@ def kivy_app():
     app.root.stop.set()  # signals monitorSerial to exit
     app.stop()
     EventLoop.close()
+    simulation.close()
 
     # Clean up temp Kivy home
     shutil.rmtree(_kivy_home, ignore_errors=True)

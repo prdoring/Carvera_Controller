@@ -8,6 +8,8 @@
 #:import _ carveracontroller.ui.CollapsibleSplitter
 #:import play_progress_bar carveracontroller.ui.PlayProgressBar
 #:import TouchActionRow carveracontroller.ui.android_layout.TouchActionRow
+#:import DialogSurface carveracontroller.ui.android_layout.DialogSurface
+#:import DialogLabel carveracontroller.ui.android_layout.DialogLabel
 #:import GcodeColorSchemePanel carveracontroller.ui.GcodeColorSchemePanel.GcodeColorSchemePanel
 #:import CameraView carveracontroller.addons.camera.CameraView.CameraView
 #:import LASER_TOOL_NUMBER carveracontroller.CNC.LASER_TOOL_NUMBER
@@ -1546,73 +1548,53 @@
 <UnlockPopup>:
     lb_title: lb_title
     lb_content: lb_content
-    size_hint: 0.5, 0.4
-    pos_hint: {"right": 0.75, "top": 0.7}
+    size_hint: 0.7, 0.8
     auto_dismiss: False
-    BoxLayout:
-        padding: '15dp'
+    DialogSurface:
+        padding: dp(12)
         orientation: 'vertical'
-        Label:
-            size_hint_y: 0.4
+        DialogLabel:
             id: lb_title
             text: tr._('Machine Is Halted')
             bold: True
-            halign: 'center'
-            valign: 'middle'
-            text_size: self.size
-        Label:
+        DialogLabel:
             id: lb_content
             text: tr._('Choose unlock option:')
-            halign: 'center'
-            valign: 'middle'
-            text_size: self.size
-        BoxLayout:
-            size_hint_y: 0.4
-            Button:
-                text: tr._('Cancel')
-                on_release:
-                    root.dismiss()
+        TouchActionRow:
+            stacked: app.android_touch
+            spacing: dp(8)
             Button:
                 text: tr._('Unlock and Stay in Position')
                 on_release:
                     root.dismiss()
-                    if root.unlock_stay:\
-                    root.unlock_stay()
+                    if root.unlock_stay: root.unlock_stay()
             Button:
                 text: tr._('Unlock and Move to Safe Z')
                 on_release:
                     root.dismiss()
-                    if root.unlock_safe_z:\
-                    root.unlock_safe_z()
-            BoxLayout:
-                size_hint_x: 0.25
-                HelpButton:
-                    size_hint: 1,1
-                    helpPath: "https://carvera-community.gitbook.io/docs/controller/common-error-messages"
-
+                    if root.unlock_safe_z: root.unlock_safe_z()
+        TouchActionRow:
+            spacing: dp(8)
+            Button:
+                text: tr._('Cancel')
+                on_release: root.dismiss()
+            HelpButton:
+                helpPath: 'https://carvera-community.gitbook.io/docs/controller/common-error-messages'
 
 <SelectAndCalibrateProbePopup>:
     lb_title: lb_title
-    size_hint: 0.5, 0.4
-    pos_hint: {"right": 0.75, "top": 0.7}
+    size_hint: 0.7, 0.8
     auto_dismiss: False
-    BoxLayout:
-        padding: '15dp'
+    DialogSurface:
         orientation: 'vertical'
-        Label:
-            size_hint_y: 0.4
+        padding: dp(12)
+        DialogLabel:
             id: lb_title
             text: tr._('A probing tool needs to be selected to locate your workpiece')
             bold: True
-            halign: 'center'
-            valign: 'middle'
-            text_size: self.size
-        BoxLayout:
-            size_hint_y: 0.4
-            Button:
-                text: tr._('Cancel')
-                on_release:
-                    root.dismiss()
+        TouchActionRow:
+            stacked: app.android_touch
+            spacing: dp(8)
             Button:
                 text: tr._('Change to 3D probe')
                 disabled: not app.is_community_firmware
@@ -1624,87 +1606,72 @@
                 on_release:
                     root.dismiss()
                     app.root.controller.change_tool_command(ZPROBE_TOOL_NUMBER)
+        TouchActionRow:
+            Button:
+                text: tr._('Cancel')
+                on_release: root.dismiss()
 
 <MessagePopup>:
     btn_ok: btn_ok
     lb_content: lb_content
-    size_hint: 0.5, 0.4
-    pos_hint: {"right": 0.75, "top": 0.7}
+    size_hint: 0.7, 0.6
     auto_dismiss: False
-    BoxLayout:
-        padding: '15dp'
+    DialogSurface:
         orientation: 'vertical'
-        Label:
+        padding: dp(12)
+        DialogLabel:
             id: lb_content
             text: tr._('Confirm to continue?')
-            halign: 'center'
-            valign: 'middle'
-            text_size: self.size
-        BoxLayout:
+        TouchActionRow:
             id: btn_ok
-            size_hint_y: 0.4
             Button:
                 text: tr._('Ok')
                 on_release: root.dismiss()
 
 <ReconnectionPopup>:
     lb_content: lb_content
-    size_hint: 0.5, 0.4
-    pos_hint: {"right": 0.75, "top": 0.7}
+    size_hint: 0.7, 0.6
     auto_dismiss: False
-    BoxLayout:
-        padding: '15dp'
+    DialogSurface:
         orientation: 'vertical'
-        Label:
+        padding: dp(12)
+        DialogLabel:
             id: lb_content
             text: tr._('Connection lost. Attempting to reconnect...')
-            halign: 'center'
-            valign: 'middle'
-            text_size: self.size
-        BoxLayout:
-            size_hint_y: 0.4
-            spacing: '10dp'
+        TouchActionRow:
+            spacing: dp(8)
             Button:
                 id: btn_reconnect
                 text: tr._('Reconnect now')
                 on_release: root.reconnect()
-                size_hint_x: 0.5
             Button:
-                text: tr._('Cancel') if root.auto_reconnect_mode else tr._('Ok')
+                text: tr._('Cancel reconnect') if root.auto_reconnect_mode else tr._('Ok')
                 on_release: root.cancel_reconnect() if root.auto_reconnect_mode else root.dismiss()
-                size_hint_x: 0.5
 
 <ProgressPopup>:
     progress_bar: progress_bar
-    size_hint: 0.5, 0.4
-    pos_hint: {"right": 0.75, "top": 0.7}
-    auto_dismiss: False
     btn_cancel: btn_cancel
-    BoxLayout:
-        padding: '15dp'
+    size_hint: 0.7, 0.6
+    auto_dismiss: False
+    DialogSurface:
         orientation: 'vertical'
-        Label:
+        padding: dp(12)
+        DialogLabel:
             id: progress_label
             text: root.progress_text
-            halign: 'center'
-            valign: 'middle'
-            text_size: self.size
-
         ProgressBar:
             id: progress_bar
+            size_hint_y: None
+            height: dp(32)
             max: 100
             value: root.progress_value
-        BoxLayout:
-            size_hint_y: 0.4
-            Label:
+        TouchActionRow:
             Button:
                 id: btn_cancel
                 text: tr._('Cancel')
                 on_release:
                     root.cancel()
                     self.disabled = True
-            Label:
-
 
 <OriginPopup>:
     size_hint: 0.5, 0.4
