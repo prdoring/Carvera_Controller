@@ -1119,18 +1119,18 @@
                             rows: 3
                             GridBoxLayout:
                             GridBoxLayout:
-                                SmallRoundButton:
+                                JogTouchButton:
                                     text: 'Y+' if app.invert_y_axis_jogging else 'Y-'
                                     height: 46
-                                    on_press: app.root.controller.jog("Y{}{}".format('' if app.invert_y_axis_jogging else '-', scan_jog_step_xy.text))
-                                    on_release: app.root.controller.stopContinuousJog()
+                                    jog_command: "Y{}{}".format('' if app.invert_y_axis_jogging else '-', scan_jog_step_xy.text)
+
                             GridBoxLayout:
                             GridBoxLayout:
-                                SmallRoundButton:
+                                JogTouchButton:
                                     text: 'X-'
                                     height: 46
-                                    on_press: app.root.controller.jog("X-{}".format(scan_jog_step_xy.text))
-                                    on_release: app.root.controller.stopContinuousJog()
+                                    jog_command: "X-{}".format(scan_jog_step_xy.text)
+
                             GridBoxLayout:
                                 Label:
                                 Spinner:
@@ -1143,18 +1143,18 @@
                                     values: '10', '1', '0.1', '0.01', '0.005'
                                 Label:
                             GridBoxLayout:
-                                SmallRoundButton:
+                                JogTouchButton:
                                     text: 'X+'
                                     height: 46
-                                    on_press: app.root.controller.jog("X{}".format(scan_jog_step_xy.text))
-                                    on_release: app.root.controller.stopContinuousJog()
+                                    jog_command: "X{}".format(scan_jog_step_xy.text)
+
                             GridBoxLayout:
                             GridBoxLayout:
-                                SmallRoundButton:
+                                JogTouchButton:
                                     text: 'Y-' if app.invert_y_axis_jogging else 'Y+'
                                     height: 46
-                                    on_press: app.root.controller.jog("Y{}{}".format('-' if app.invert_y_axis_jogging else '', scan_jog_step_xy.text))
-                                    on_release: app.root.controller.stopContinuousJog()
+                                    jog_command: "Y{}{}".format('-' if app.invert_y_axis_jogging else '', scan_jog_step_xy.text)
+
                             GridBoxLayout:
                 BoxLayout:
                     disabled: not app.jog_controls_enabled
@@ -1173,17 +1173,17 @@
                         cols: 2
                         rows: 3
                         GridBoxLayout:
-                            SmallRoundButton:
+                            JogTouchButton:
                                 text: 'A+'
                                 height: 46
-                                on_press: app.root.controller.jog("A{}".format(scan_jog_step_a.text))
-                                on_release: app.root.controller.stopContinuousJog()
+                                jog_command: "A{}".format(scan_jog_step_a.text)
+
                         GridBoxLayout:
-                            SmallRoundButton:
+                            JogTouchButton:
                                 text: 'Z+'
                                 height: 46
-                                on_press: app.root.controller.jog("Z{}".format(scan_jog_step_z.text))
-                                on_release: app.root.controller.stopContinuousJog()
+                                jog_command: "Z{}".format(scan_jog_step_z.text)
+
                         GridBoxLayout:
                             Label:
                             Spinner:
@@ -1207,17 +1207,17 @@
                                 values: '10', '1', '0.1', '0.01', '0.005'
                             Label:
                         GridBoxLayout:
-                            SmallRoundButton:
+                            JogTouchButton:
                                 text: 'A-'
                                 height: 46
-                                on_press: app.root.controller.jog("A-{}".format(scan_jog_step_a.text))
-                                on_release: app.root.controller.stopContinuousJog()
+                                jog_command: "A-{}".format(scan_jog_step_a.text)
+
                         GridBoxLayout:
-                            SmallRoundButton:
+                            JogTouchButton:
                                 text: 'Z-'
                                 height: 46
-                                on_press: app.root.controller.jog("Z-{}".format(scan_jog_step_z.text))
-                                on_release: app.root.controller.stopContinuousJog()
+                                jog_command: "Z-{}".format(scan_jog_step_z.text)
+
             BoxLayout:
                 orientation: 'vertical'
                 size_hint_x: None

@@ -181,7 +181,7 @@ android.api = 34
 
 # (list) List of Java files to add to the android project (can be java or a
 # directory containing the files)
-#android.add_src =
+android.add_src = assets/packaging/android/src
 
 # (list) Android AAR archives to add
 			

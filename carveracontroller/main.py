@@ -196,6 +196,7 @@ from kivy.config import ConfigParser
 from kivy.lang import Builder
 
 from . import Utils, custom_widgets
+from .ui.touch import TapBehavior, TouchPostprocessor, cancel_all_touches, cancel_jog
 from .__version__ import __version__
 from .addons.camera.CameraView import ADJUST_DEFAULT
 from .addons.camera.Z1Camera import (
@@ -679,7 +680,7 @@ class ProgressPopup(ModalView):
         super().__init__(**kwargs)
 
 
-class GCodeLineContextMenu(FloatLayout):
+class GCodeLineContextMenu(ModalView):
     """Context menu for GCode file viewer lines"""
 
     line_number = NumericProperty(0)
@@ -689,17 +690,18 @@ class GCodeLineContextMenu(FloatLayout):
         self.line_number = line_number
 
     def on_touch_down(self, touch):
-        """Handle touch events - dismiss menu if touch is outside"""
         if not self.collide_point(*touch.pos):
-            # Touch outside the menu - dismiss it
-            self.dismiss()
-            return False
-
-        # Prevent right-click from opening another context menu
-        if hasattr(touch, "button") and touch.button == "right":
+            touch.ud["dismiss_gcode_menu"] = self
+            touch.grab(self)
             return True
-
         return super().on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        if touch.ud.get("dismiss_gcode_menu") is self:
+            touch.ungrab(self)
+            self.dismiss()
+            return True
+        return super().on_touch_up(touch)
 
     def resume_at_line(self):
         """Enable resume at line checkbox and set the line number"""
@@ -707,7 +709,7 @@ class GCodeLineContextMenu(FloatLayout):
 
         app.root.coord_popup.cbx_startline.active = True
         app.root.coord_popup.txt_startline.text = str(self.line_number)
-        self.parent.remove_widget(self)
+        self.dismiss()
 
     def clear_resume_at_line(self):
         """Clear the resume at line setting"""
@@ -715,12 +717,7 @@ class GCodeLineContextMenu(FloatLayout):
 
         app.root.coord_popup.cbx_startline.active = False
         app.root.coord_popup.txt_startline.text = ""
-        self.parent.remove_widget(self)
-
-    def dismiss(self):
-        """Close the context menu"""
-        if self.parent:
-            self.parent.remove_widget(self)
+        self.dismiss()
 
 
 class OriginPopup(ModalView):
@@ -2140,7 +2137,7 @@ class DropDownHint(Label):
     pass
 
 
-class SelectableLabel(RecycleDataViewBehavior, Label):
+class SelectableLabel(TapBehavior, RecycleDataViewBehavior, Label):
     """Add selection support to the Label"""
 
     index = None
@@ -2159,51 +2156,30 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
 
     def refresh_view_attrs(self, rv, index, data):
         """Catch and handle the view changes"""
+        self.cancel_gestures()
         self.index = index
         return super().refresh_view_attrs(rv, index, data)
 
-    def on_touch_down(self, touch):
-        """Add selection on touch down"""
-        if super().on_touch_down(touch):
-            return True
-        if self.collide_point(*touch.pos) and self.selectable:
-            # Store touch start time and position for long press detection
-            self.touch_start_time = time.time()
-            self.touch_start_pos = touch.pos
+    supports_hold = True
 
-            # Check for right click (button == 'right') or long press
-            if hasattr(touch, "button") and touch.button == "right":
-                self._show_context_menu(touch.pos)
-                return True
+    def on_tap(self, touch):
+        if self.selectable and self.parent is not None:
+            self.parent.select_with_touch(self.index, touch)
             if touch.is_double_tap:
                 app = App.get_running_app()
                 app.root.manual_cmd.text = self.text.strip()
                 Clock.schedule_once(app.root.refocus_cmd)
-            return self.parent.select_with_touch(self.index, touch)
 
-    def on_touch_up(self, touch):
-        """Handle touch up for long press detection"""
-        if self.collide_point(*touch.pos) and self.selectable:
-            # Check if this was a long press
-            if (
-                self.touch_start_pos
-                and time.time() - self.touch_start_time >= 0.5  # 0.5 seconds for long press
-                and self._is_same_position(touch.pos, self.touch_start_pos)
-            ):
-                self._show_context_menu(touch.pos)
-                return True
-        return super().on_touch_up(touch)
-
-    def _is_same_position(self, pos1, pos2, tolerance=10):
-        """Check if two positions are within tolerance of each other"""
-        return abs(pos1[0] - pos2[0]) <= tolerance and abs(pos1[1] - pos2[1]) <= tolerance
+    def on_hold(self, touch):
+        if self.selectable and self.parent is not None:
+            self._show_context_menu(touch.pos)
 
     def _show_context_menu(self, pos):
         """Show the context menu for this line"""
         app = App.get_running_app()
 
         # Check if a context menu is already open and dismiss it
-        for child in app.root.children:
+        for child in list(Window.children):
             if isinstance(child, GCodeLineContextMenu):
                 child.dismiss()
 
@@ -2214,7 +2190,7 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
         context_menu = GCodeLineContextMenu(actual_line_number)
 
         # Add to the main window first so it gets properly sized
-        app.root.add_widget(context_menu)
+        context_menu.open()
 
         self._position_context_menu(context_menu, pos)
 
@@ -2289,7 +2265,7 @@ class SelectableLabel(RecycleDataViewBehavior, Label):
                 Clock.schedule_once(lambda dt: setattr(app.root.gcode_play_slider, "value", slider_value), 0)
 
 
-class GCodeRow(RecycleDataViewBehavior, BoxLayout):
+class GCodeRow(TapBehavior, RecycleDataViewBehavior, BoxLayout):
     """Single row in GCodeRV: line number, optional resume-flag icon, gcode text."""
 
     index = None
@@ -2305,6 +2281,7 @@ class GCodeRow(RecycleDataViewBehavior, BoxLayout):
     _resume_bind_uids = None  # [txt_uid, cbx_uid] for unbind on recycle
 
     def refresh_view_attrs(self, rv, index, data):
+        self.cancel_gestures()
         self.index = index
         # Unbind previous resume-line updates when recycled
         if self._resume_bind_uids:
@@ -2350,42 +2327,29 @@ class GCodeRow(RecycleDataViewBehavior, BoxLayout):
         except (ValueError, TypeError):
             self.is_resume_line = False
 
-    def on_touch_down(self, touch):
-        if super().on_touch_down(touch):
-            return True
-        if self.collide_point(*touch.pos) and self.selectable:
-            self.touch_start_time = time.time()
-            self.touch_start_pos = touch.pos
-            if hasattr(touch, "button") and touch.button == "right":
-                self._show_context_menu(touch.pos)
-                return True
+    supports_hold = True
+
+    def on_tap(self, touch):
+        if self.selectable and self.parent is not None:
+            self.parent.select_with_touch(self.index, touch)
             if touch.is_double_tap:
                 app = App.get_running_app()
                 app.root.manual_cmd.text = self.text.strip()
                 Clock.schedule_once(app.root.refocus_cmd)
-            return self.parent.select_with_touch(self.index, touch)
 
-    def on_touch_up(self, touch):
-        if self.collide_point(*touch.pos) and self.selectable:
-            if (
-                self.touch_start_pos
-                and time.time() - self.touch_start_time >= 0.5
-                and abs(touch.pos[0] - self.touch_start_pos[0]) <= 10
-                and abs(touch.pos[1] - self.touch_start_pos[1]) <= 10
-            ):
-                self._show_context_menu(touch.pos)
-                return True
-        return super().on_touch_up(touch)
+    def on_hold(self, touch):
+        if self.selectable and self.parent is not None:
+            self._show_context_menu(touch.pos)
 
     def _show_context_menu(self, pos):
         app = App.get_running_app()
-        for child in app.root.children:
+        for child in list(Window.children):
             if isinstance(child, GCodeLineContextMenu):
                 child.dismiss()
         current_page = app.curr_page
         actual_line_number = (current_page - 1) * MAX_LOAD_LINES + self.index + 1
         context_menu = GCodeLineContextMenu(actual_line_number)
-        app.root.add_widget(context_menu)
+        context_menu.open()
         self._position_context_menu(context_menu, pos)
 
     def _position_context_menu(self, context_menu, pos):
@@ -8306,8 +8270,19 @@ class MakeraApp(App):
     # [left, top, right, bottom] in pixels — populated on iOS from
     # UIWindow.safeAreaInsets (see _update_safe_area_padding).
     safe_area_padding = ListProperty([0, 0, 0, 0])
+    android_keyboard_height = NumericProperty(0)
+    _android_input = None
 
     def on_stop(self):
+        from kivy.base import EventLoop
+
+        if self._android_input is not None:
+            self._android_input.stop()
+            EventLoop.remove_postproc_module(self._android_input)
+        if hasattr(self, "_touch_postprocessor"):
+            EventLoop.remove_postproc_module(self._touch_postprocessor)
+        cancel_all_touches()
+        self.root.controller.stopContinuousJog()
         self.root._cancel_machine_scan()
         # Cancel any ongoing reconnection attempts to prevent hanging
         if hasattr(self.root, "controller") and self.root.controller:
@@ -8334,6 +8309,17 @@ class MakeraApp(App):
         return Makera(ctl_version=__version__)
 
     def on_start(self):
+        from kivy.base import EventLoop
+
+        if kivy_platform == "android":
+            from .ui.android_input import AndroidInput
+
+            self._android_input = AndroidInput(self)
+            EventLoop.add_postproc_module(self._android_input)
+        self._touch_postprocessor = TouchPostprocessor()
+        EventLoop.add_postproc_module(self._touch_postprocessor)
+        Window.bind(focus=lambda _window, focused: cancel_all_touches() if not focused else None)
+        Window.bind(children=lambda *_: cancel_jog())
         # Workaround for Android blank screen issue
         # https://github.com/kivy/python-for-android/issues/2720
         viewport_update_count = 0
@@ -8370,6 +8356,8 @@ class MakeraApp(App):
             print(f"safe area query skipped: {e}")
 
     def on_pause(self):
+        cancel_all_touches()
+        self.root.controller.stopContinuousJog()
         return True
 
 
