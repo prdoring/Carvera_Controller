@@ -11,12 +11,13 @@ from kivy.properties import ListProperty, StringProperty
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.dropdown import DropDown
-from kivy.uix.popup import Popup
 from kivy.uix.filechooser import FileChooserListView
+from kivy.uix.popup import Popup
 from kivy.utils import platform
 
 from carveracontroller import Utils
 from carveracontroller.translation import tr
+
 from .touch import Gesture
 
 
@@ -32,10 +33,10 @@ class TouchFileChooserListView(FileChooserListView):
             return super().entry_released(entry, touch)
         candidate = touch.ud.pop(self, None)
         if candidate is None:
-            return
+            return None
         original, path, gesture = candidate
         if not gesture.finish() or original is not entry or path != entry.path:
-            return
+            return None
         if self.file_system.is_dir(path):
             self.open_entry(entry)
         else:

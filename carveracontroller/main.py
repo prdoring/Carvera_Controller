@@ -115,7 +115,6 @@ from kivy.uix.screenmanager import Screen, ScreenManager
 from kivy.uix.settings import SettingItem, SettingsPanel, SettingsWithSidebar
 from kivy.uix.slider import Slider
 from kivy.uix.stencilview import StencilView
-from carveracontroller.ui.editing import EditingTextInput as TextInput
 from kivy.uix.widget import Widget
 
 from carveracontroller.addons.facing.FacingWizardPopup import FacingWizardPopup
@@ -127,6 +126,7 @@ from carveracontroller.addons.pendant import (
 )
 from carveracontroller.addons.probing.ProbingPopup import ProbingPopup
 from carveracontroller.serial_listeners import dispatch_serial_line
+from carveracontroller.ui.editing import EditingTextInput as TextInput
 
 
 # Custom Property to monitor CNC.vars["sw_light"] changes
@@ -194,7 +194,6 @@ from kivy.config import ConfigParser
 from kivy.lang import Builder
 
 from . import Utils, custom_widgets
-from .ui.touch import TapBehavior, TouchPostprocessor, cancel_all_touches, cancel_jog, gesture_owners
 from .__version__ import __version__
 from .addons.camera.CameraView import ADJUST_DEFAULT
 from .addons.camera.Z1Camera import (
@@ -262,6 +261,7 @@ from .ui.popups.set_position import (
     SetYPopup,
     SetZPopup,
 )
+from .ui.touch import TapBehavior, TouchPostprocessor, cancel_all_touches, cancel_jog, gesture_owners
 
 
 def load_halt_translations(tr: translation.Lang):
@@ -7302,13 +7302,24 @@ class Makera(RelativeLayout):
             self.apply_controller_setting_changes()
 
     def apply_machine_setting_changes(self):
-        for key in self.setting_change_list:
-            self.controller.setConfigValue(key, self.setting_change_list[key])
-            time.sleep(0.1)
-        self.setting_change_list.clear()
+        from .ui.settings_apply import SettingsApply
+
+        if getattr(self, "_settings_sender", None) is not None and self._settings_sender.active:
+            return
         self.config_popup.btn_apply.disabled = True
-        self.message_popup.lb_content.text = tr._("Settings applied, need machine reset to take effect !")
-        self.message_popup.open()
+        self.progressStart(tr._("Sending machine settings..."), None)
+        def progress(sent, total):
+            self.progressUpdate(100 * sent / total, tr._("Sending machine settings: ") + f"{sent}/{total}", True)
+        def finished(error):
+            self.progressFinish()
+            self.config_popup.btn_apply.disabled = not bool(self.setting_change_list)
+            self.message_popup.lb_content.text = (
+                tr._("Settings sent. Reset the machine to take effect.") if error is None else
+                tr._("Settings interrupted. Unsent changes are still pending; check the connection and apply again.")
+            )
+            self.message_popup.open()
+        self._settings_sender = SettingsApply(self.controller, self.setting_change_list, progress, finished)
+        self._settings_sender.start()
 
     def apply_controller_setting_changes(self):
         if any(key in self.controller_setting_change_list for key in ("ui_density_override", "ui_density", "android_ui_scale")):
@@ -8303,9 +8314,14 @@ class MakeraApp(App):
 
     def on_stop(self):
         from kivy.base import EventLoop
+
         from .addons.probing.operations.ConfigUtils import ConfigUtils
 
         ConfigUtils.flush_saves()
+        if getattr(self, "_interaction_profile", None) is not None:
+            self._interaction_profile.stop()
+        if getattr(self.root, "_settings_sender", None) is not None:
+            self.root._settings_sender.cancel(notify=False)
 
         if self._touch_layout is not None:
             self._touch_layout.stop()
@@ -8346,6 +8362,10 @@ class MakeraApp(App):
     def on_start(self):
         from kivy.base import EventLoop
 
+        if os.path.isfile(os.path.join(self.user_data_dir, "interaction-profile.enabled")):
+            from .ui.interaction_profile import InteractionProfile
+
+            self._interaction_profile = InteractionProfile(os.path.join(self.user_data_dir, "interaction-profile.json"))
         if kivy_platform == "android":
             from .ui.android_input import AndroidInput
 
@@ -8400,6 +8420,8 @@ class MakeraApp(App):
         from .addons.probing.operations.ConfigUtils import ConfigUtils
 
         ConfigUtils.flush_saves()
+        if getattr(self.root, "_settings_sender", None) is not None:
+            self.root._settings_sender.cancel()
         cancel_all_touches()
         self.root.controller.stopContinuousJog()
         return True

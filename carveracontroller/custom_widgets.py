@@ -14,10 +14,10 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.settings import SettingItem
-from carveracontroller.ui.editing import EditingTextInput as TextInput
 from kivy.uix.widget import Widget
 
 from carveracontroller.translation import tr
+from carveracontroller.ui.editing import EditingTextInput as TextInput
 
 
 class ScrollingLabel(ScrollView):

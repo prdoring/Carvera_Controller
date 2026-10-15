@@ -35,7 +35,8 @@ keyboard behavior, or physical machine motion. No application changes were
 made, and the application and machine connection were not started for the
 checks. No Android build or full application test suite was run.
 
-The exact cause of the reported backspace failure remains unconfirmed.
+The initial audit did not establish the backspace cause. The packaged-device
+diagnosis and implementation results appear below.
 
 ## Findings and improvements
 
@@ -459,18 +460,18 @@ or mock event check does not demonstrate correct machine behavior.
 
 ## Notes for later sessions
 
-- Treat the backspace explanation as a hypothesis until Android event traces
-  confirm it.
-- Do not assume the touchscreen reports multiple independent fingers; verify
-  its input capabilities before relying on pinch gestures.
+- Use the packaged-device findings below for the confirmed backspace cause;
+  the original composition explanation was a hypothesis.
+- The Pi touchscreen delivered two independent contacts. Other Android input
+  providers still need their own verification.
 - Preserve unrelated working-tree changes and inspect current source before
   editing. This audit is anchored to the 2.2.0 release, and source locations may
   move as other work continues.
 - Follow callers and runtime configuration before selecting a fix. Several
   existing controls already use standard Kivy scrolling, selection handles,
   keyboard types, and explicit pan/zoom actions.
-- The audit establishes concrete work beyond the reported backspace symptom.
-  Implementation and live validation have not been completed.
+- The original findings describe the audited release. The implementation and
+  validation results below describe the Android improvements branch.
 
 ## Implementation and validation
 
@@ -488,7 +489,8 @@ and keeps the existing launcher activity.
 
 Kivy dispatch tests cover outside release, slide-off/re-entry, a second finger,
 disabling, popup removal, lost connection, pending stop, cancelled button
-activation, and drag-away/return. Android APK and physical CA1 checks are pending.
+activation, and drag-away/return. Physical machine results are recorded separately
+from widget simulation below.
 
 The packaged keyboard diagnostic reproduced missing deletion events after
 refocusing explicit text, G-code and numeric fields. The native SDL editor was
@@ -518,7 +520,7 @@ actions; local Open/Upload retain their existing workflow and confirmations.
 CMM sketch controls provide zoom/Fit, captured pan/pinch, completed feature
 selection and an overlap chooser. Host widget checks cover slider ownership and
 outside release, menu dismissal, completed toggles, cancelled holds and
-finger-count transitions. Physical CA1 jogging remains pending.
+finger-count transitions. The physical CA1 results appear below.
 
 Android sizing now uses display density with a separate interface-size setting;
 an explicit old density override migrates to the equivalent scale. Controls and
@@ -533,4 +535,111 @@ probing. Their fractional height competed with spacer labels. Selectors now use
 fixed touch heights inside full-height rows. The probing jog panel stays outside
 the form scroll view and is hidden/disabled during keyboard editing. Tests check
 selector alignment and parent bounds, in addition to six keyboard-visible forms.
-Final packaged layout checks on the Pi remain pending.
+Packaged checks on the Pi also exposed an infinite parent walk when a field
+received focus: Kivy's Window is its own parent. The scrolling helper now stops
+at Window, and the regression test focuses a real field through the scheduled
+reveal callbacks. Facing and CMM help buttons now have explicit Android sizes;
+inheriting a wrapping action row's height created a circular sizing dependency.
+
+Machine settings are sent through scheduled callbacks at the existing 100ms
+interval. Apply cannot start twice. Disconnect, pause, cancellation or transport
+failure retains unsent changes, including newer edits made during a send. The
+completion message says settings were sent; it does not claim a firmware
+acknowledgement. Probe settings construct the visible tab on a later frame and
+reuse it. The other eight settings panels are deferred until needed.
+
+### Coverage of the 13 findings
+
+| Finding | Implementation | Validation and limits |
+| --- | --- | --- |
+| 1. Continuous jog | Captured owner, permanent slide-off cancellation, lifecycle cleanup, existing stop gate | Real Kivy dispatch covers outside release, re-entry, second finger, disable, popup removal, pause-related cancellation, disconnect and stop acknowledgement. Physical CA1 check is recorded below. |
+| 2. Touch sizing | Android density, separate interface scale, 48dp minimum targets, wider splitter grabs, scrolling forms | Pi display density 1.5 gives a 72px target at normal size; constrained host dialog checks cover alignment and keyboard clearance. |
+| 3. Backspace | Empty-native-editor fallback for one backward deletion only | Reproduced on the Pi after keyboard dismissal/refocus; normal text, G-code, signed decimals and held deletion passed, including user repetition. Native composition keeps its original path; other IMEs are unverified. |
+| 4. Keyboard policy | Shared text/filename/G-code/integer/decimal policies, signed/decimal native flags, intentional focus | Packaged keyboard diagnostic passed; MDI navigation no longer focuses its field automatically. |
+| 5. Selection | One cancellable initial selection binding | Tests cover repeated binding, blur and later editing without overriding subsequent selection. Full physical keyboard/IME combinations remain unverified. |
+| 6. Viewer | Independent contacts, captured orbit/pan/pinch, count-change rebasing, visible controls toggle | Two simultaneous Pi contacts verified; widget/transform tests cover ownership and rebasing. |
+| 7. Playback | Owning finger, outside capture/final synchronization, larger target and line steps | Real-widget dispatch verifies unrelated fingers cannot scrub and outside release synchronizes the final position. |
+| 8. Tap/hold | Maximum-travel tracking, Android tolerance/timeout, completed toggles/tab headers, hold suppression | Real widget dispatch covers drag-away/return, cancellation, delayed callbacks and recycled rows. |
+| 9. Menu dismissal | Modal dismissal consumes the outside gesture through release | Widget dispatch verifies no underlying activation. |
+| 10. Files/CMM | Android single-tap navigation/selection, visible remote selection mode/count/actions; CMM zoom/Fit, captured pan/pinch and overlap chooser | Host tests cover completed selection, capture and chooser; packaged file/CMM layouts checked on the Pi. Desktop selection modifiers retained. |
+| 11. Feedback/help | Pressed feedback and touch-accessible existing help | Shared controls and row feedback exercised in widget tests and Pi layout checks; feedback timings below cover a limited injected-touch sample. |
+| 12. Keyboard/Back | Native insets/keyboard bridge, scrolling and reserved keyboard space, keyboard-first Back, idle-dialog/navigation/discard/exit policy | Six host dialogs tested above a simulated keyboard. Active machine-operation dialogs keep explicit cancellation. |
+| 13. Blocking work | Paced settings sends, valid draft commits/coalesced persistence, deferred probing panels, optional bounded timing recorder | Full tests pass. Pi measurements still show multi-second large-preview stalls; this work does not meet a universal 100ms response guarantee. |
+
+### Pi measurements
+
+The device is a Pi 4 Model B with 8GB RAM, KonstaKANG AOSP 16 build from
+June 17, 2025, a 1920x1080 display at density 240, and the existing system IME.
+Its TSTP MTouch touchscreen reports independent contacts to the packaged SDL2
+provider. Testing used the existing performance governor and USB connection.
+
+The before build was Android package 2.2.0.4 with the earlier performance fixes.
+The after code is 2.2.0.8. A temporary, local-only driver opened dialogs, typed
+into an unapplied coordinate field and loaded a synthetic preview. It never
+started a program, applied coordinates or sent motion. The timing recorder was
+identical in both builds. Times below are small practical samples, not a
+statistical benchmark.
+
+| Measurement | Before | After |
+| --- | ---: | ---: |
+| App-side touch feedback, p95, 40 injected touches | 41.9ms | 85.2ms |
+| App-side touch feedback, maximum | 4,941ms | 89.6ms |
+| Touch samples over 100ms | 1 / 40 | 0 / 40 |
+| Event-loop cadence, p95 | 80.3ms | 104.4ms |
+| Longest event-loop interval | 6,516ms | 3,028ms |
+| Intervals over 100ms | 61 / 1,839 | 122 / 2,259 |
+| First probing constructor/open call | 1,963ms | 742ms |
+| 100,002-line preview, observed completion | 30.0s | 32.7s |
+
+Touch feedback measures Kivy motion dispatch to the next frame flip; it excludes
+hardware, Android input latency and IME-owned key processing. It is not a
+measurement of every control or popup becoming usable. The after p95 is higher
+even though this sample stays below the 100ms target. Overall event-loop p95 and
+stall frequency also increased in this run. Layout/keyboard work and rendering
+remain material costs; no overall speedup is claimed from these numbers.
+
+Preview completion includes host polling overhead. Both runs completed loading
+with 100,002 lines, 398,207 preview vertices and a 10,000-row text page. This
+does not measure machining or establish a preview speedup. Facing and CMM had
+already been opened during the final layout inspection, so their subsequent warm
+open calls are not compared with the baseline's first construction.
+
+The complete host suite passed **377 tests**, with 15 screenshot comparisons
+skipped because their reference images were absent. The locale deprecation
+warning is unchanged. Additional dialog regressions were checked after the
+device-discovered focus and wrapping-help fixes.
+
+The actual Pi also opened settings, files, probing, facing, CMM and coordinate
+dialogs at 125% interface size (90px targets). In the coordinate dialog, the
+focused field and confirmation actions remained above the keyboard. One Back
+dismissed the keyboard while retaining the dialog; the next closed the dialog.
+The normal-size probing selectors were checked visually after correction.
+
+### Machine validation
+
+The connected machine reports **CA1**, firmware **2.2.0c**, `FuncSetting=1`, over
+FTDI USB serial `A50285BI`. The downloaded SD-card overlay advertises MD5
+`75a1a27b83afac1095a9fd558fa60674` (5,700 bytes). Relevant configured values include
+X/Y maximum 3,000mm/min, Z maximum 2,000mm/min, acceleration 150mm/s², and enabled
+soft endstops. These are the downloaded user overlay, not a complete dump of
+every firmware default or runtime override. No firmware or machine configuration
+was changed.
+
+On the normal 2.2.0.8 installation, the user manually tested continuous jogging
+on **X and Y at Jog Speed: Max**. They confirmed that sliding clearly off the
+button stopped motion, sliding back without lifting did not restart it, touching
+another direction with a second finger preserved the original direction, and
+releasing the original finger stopped motion. The captured application log
+contains the corresponding `$J -c` starts on X/Y without an explicit F value.
+No motion was injected remotely. Stop distance/time was not instrumented, and
+the firmware's raw `^Y` acknowledgement is consumed rather than written to this
+log. Repeated successful fresh starts are consistent with the acknowledgement
+gate clearing; they are not a direct capture of each acknowledgement.
+
+Pause/focus loss, popup removal, disabled controls, interrupted connection and
+competing keyboard/pendant starts have automated coverage. They were not all
+repeated during physical motion on the machine. Z/A jogging, other firmware,
+other keyboards and extended thermal/load testing remain unverified. A final
+sample recorded 75.958°C, 1.8GHz and `throttled=0x80000`: no active limit in the
+low bits, but a historical soft-temperature-limit event. Its timing is unknown;
+see the [performance report](raspberry-pi-android-performance.md#android-touch-update).

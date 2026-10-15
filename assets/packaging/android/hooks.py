@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 EMPTY_EDITOR_DELETE = r'''
     // The native editor can be empty while Kivy still owns text after refocus.
     private boolean deleteFromEmptyEditor(int beforeLength, int afterLength) {

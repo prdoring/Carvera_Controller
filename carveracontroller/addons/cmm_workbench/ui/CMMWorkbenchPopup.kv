@@ -85,7 +85,7 @@
                     padding: dp(6), dp(8), dp(6), dp(10)
                     disabled: root.is_probing
 
-                    TabbedPanelItem:
+                    TouchTabbedPanelItem:
                         text: tr._('Manual')
                         ScrollView:
                             bar_width: dp(14)
@@ -174,7 +174,7 @@
                                     height: dp(48)
                                     on_release: root.on_add_manual_circle()
 
-                    TabbedPanelItem:
+                    TouchTabbedPanelItem:
                         text: tr._('Touch')
                         ScrollView:
                             bar_width: dp(14)
@@ -285,7 +285,7 @@
                                     height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_probe_axis466()
 
-                    TabbedPanelItem:
+                    TouchTabbedPanelItem:
                         text: tr._('Bore')
                         ScrollView:
                             bar_width: dp(14)
@@ -406,7 +406,7 @@
                                     height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_bore461()
 
-                    TabbedPanelItem:
+                    TouchTabbedPanelItem:
                         text: tr._('Boss')
                         ScrollView:
                             bar_width: dp(14)
@@ -532,7 +532,7 @@
                                     height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_boss462()
 
-                    TabbedPanelItem:
+                    TouchTabbedPanelItem:
                         text: tr._('Corner in')
                         ScrollView:
                             bar_width: dp(14)
@@ -648,7 +648,7 @@
                                     height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_in463()
 
-                    TabbedPanelItem:
+                    TouchTabbedPanelItem:
                         text: tr._('Corner out')
                         ScrollView:
                             bar_width: dp(14)
@@ -764,7 +764,7 @@
                                     height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_out464()
 
-                    TabbedPanelItem:
+                    TouchTabbedPanelItem:
                         text: tr._('Angle')
                         ScrollView:
                             bar_width: dp(14)

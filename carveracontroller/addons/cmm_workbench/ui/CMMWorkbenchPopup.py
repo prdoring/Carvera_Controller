@@ -17,8 +17,6 @@ from kivy.uix.dropdown import DropDown
 from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
 from kivy.uix.popup import Popup
-from carveracontroller.ui.editing import EditingTextInput as TextInput
-from carveracontroller.ui.touch import TouchToggleButton as ToggleButton
 
 from carveracontroller.addons.probing.operations.ConfigUtils import get_machine_config_hint
 from carveracontroller.CNC import CNC
@@ -29,10 +27,12 @@ from carveracontroller.serial_listeners import (
     unregister_serial_listener,
 )
 from carveracontroller.translation import tr
+from carveracontroller.ui.editing import EditingTextInput as TextInput
 from carveracontroller.ui.LocalFilePicker import (
     confirm_overwrite_then,
     open_local_file_picker,
 )
+from carveracontroller.ui.touch import TouchToggleButton as ToggleButton
 
 from ..core.features import (
     DEFAULT_CIRCLE_CLASSIFY_TOLERANCE_MM,

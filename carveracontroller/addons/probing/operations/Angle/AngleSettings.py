@@ -1,8 +1,8 @@
 from kivy.uix.boxlayout import BoxLayout
-from carveracontroller.addons.probing.operations.drafts import ProbeSettingsDraft
 
 from carveracontroller.addons.probing.operations.Angle.AngleParameterDefinitions import AngleParameterDefinitions
 from carveracontroller.addons.probing.operations.ConfigUtils import ConfigUtils
+from carveracontroller.addons.probing.operations.drafts import ProbeSettingsDraft
 
 
 class AngleSettings(ProbeSettingsDraft, BoxLayout):

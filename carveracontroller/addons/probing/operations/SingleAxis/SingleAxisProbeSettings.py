@@ -1,9 +1,9 @@
 from kivy.uix.boxlayout import BoxLayout
-from carveracontroller.addons.probing.operations.drafts import ProbeSettingsDraft
 from kivy.uix.switch import Switch
 from kivy.uix.textinput import TextInput
 
 from carveracontroller.addons.probing.operations.ConfigUtils import ConfigUtils
+from carveracontroller.addons.probing.operations.drafts import ProbeSettingsDraft
 from carveracontroller.addons.probing.operations.OperationsBase import ProbeSettingDefinition
 from carveracontroller.addons.probing.operations.SingleAxis.SingleAxisProbeParameterDefinitions import (
     SingleAxisProbeParameterDefinitions,

@@ -5,17 +5,18 @@ from __future__ import annotations
 import math
 from collections.abc import Callable
 
-from kivy.core.text import Label as CoreLabel
 from kivy.clock import Clock
+from kivy.core.text import Label as CoreLabel
+from kivy.graphics import Canvas, Color, Line, PopMatrix, PushMatrix, Rectangle, Translate
+from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
-from carveracontroller.ui.touch import Gesture, PointerTransform, TOUCH_CANCELLED, gesture_owners
-from carveracontroller.translation import tr
-from kivy.graphics import Canvas, Color, Line, PopMatrix, PushMatrix, Rectangle, Translate
-from kivy.metrics import dp
 from kivy.uix.stencilview import StencilView
+
+from carveracontroller.translation import tr
+from carveracontroller.ui.touch import TOUCH_CANCELLED, Gesture, PointerTransform, gesture_owners
 
 from ..core.features import (
     CircleGeom,

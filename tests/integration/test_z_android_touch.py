@@ -4,8 +4,9 @@ import pytest
 from kivy.core.window import Window
 from kivy.uix.button import Button
 from kivy.uix.modalview import ModalView
+from kivy.uix.textinput import TextInput
 
-from carveracontroller.ui.android_layout import AndroidTouchLayout
+from carveracontroller.ui.android_layout import AndroidTouchLayout, TouchActionRow
 from tests.integration.conftest import pump_frames
 from tests.unit.test_touch import dispatch, finger, move
 
@@ -122,6 +123,7 @@ def test_sketch_selects_completed_taps_and_offers_overlaps(kivy_app):
 def test_numeric_setting_keeps_an_invalid_draft_open(kivy_app, tmp_path):
     from kivy.config import ConfigParser
     from kivy.uix.settings import SettingsPanel
+
     from carveracontroller.ui.settings_fields import EditingSettingNumeric
 
     config = ConfigParser()
@@ -142,6 +144,28 @@ def test_numeric_setting_keeps_an_invalid_draft_open(kivy_app, tmp_path):
         setting._validate(None)
         assert setting.value == "-1.5"
         assert setting.popup is None
+    finally:
+        popup.dismiss(force=True, animation=False)
+
+
+def test_probing_constructs_only_the_visible_settings_panel(kivy_app):
+    from carveracontroller.addons.probing.ProbingPopup import DeferredProbeSettings, ProbingPopup
+
+    popup = ProbingPopup(kivy_app.root.controller)
+    panels = [item for tab in popup.ids.tabbedpanelid.tab_list for item in tab.content.walk()
+              if isinstance(item, DeferredProbeSettings)]
+    assert len(panels) == 9
+    assert all(panel._settings is None for panel in panels)
+    try:
+        popup.open(animation=False)
+        pump_frames(5)
+        assert sum(panel._settings is not None for panel in panels) == 1
+        first = next(panel for panel in panels if panel._settings is not None)
+        tab = next(tab for tab in popup.ids.tabbedpanelid.tab_list if tab.content is not first.parent.parent)
+        popup.ids.tabbedpanelid.switch_to(tab)
+        pump_frames(5)
+        assert sum(panel._settings is not None for panel in panels) == 2
+        assert first._settings is not None
     finally:
         popup.dismiss(force=True, animation=False)
 
@@ -172,6 +196,9 @@ def test_android_forms_remain_above_keyboard(kivy_app, which):
             modal = root.file_popup
         modal.open(animation=False)
         pump_frames(8, sleep=0.04)
+        for row in (widget for widget in modal.walk() if isinstance(widget, TouchActionRow)):
+            assert row.height <= modal.height / 2
+            assert all(child.height <= row.height for child in row.children)
         if which == "probing":
             for name in ("step_xy", "step_a", "step_z"):
                 selector = modal.ids[name]
@@ -192,6 +219,12 @@ def test_android_forms_remain_above_keyboard(kivy_app, which):
         if which == "position":
             button = modal.ids.btn_ok
             assert button.to_window(*button.pos)[1] >= 420
+            field = next(widget for widget in modal.walk() if isinstance(widget, TextInput))
+            field.focus = True
+            layout.focus_field(field)
+            pump_frames(12, sleep=0.04)
+            assert field.focus
+            field.focus = False
         app.android_keyboard_height = 0
         pump_frames(4)
     finally:

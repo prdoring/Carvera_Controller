@@ -1,6 +1,8 @@
 import logging
 
 from kivy.clock import Clock
+from kivy.properties import StringProperty
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.modalview import ModalView
 
 from carveracontroller.translation import tr
@@ -33,6 +35,31 @@ logger = logging.getLogger(__name__)
 from kivy.app import App
 
 
+class DeferredProbeSettings(BoxLayout):
+    settings_type = StringProperty("")
+    _settings = None
+
+    def materialize(self):
+        if self._settings is None:
+            classes = {cls.__name__: cls for cls in (
+                OutsideCornerSettings, InsideCornerSettings, SingleAxisProbeSettings,
+                BoreSettings, BossSettings, AngleSettings, ProbeTipSettings,
+                CalibrationSettings, FourthAxisSettings,
+            )}
+            self._settings = classes[self.settings_type]()
+            self.ids.update(self._settings.ids)
+            self.add_widget(self._settings)
+            if "ProbeTipDiameter" in self.ids:
+                self.ids.ProbeTipDiameter.hint_text = get_machine_config_hint("zprobe.probe_tip_diameter") or tr._("config")
+            layout = getattr(App.get_running_app(), "_touch_layout", None)
+            if layout is not None:
+                layout.size_controls(self)
+        return self._settings
+
+    def get_config(self):
+        return self.materialize().get_config()
+
+
 class ProbingPopup(ModalView):
     controller: Controller
 
@@ -47,6 +74,7 @@ class ProbingPopup(ModalView):
         self.calibration_settings = None
         self.fourth_axis_settings = None
         self._settings_panels = ()
+        self._load_settings = Clock.create_trigger(self._materialize_current_settings, 0)
         self.controller = controller
 
         self.preview_popup = ProbingPreviewPopup(controller)
@@ -55,8 +83,21 @@ class ProbingPopup(ModalView):
         Clock.schedule_once(self.delayed_bind, 0.1)
 
         super().__init__(**kwargs)
+        self.ids.tabbedpanelid.bind(current_tab=self._load_settings)
+
+    def on_open(self):
+        self._load_settings()
+
+    def _materialize_current_settings(self, _dt):
+        if self._is_open:
+            tab = self.ids.tabbedpanelid.current_tab
+            if tab is not None and tab.content is not None:
+                for widget in tab.content.walk():
+                    if isinstance(widget, DeferredProbeSettings):
+                        widget.materialize()
 
     def on_dismiss(self):
+        self._load_settings.cancel()
         App.get_running_app().root.restore_keyboard_jog_control()
 
     def allows_external_jog(self) -> bool:

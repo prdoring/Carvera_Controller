@@ -41,7 +41,7 @@
                 bar_width:8
                 bar_color: 1, 0, 0, 1
                 
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     text: tr._('Outside Corners')
                     GridLayout:
                         cols:2
@@ -84,11 +84,12 @@
                         BoxLayout:
                             size_hint_x: 0.6
                             halign: "right"
-                            OutsideCornerSettings:
+                            DeferredProbeSettings:
+                                settings_type: 'OutsideCornerSettings'
                                 halign: "right"
                                 id: outside_corner_settings
 
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     text: tr._('Inside Corners')
                     GridLayout:
                         cols:2
@@ -130,10 +131,11 @@
 
                         BoxLayout:
                             size_hint_x: 0.6
-                            InsideCornerSettings:
+                            DeferredProbeSettings:
+                                settings_type: 'InsideCornerSettings'
                                 id: inside_corner_settings
 
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     text: tr._('Single Axis')
                     GridLayout:
                         cols:2
@@ -202,10 +204,11 @@
 
                         BoxLayout:
                             size_hint_x: 0.6
-                            SingleAxisProbeSettings:
+                            DeferredProbeSettings:
+                                settings_type: 'SingleAxisProbeSettings'
                                 id: single_axis_settings
 
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     text: tr._('Bore/Pocket')
                     GridLayout:
                         cols:2
@@ -248,10 +251,11 @@
 
                         BoxLayout:
                             size_hint_x: 0.6
-                            BoreSettings:
+                            DeferredProbeSettings:
+                                settings_type: 'BoreSettings'
                                 id: bore_settings
 
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     text: tr._('Boss/Block')
                     GridLayout:
                         cols:2
@@ -294,10 +298,11 @@
 
                         BoxLayout:
                             size_hint_x: 0.6
-                            BossSettings:
+                            DeferredProbeSettings:
+                                settings_type: 'BossSettings'
                                 id: boss_settings
 
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     text: tr._('Angle')
                     GridLayout:
                         cols:2
@@ -341,10 +346,11 @@
 
                         BoxLayout:
                             size_hint_x: 0.6
-                            AngleSettings:
+                            DeferredProbeSettings:
+                                settings_type: 'AngleSettings'
                                 id: angle_settings
 
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     text: tr._('ProbeTip')
                     GridLayout:
                         cols:2
@@ -386,9 +392,10 @@
 
                         BoxLayout:
                             size_hint_x: 0.6
-                            ProbeTipSettings:
+                            DeferredProbeSettings:
+                                settings_type: 'ProbeTipSettings'
                                 id: probeTipSettings
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     text: tr._('Calibration')
                     GridLayout:
                         cols:2
@@ -432,10 +439,11 @@
 
                         BoxLayout:
                             size_hint_x: 0.6
-                            CalibrationSettings:
+                            DeferredProbeSettings:
+                                settings_type: 'CalibrationSettings'
                                 id: calibration_settings_id
 
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     text: tr._('4th Axis')
                     GridLayout:
                         cols:2
@@ -462,7 +470,8 @@
 
                         BoxLayout:
                             size_hint_x: 0.6
-                            FourthAxisSettings:
+                            DeferredProbeSettings:
+                                settings_type: 'FourthAxisSettings'
                                 id: fourth_axis_settings
 
                 

@@ -524,7 +524,7 @@ Supporting local files include `performance-final-startup.json`,
 ## Replacement of the normal controller app
 
 The updated code subsequently replaced the original controller installation at
-the user's request. The Pi now has one controller package,
+the user's request. That replacement established one controller package,
 `org.carveracommunity.carveracontrollercommunity`, labeled
 **Carvera Community Controller**. Its Android version name is `2.2.0.4` and
 version code is `20204`. The controller's internal Python version string remains
@@ -567,6 +567,97 @@ The source checkpoint is on
 [prdoring/Carvera_Controller, android-improvements](https://github.com/prdoring/Carvera_Controller/tree/android-improvements).
 The initial implementation commit is
 [`dee274e`](https://github.com/prdoring/Carvera_Controller/commit/dee274eba0b360f1cb1513ada693069fb7ec64cc).
+
+## Android touch update
+
+The Android touch improvements build on the performance and native USB work
+above. The normal package and launcher are unchanged. The displayed controller
+and Android package versions now both read **2.2.0.8**, package code **20208**.
+USB automatically reconnects to the CA1 running firmware **2.2.0c**. The Pi has
+one controller package and retains normal manual launch.
+
+The update adds captured, cancellable jog controls; completed tap/hold handling;
+native Android cancellation, keyboard and inset information; reliable keyboard
+refocus deletion; signed decimal input; valid numeric commits; independent
+viewer/CMM fingers; owned playback scrubbing; visible row/file actions; larger
+touch targets; scrolling keyboard-aware dialogs; Back navigation and touch help.
+The detailed implementation, coverage and measurements are in
+[the Android touch audit](android-touch-audit.md#implementation-and-validation).
+
+Machine settings no longer sleep on the interface thread between commands.
+Scheduled callbacks retain the existing 100ms spacing, reject duplicate Apply,
+show send progress and keep unsent edits after interruption. Probe configuration
+saves commit valid values through a coalesced worker. The probing screen creates
+only its visible settings panel, on a later frame, and reuses panels after that.
+Probe defaults, calculations and the deferred storage-location issue remain as
+before.
+
+On the Pi, the first probing constructor/open call decreased from **1,963ms to
+742ms**. A 40-touch sample measured dispatch-to-frame feedback p95 **85.2ms**,
+maximum **89.6ms**, with no samples above 100ms. The old build's p95 was **41.9ms**
+with one **4,941ms** outlier. This narrow sample meets the feedback target; it
+does not demonstrate consistently faster input or include hardware/IME latency.
+
+Heavy interactions still stall. Across the measured scenes, event-loop p95
+increased from **80.3ms to 104.4ms**, while the maximum fell from **6,516ms to
+3,028ms**. The synthetic 100,002-line preview completed in an observed **32.7s**
+versus **30.0s** before, including host polling overhead, with identical 398,207
+vertices and 10,000 displayed rows. These results do not establish a large-file
+speedup or an overall responsiveness guarantee. Initial construction of optional
+dialogs, graphics uploads and large-file rendering remain further work.
+
+The actual Pi opened settings, files, probing, facing, CMM and coordinate dialogs
+at 125% interface size. Coordinate editing kept the field and confirmation
+controls above the keyboard; Back dismissed the keyboard before the dialog.
+Device testing also found and corrected a focus-helper parent loop and a circular
+help-button/action-row size dependency. The complete host suite passed **377
+tests**, with 15 missing-reference screenshot comparisons skipped and the
+existing locale warning. Tests use real Kivy event dispatch as well as isolated
+helpers. Physical machine observations are recorded in the touch audit.
+
+Before replacement, the previous APK and full private data were retained and
+checksummed. Restoration verified **23 preference/cache/icon/log files** before
+launch. The earlier full archive's 579 preserved entries also included runtime
+libraries and bootstrap version markers; those generated files must not be
+restored across builds. Restoring an old `private.version` caused bootstrap
+extraction to run again. The corrected procedure retains the installed runtime
+and markers, and restores user files after extraction.
+
+All **144 original preference values** were compared after the final normal
+launch. Only `carvera/version` changed, from `2.2.0.1` to `2.2.0.8`; new interface
+scale defaults are additional values. USB identity/reconnect preferences remain
+intact. The development signer remains SHA-256
+`3fa52c8e90aa60a0b41d2784dbf07897427e11c59650c92cee7c5e1993c6a877`.
+The temporary diagnostic entry point, sample file, timing flag and request files
+were removed, and the packaged normal entry point was verified byte-for-byte.
+The optional timing recorder remains disabled during normal use.
+
+The user tested X/Y continuous jogging at Max speed on the real CA1 and confirmed
+slide-off stop, no restart on re-entry, second-finger ownership and stop on the
+controlling finger's release. No motion was sent remotely. Stop time/distance,
+Z/A motion and every lifecycle interruption during physical motion were not
+measured; those limitations remain explicit in the audit.
+
+After the touch tests, the Pi reported the `performance` governor, 1,800,000kHz,
+75.958°C and `throttled=0x80000`. The low status bits were clear at that sample;
+bit 19 records that a soft temperature limit occurred earlier, according to
+[Raspberry Pi's status-bit reference](https://www.raspberrypi.com/documentation/computers/os.html#get_throttled).
+The earlier performance-only sample was `0x0`. The later flag does not timestamp
+the event or establish whether it affected these timing samples. Cooling remains
+a possible constraint during sustained use; no temperature limits were raised.
+
+The final package is `controller-2.2.0.8-android-touch.apk`, 51,803,718 bytes.
+SHA-256:
+
+```text
+be711dc1c5b698938e08a67b07b0bf2e64badd538477c8e1bc847e7d12b154a4
+```
+
+The verified rollback APK is the 2.2.0.4 package identified above. Local evidence
+includes `touch-before-diagnostics-data.tar`, `touch-settings-only-restore.tar`,
+`touch-final-validation.json`, `touch-final-log.txt`, `touch-scale125-validation.json`,
+`touch-baseline-profile.json`, `touch-updated-profile.json` and the corresponding
+scene records/screenshots. Backups, signing material and APKs remain outside Git.
 
 ## References
 

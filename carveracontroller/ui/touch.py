@@ -10,12 +10,12 @@ from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.metrics import dp
 from kivy.properties import BooleanProperty, StringProperty
-from kivy.uix.behaviors import ButtonBehavior
-from kivy.uix.behaviors import ToggleButtonBehavior
+from kivy.uix.behaviors import ButtonBehavior, ToggleButtonBehavior
 from kivy.uix.checkbox import CheckBox
+from kivy.uix.settings import SettingItem
+from kivy.uix.tabbedpanel import TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
-from kivy.uix.settings import SettingItem
 from kivy.utils import platform
 
 from carveracontroller.addons.tooltips.Tooltips import ToolTipButton
@@ -237,6 +237,10 @@ class TouchToggleButton(CompletedToggle, ToggleButton):
     pass
 
 
+class TouchTabbedPanelItem(CompletedToggle, TabbedPanelItem):
+    pass
+
+
 class JogTouchButton(ToolTipButton):
     jog_command = StringProperty("")
 
@@ -339,3 +343,4 @@ class TouchPostprocessor:
 Factory.register("JogTouchButton", cls=JogTouchButton)
 Factory.register("TouchCheckBox", cls=TouchCheckBox)
 Factory.register("TouchToggleButton", cls=TouchToggleButton)
+Factory.register("TouchTabbedPanelItem", cls=TouchTabbedPanelItem)

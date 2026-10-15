@@ -31,6 +31,7 @@ from carveracontroller.GcodeViewer import (
 )
 from carveracontroller.translation import tr
 from carveracontroller.Utils import second2hour
+
 from .touch import TapBehavior
 
 LEGEND_PANEL_MAX_HEIGHT = dp(280)

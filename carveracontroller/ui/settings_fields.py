@@ -9,6 +9,7 @@ from kivy.uix.settings import SettingString
 from kivy.uix.widget import Widget
 
 from carveracontroller.translation import tr
+
 from .editing import EditingTextInput, is_complete_number
 from .widget_helpers import bind_auto_select_to_text_input
 

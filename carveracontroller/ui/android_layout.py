@@ -16,15 +16,16 @@ from kivy.uix.modalview import ModalView
 from kivy.uix.popup import Popup
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.settings import SettingItem
 from kivy.uix.slider import Slider
 from kivy.uix.splitter import Splitter
 from kivy.uix.switch import Switch
-from kivy.uix.textinput import TextInput
 from kivy.uix.tabbedpanel import TabbedPanel
-from kivy.uix.settings import SettingItem
-from .touch import TapBehavior
+from kivy.uix.textinput import TextInput
 
 from carveracontroller.translation import tr
+
+from .touch import TapBehavior
 
 
 class TouchActionRow(GridLayout):
@@ -88,7 +89,7 @@ class AndroidTouchLayout:
 
     def _prepare_dialog(self, modal):
         self.size_controls(modal)
-        state = dict(size_hint_y=modal.size_hint_y, height=modal.height, pos_hint=dict(modal.pos_hint))
+        state = {"size_hint_y": modal.size_hint_y, "height": modal.height, "pos_hint": dict(modal.pos_hint)}
         self.dialogs[modal] = state
         state["drafts"] = {}
         def remember_drafts(_dt):
@@ -182,7 +183,7 @@ class AndroidTouchLayout:
             if not field.focus or field.get_root_window() is None:
                 return
             parent = field.parent
-            while parent is not None:
+            while parent is not None and parent is not Window:
                 if isinstance(parent, ScrollView):
                     parent.scroll_to(field, padding=dp(12), animate=False)
                 parent = parent.parent

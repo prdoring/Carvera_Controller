@@ -242,7 +242,7 @@ class Controller:
                 # Soft `reset` over USB leaves the board powered (zombie state).
                 if isinstance(line, str) and self.connection_type == CONN_USB and line.lower().startswith("reset"):
                     self._notify_usb_reset_blocked()
-                    return
+                    return False
                 payload = line.encode() if isinstance(line, str) else line
                 self.stream.send(self.comms.encode_command(payload))
                 if self.execCallback:
@@ -253,8 +253,10 @@ class Controller:
                     else:
                         new_line = display
                     self.execCallback(new_line)
+                return True
             except Exception:
                 self.log.put((Controller.MSG_ERROR, str(sys.exc_info()[1])))
+        return False
 
     def _notify_usb_reset_blocked(self):
         if App is None or Clock is None:
@@ -572,7 +574,8 @@ class Controller:
 
     def setConfigValue(self, key, value):
         if key and value:
-            self.executeCommand("config-set sd %s %s\n" % (key, value))
+            return self.executeCommand("config-set sd %s %s\n" % (key, value))
+        return False
 
     def dropToolCommand(self):
         self.executeCommand("M6T-1\n")

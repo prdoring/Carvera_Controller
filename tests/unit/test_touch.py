@@ -10,8 +10,14 @@ from kivy.uix.button import Button
 from kivy.uix.widget import Widget
 
 from carveracontroller.ui.touch import (
-    TOUCH_CANCELLED, Gesture, JogTouchButton, PointerTransform, TapBehavior, TouchCheckBox,
-    TouchPostprocessor, cancel_all_touches,
+    TOUCH_CANCELLED,
+    Gesture,
+    JogTouchButton,
+    PointerTransform,
+    TapBehavior,
+    TouchCheckBox,
+    TouchPostprocessor,
+    cancel_all_touches,
 )
 
 
@@ -113,6 +119,47 @@ def test_stopping_jog_cannot_restart(jog):
     controller._continuous_jog_stopping = True
     dispatch("begin", finger())
     controller.jog.assert_not_called()
+
+
+def test_jog_acknowledgement_and_competing_input_do_not_replay_motion(jog):
+    from carveracontroller.Controller import Controller
+
+    button, _, root = jog
+    controller = Controller.__new__(Controller)
+    controller.jog_mode = Controller.JOG_MODE_CONTINUOUS
+    controller.jog_speed = 300
+    controller.continuous_jog_active = False
+    controller._continuous_jog_stopping = False
+    controller.stream = object()
+    controller.executeCommand = Mock()
+    controller.executeRealtime = Mock()
+    root.controller = controller
+    owner = finger()
+    dispatch("begin", owner)
+    controller.executeCommand.assert_called_once_with("$J -c X1 F300")
+    # Keyboard and pendant starts share this controller gate.
+    controller.jog("Y1")
+    controller.startContinuousJog("Z1", 100)
+    controller.executeCommand.assert_called_once()
+    move(owner, 180, 50)
+    dispatch("update", owner)
+    controller.executeRealtime.assert_called_once_with(0x19)
+    assert controller._continuous_jog_stopping
+    dispatch("begin", finger(ident="2"))
+    controller.executeCommand.assert_called_once()
+    controller._clear_continuous_jog_state()  # Firmware stop acknowledgement.
+    move(owner, 50, 50)
+    dispatch("update", owner)
+    dispatch("end", owner)
+    controller.executeCommand.assert_called_once()
+    dispatch("begin", finger(ident="3"))
+    assert controller.executeCommand.call_count == 2
+    controller.stream = None
+    controller._clear_continuous_jog_state()
+    button._check_jog(0)
+    controller.stream = object()
+    assert button._jog_touch is None
+    assert controller.executeCommand.call_count == 2
 
 
 def test_drag_away_and_return_never_becomes_tap_or_hold():

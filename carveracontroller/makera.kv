@@ -58,6 +58,14 @@
 <CheckBox>:
     color: 255, 255, 255, 1
 
+<TouchToggleButton,TouchCheckBox,TouchTabbedPanelItem>:
+    canvas.after:
+        Color:
+            rgba: (0.2, 0.6, 1, 0.3) if self.touch_pressed else (0, 0, 0, 0)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
 <MCQCheckBox@TouchCheckBox>:
     size_hint: 0.15, 1
 
@@ -1712,7 +1720,7 @@
         id: tabbed_panel
         do_default_tab: False
         tab_width: root.width / 2 - dp(2)
-        TabbedPanelItem:
+        TouchTabbedPanelItem:
             text: tr._('Auto-Set By Offset')
             BoxLayout:
                 padding: '15dp'
@@ -1823,7 +1831,7 @@
                         on_release: root.on_ok_pressed()
                     
 
-        TabbedPanelItem:
+        TouchTabbedPanelItem:
             text: tr._('Set By XYZ Probe')
             BoxLayout:
                 padding: '15dp'
@@ -2334,7 +2342,7 @@
             TabbedPanel:
                 do_default_tab: False
                 # Create tab 1
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     canvas.after:
                         Color:
                             rgba: 52/255, 152/255, 219/255, 1
@@ -2382,7 +2390,7 @@
                             text: ""
 
                 # Create 2nd tab
-                TabbedPanelItem:
+                TouchTabbedPanelItem:
                     canvas.after:
                         Color:
                             rgba: 52/255, 152/255, 219/255, 1

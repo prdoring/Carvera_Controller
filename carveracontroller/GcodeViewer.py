@@ -44,8 +44,8 @@ from kivy.input.provider import MotionEventProvider
 
 from .addons.tool_visualization.mesh_builder import build_tool_meshes
 from .arcball_from_cpp import *
-from .ui.touch import Gesture, PointerTransform, TOUCH_CANCELLED, gesture_owners
 from .Objloader import ObjFile
+from .ui.touch import TOUCH_CANCELLED, Gesture, PointerTransform, gesture_owners
 from .ui.ViewCube import (
     VERTEX_FORMAT as VIEW_CUBE_VERTEX_FORMAT,
 )
