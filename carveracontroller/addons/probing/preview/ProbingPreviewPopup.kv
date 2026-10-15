@@ -40,7 +40,7 @@
                 bar_width: dp(20)
                 viewclass: 'ProbingRow'
                 SelectableRecycleBoxLayout:
-                    default_size: None, dp(20)
+                    default_size: None, (app.touch_target if app.android_touch else dp(20))
                     default_size_hint: 1, None
                     size_hint_y: None
                     height: self.minimum_height

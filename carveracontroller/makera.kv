@@ -31,6 +31,14 @@
     font_name: 'ARIALUNI'
     write_tab: False
 
+<EditingTextInput>:
+    canvas.after:
+        Color:
+            rgba: (1, 0.35, 0.2, 1) if self.validation_error else (0, 0, 0, 0)
+        Line:
+            rectangle: self.x, self.y, self.width, self.height
+            width: 1.2
+
 <WideProgressBar@BoxLayout>:
     value: 0
     color: 52/255, 166/255, 208/255, 1
@@ -49,7 +57,7 @@
 <CheckBox>:
     color: 255, 255, 255, 1
 
-<MCQCheckBox@CheckBox>:
+<MCQCheckBox@TouchCheckBox>:
     size_hint: 0.15, 1
 
 <MCQLabel@ButtonBehavior+Label>:
@@ -92,7 +100,13 @@
                 size: dp(10) if root.notify else 0, dp(10) if root.notify else 0
 
 <TransparentButton>:
-    height: '32dp'
+    canvas.before:
+        Color:
+            rgba: (0.2, 0.65, 0.8, 0.45) if self.state == 'down' else (0, 0, 0, 0)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    height: app.touch_target if app.android_touch else dp(32)
     width: '60dp'
     icon_size: 24
     icon: ''
@@ -117,7 +131,7 @@
                 size: dp(root.icon_size) if root.icon else 0, dp(root.icon_size) if root.icon else 0
 
 <TransparentGrayButton>:
-    height: '32dp'
+    height: app.touch_target if app.android_touch else dp(32)
     width: '60dp'
     icon_size: 24
     icon: ''
@@ -143,7 +157,7 @@
 <WiFiButton>:
     orientation: 'horizontal'
     size_hint_y: None
-    height: '35dp'
+    height: app.touch_target if app.android_touch else dp(35)
     color: 240/255, 240/255, 240/255, 1
     canvas.before:
         Color:
@@ -208,7 +222,7 @@
     padding: dp(2), 0
     canvas.before:
         Color:
-            rgba: (80/255, 80/255, 80/255, 1) if self.selected else (50/255, 50/255, 50/255, 1)
+            rgba: (0.2, 0.5, 0.65, 1) if self.touch_pressed else (80/255, 80/255, 80/255, 1) if self.selected else (50/255, 50/255, 50/255, 1)
         Rectangle:
             pos: self.pos
             size: self.size
@@ -234,6 +248,12 @@
         text_size: self.size
         shorten: True
 
+    Button:
+        text: '⋮'
+        size_hint_x: None
+        width: app.touch_target if app.android_touch else dp(32)
+        on_release: root._show_context_menu(self.center)
+
 <DataRow@SelectableBoxLayout>:
     canvas.before:
         Color:
@@ -248,6 +268,13 @@
     filesize: ''
     filedate: ''
     is_dir: False
+    TouchCheckBox:
+        size_hint_x: None
+        width: app.touch_target if app.android_touch and root.parent and root.parent.recycleview.touch_selection_mode else 0
+        opacity: 1 if self.width else 0
+        disabled: not self.width
+        active: root.selected
+        on_release: root.toggle_file_checkbox()
     Label:
         size_hint_x: None
         width: '30dp'
@@ -300,7 +327,7 @@
 
 <SmallRoundButton@Button>:
     background_color: 0,0,0,0  # the last zero is the critical on, make invisible
-    height: '35dp'
+    height: app.touch_target if app.android_touch else dp(35)
     canvas.before:
         Color:
             rgba: (88/255,88/255,88/255,1) if self.state=='normal' else (50/255,164/255,206/255,1)  # visual feedback of press
@@ -311,7 +338,7 @@
 
 <DropDownHint>:
     size_hint_y: None
-    height: '20dp'
+    height: app.touch_target if app.android_touch else dp(20)
     font_size: '13sp'
     text_size: self.size
     valign: 'middle'
@@ -320,21 +347,21 @@
 
 <StatusContent@BoxLayout>:
     size_hint_y: None
-    height: '20dp'
+    height: app.touch_target if app.android_touch else dp(20)
     orientation: 'horizontal'
     title: ''
     value: ''
     color: 220 / 255, 220 / 255, 220 / 255, 1
     default_color: 220 / 255, 220 / 255, 220 / 255, 1
     Label:
-        height: '20dp'
+        height: app.touch_target if app.android_touch else dp(20)
         font_size: '13sp'
         text_size: self.size
         valign: 'middle'
         halign: 'right'
         text: root.title
     Label:
-        height: '20dp'
+        height: app.touch_target if app.android_touch else dp(20)
         font_size: '13sp'
         text_size: self.size
         valign: 'middle'
@@ -350,7 +377,7 @@
     Button:
         text: tr._('Match Feed')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.controller.jog_speed = 0
             root.select(self.text)
@@ -358,7 +385,7 @@
     Button:
         text: tr._('Max')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.controller.jog_speed = 10000
             root.select(self.text)
@@ -366,35 +393,35 @@
     Button:
         text: tr._('2000 mm/min')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.controller.jog_speed = 2000
             root.select(self.text)
     Button:
         text: tr._('1200 mm/min')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.controller.jog_speed = 1200
             root.select(self.text)
     Button:
         text: tr._('600 mm/min')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.controller.jog_speed = 600
             root.select(self.text)
     Button:
         text: tr._('300 mm/min')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.controller.jog_speed = 300
             root.select(self.text)
     Button:
         text: tr._('100 mm/min')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.controller.jog_speed = 100
             root.select(self.text)
@@ -488,7 +515,7 @@
     BoxLayout:
         orientation: 'vertical'
         size_hint_y: None
-        height: '23dp'
+        height: app.touch_target if app.android_touch else dp(23)
         padding: '0.5dp'
         canvas.before:
             Color:
@@ -579,7 +606,7 @@
         id: set_rotation_popup_button
         text: tr._('Set Rotation')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         disabled: not (app.is_community_firmware and app.fw_version_digitized >= digitize_v("1.0.11"))
         on_release:
             root.select('Third Item')
@@ -587,7 +614,7 @@
     
     Spinner:
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         id: set_wcs_dropdown
         text: tr._('Activate WCS')
         values: 'G54', 'G55', 'G56', 'G57', 'G58', 'G59', 'G59.1', 'G59.2', 'G59.3'
@@ -599,7 +626,7 @@
     Button:
         text: tr._('WCS Settings')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.select('Third Item')
             app.root.wcs_settings_popup.open()
@@ -620,7 +647,7 @@
     BoxLayout:
         orientation: 'vertical'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         padding: '0.5dp'
         canvas.before:
             Color:
@@ -643,7 +670,7 @@
     BoxLayout:
         orientation: 'horizontal'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         padding: '0.5dp'
         Slider:
             canvas.before:
@@ -664,7 +691,7 @@
     BoxLayout:
         orientation: 'horizontal'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         Button:
             text: '-'
             font_size: '25sp'
@@ -678,7 +705,7 @@
     Button:
         text: tr._('Reset')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         font_size: '20sp'
         on_release:
             root.scale_slider.value = 100
@@ -728,7 +755,7 @@
     BoxLayout:
         padding: '0.5dp'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         disabled: app.model != 'C1'
         Switch:
             id: vacuum_switch
@@ -747,7 +774,7 @@
     BoxLayout:
         padding: '0.5dp'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         disabled: not (app.is_community_firmware and app.fw_version_digitized >= digitize_v("2.2.0"))
         Switch:
             id: extout_switch
@@ -766,7 +793,7 @@
     BoxLayout:
         padding: '0.5dp'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         Slider:
             id: scale_slider
             min: 10
@@ -786,7 +813,7 @@
     BoxLayout:
         orientation: 'horizontal'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         Button:
             text: '-'
             font_size: '25sp'
@@ -800,7 +827,7 @@
     Button:
         text: tr._('Reset')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         font_size: '20sp'
         on_release:
             root.scale_slider.value = 100
@@ -823,7 +850,7 @@
     BoxLayout:
         orientation: 'vertical'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         padding: '0.5dp'
         canvas.before:
             Color:
@@ -845,7 +872,7 @@
     BoxLayout:
         padding: '0.5dp'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         disabled: app.state != 'Idle'
         Switch:
             id: switch
@@ -861,7 +888,7 @@
                 else: app.root.update_control('laser_mode', self.active)
     Spinner:
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         id: change_dropdown
         text: tr._('Change...')
         values: 'Probe', 'Tool: 1', 'Tool: 2', 'Tool: 3', 'Tool: 4', 'Tool: 5', 'Tool: 6', 'Custom'
@@ -874,14 +901,14 @@
     Button:
         text: tr._('Calibrate')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.select('Third Item')
             app.root.controller.calibrateToolCommand()
     Button:
         text: tr._('Adv Calibrate')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         disabled: not app.is_community_firmware
         on_release:
             root.select('Third Item')
@@ -896,7 +923,7 @@
             app.root.controller.dropToolCommand()
     Spinner:
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         id: set_dropdown
         text: tr._('Set...')
         values: 'Empty', 'Probe', 'Tool: 1', 'Tool: 2', 'Tool: 3', 'Tool: 4', 'Tool: 5', 'Tool: 6', 'Custom'
@@ -939,7 +966,7 @@
     BoxLayout:
         orientation: 'vertical'
         size_hint_y: None
-        height: '23dp'
+        height: app.touch_target if app.android_touch else dp(23)
         padding: '0.5dp'
         canvas.before:
             Color:
@@ -956,7 +983,7 @@
     BoxLayout:
         padding: '0.5dp'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         disabled: app.state != 'Idle'
         Switch:
             id: switch
@@ -980,7 +1007,7 @@
         BoxLayout:
             padding: '0.5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             disabled: (not app.lasering) or (app.state != 'Idle')
             Switch:
                 id: test_switch
@@ -999,7 +1026,7 @@
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             padding: '0.5dp'
             disabled: (not app.lasering) or (app.state != 'Idle' and app.state != 'Run')
             Slider:
@@ -1021,7 +1048,7 @@
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             disabled: (not app.lasering) or (app.state != 'Idle' and app.state != 'Run')
             Button:
                 text: '-'
@@ -1036,7 +1063,7 @@
         Button:
             text: tr._('Reset')
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             font_size: '20sp'
             disabled: (not app.lasering) or (app.state != 'Idle' and app.state != 'Run')
             on_release:
@@ -1055,7 +1082,7 @@
         icon_size: 24
         small_icon: True
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         tooltip_txt: tr._('Run File View')
         on_release:
             app.root.content.transition.direction = 'right'
@@ -1186,7 +1213,7 @@
         id: btn_reconnect_wifi
         text: tr._('Reconnect')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         disabled: app.state != 'N/A'
         on_release:
             app.root.reconnect_last_connection(quiet=False, for_app_launch=False)
@@ -1195,21 +1222,21 @@
     Button:
         id: btn_connect_wifi
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         text: tr._('Scan Wi-Fi...')
         on_release:
             app.root.open_wifi_conn_drop_down(self)
     Button:
         id: btn_connect_network
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         text: tr._('Network...')
         on_release:
             app.root.manually_input_ip()
     Button:
         id: btn_connect_usb
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         text: tr._(' USB...')
         on_release:
             app.root.open_comports_drop_down(self)
@@ -1217,7 +1244,7 @@
         id: btn_unlock
         text: 'Unlock'
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         disabled: True
         on_release:
             if self.text == 'Unlock':\
@@ -1230,7 +1257,7 @@
         id: btn_disconnect
         text: tr._('Disconnect')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         disabled: True
         on_release:
             app.root.close()
@@ -1242,25 +1269,25 @@
     Button:
         text: tr._('Upload...')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.select('')
     Button:
         text: tr._('Download')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.select('')
     Button:
         text: tr._('Delete')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.select('')
     Button:
         text: tr._('Rename')
         size_hint_y: None
-        height: '40dp'
+        height: app.touch_target if app.android_touch else dp(40)
         on_release:
             root.select('')
 
@@ -1383,7 +1410,7 @@
             EditingTextInput:
                 id: txt_content
                 size_hint_y: None
-                height: '35dp'
+                height: app.touch_target if app.android_touch else dp(35)
                 multiline: False
                 text: ''
             Label:
@@ -1423,7 +1450,7 @@
             EditingTextInput:
                 id: txt_content1
                 size_hint_y: None
-                height: '35dp'
+                height: app.touch_target if app.android_touch else dp(35)
                 multiline: False
                 text: ''
             Label:
@@ -1441,7 +1468,7 @@
             EditingTextInput:
                 id: txt_content2
                 size_hint_y: None
-                height: '35dp'
+                height: app.touch_target if app.android_touch else dp(35)
                 multiline: False
                 text: ''
             Label:
@@ -1696,10 +1723,10 @@
                         id: cbx_anchor1
                         group: 'anchor'
                         active: True
-                        on_press: root.update_offsets()
+                        on_release: root.update_offsets()
                         disabled: app.has_4axis
                     MCQLabel:
-                        on_press: 
+                        on_release:
                             cbx_anchor1._do_press()
                             root.update_offsets()
                         text: tr._('Anchor1')
@@ -1708,10 +1735,10 @@
                         id: cbx_anchor2
                         group: 'anchor'
                         active: False
-                        on_press: root.update_offsets()
+                        on_release: root.update_offsets()
                         disabled: app.has_4axis
                     MCQLabel:
-                        on_press: 
+                        on_release:
                             cbx_anchor2._do_press()
                             root.update_offsets()
                         text: tr._('Anchor2')
@@ -1720,10 +1747,10 @@
                         id: cbx_4axis_origin
                         group: 'anchor'
                         active: False
-                        on_press: root.update_offsets()
+                        on_release: root.update_offsets()
                         disabled: not app.has_4axis
                     MCQLabel:
-                        on_press: 
+                        on_release:
                             cbx_4axis_origin._do_press()
                             root.update_offsets()
                         text: tr._('4Axis Origin')
@@ -1732,10 +1759,10 @@
                         id: cbx_current_position
                         group: 'anchor'
                         active: False
-                        on_press: root.update_offsets()
+                        on_release: root.update_offsets()
                         disabled: app.has_4axis
                     MCQLabel:
-                        on_press: 
+                        on_release:
                             cbx_current_position._do_press()
                             root.update_offsets()
                         text: tr._('Current Pos')
@@ -1744,7 +1771,7 @@
 
                 BoxLayout:
                     size_hint_y: None
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     Label:
                         text: tr._('X Offset:')
                         halign: "left"
@@ -1783,7 +1810,7 @@
                 BoxLayout:
                     spacing: '5dp'
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     Button:
                         id: btn_cancel
                         text: tr._('Cancel')
@@ -1801,10 +1828,10 @@
                 orientation: 'vertical'
                 BoxLayout:
                     size_hint_y: None
-                    height: '25dp'
+                    height: app.touch_target if app.android_touch else dp(25)
                 BoxLayout:
                     size_hint_y: None
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     Label:
                         text: tr._('Block Thickness:')
                         halign: "left"
@@ -1843,7 +1870,7 @@
                 BoxLayout:
                     spacing: '5dp'
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     Button:
                         id: btn_cancel
                         text: tr._('Cancel')
@@ -1873,7 +1900,7 @@
                     size: self.size
             id: caption
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             text: tr._('Z Probe Config')
             halign: 'left'
             valign: 'middle'
@@ -1885,18 +1912,18 @@
                 id: cbx_origin1
                 group: 'origin'
             MCQLabel:
-                on_press: cbx_origin1._do_press()
+                on_release: cbx_origin1._do_press()
                 text: tr._('Work Origin')
             MCQCheckBox:
                 id: cbx_origin2
                 group: 'origin'
             MCQLabel:
-                on_press: cbx_origin2._do_press()
+                on_release: cbx_origin2._do_press()
                 text: tr._('Path Origin')
             Label:
         BoxLayout:
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             Label:
                 text: tr._('X Offset:')
                 halign: "left"
@@ -1928,7 +1955,7 @@
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Button:
                 id: btn_cancel
                 text: tr._('Cancel')
@@ -1957,17 +1984,17 @@
                     size: self.size
             id: caption
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             text: tr._('XYZ Probe At Current Position')
             halign: 'left'
             valign: 'middle'
             text_size: self.size
         BoxLayout:
             size_hint_y: None
-            height: '25dp'
+            height: app.touch_target if app.android_touch else dp(25)
         BoxLayout:
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             Label:
                 text: tr._('Block Thickness:')
                 halign: "left"
@@ -2006,7 +2033,7 @@
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Button:
                 id: btn_cancel
                 text: tr._('Cancel')
@@ -2033,14 +2060,14 @@
                     size: self.size
             id: caption
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             text: tr._('Pairing Wireless Probe')
             halign: 'left'
             valign: 'middle'
             text_size: self.size
         BoxLayout:
             size_hint_y: None
-            height: '25dp'
+            height: app.touch_target if app.android_touch else dp(25)
         BoxLayout:
             Label:
             Button:
@@ -2048,7 +2075,7 @@
                 size_hint_x: None
                 width: '200dp'
                 size_hint_y: None
-                height: '40dp'
+                height: app.touch_target if app.android_touch else dp(40)
                 text: str(root.countdown) if root.pairing else tr._('Start Pairing')
                 disabled: root.pairing
                 on_release:
@@ -2066,7 +2093,7 @@
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Button:
                 id: btn_close
                 text: tr._('Close')
@@ -2098,7 +2125,7 @@
                     size: self.size
             id: caption
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             text: tr._('Auto Leveling Config')
             halign: 'left'
             valign: 'middle'
@@ -2252,7 +2279,7 @@
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Button:
                 id: btn_cancel
                 text: tr._('Cancel')
@@ -2278,7 +2305,7 @@
         orientation: 'vertical'
         BoxLayout:
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             TransparentButton:
                 icon: 'data/upgrade.png'
                 halign: "left"
@@ -2293,7 +2320,7 @@
             MCQCheckBox:
                 id: cbx_check_at_startup
             MCQLabel:
-                on_press: cbx_check_at_startup._do_press()
+                on_release: cbx_check_at_startup._do_press()
                 text: tr._(' Check Updates on Startup')
                 size_hint_x: None
                 width: '200dp'
@@ -2317,7 +2344,7 @@
                         orientation: 'vertical'
                         BoxLayout:
                             size_hint_y: None
-                            height: '40dp'
+                            height: app.touch_target if app.android_touch else dp(40)
                             padding: '5dp'
                             Label:
                                 size_hint_x: None
@@ -2365,7 +2392,7 @@
                         orientation: 'vertical'
                         BoxLayout:
                             size_hint_y: None
-                            height: '40dp'
+                            height: app.touch_target if app.android_touch else dp(40)
                             padding: '5dp'
                             Label:
                                 size_hint_x: None
@@ -2474,7 +2501,7 @@
                 orientation: 'vertical'
                 BoxLayout:
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     TransparentButton:
                         size_hint_x: None
                         width: '35dp'
@@ -2535,7 +2562,7 @@
                     height: '5dp'
                 BoxLayout:
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     orientation: 'horizontal'
                     padding: '5dp'
                     canvas.before:
@@ -2628,7 +2655,7 @@
                                 root.ti_remote_search.text = ''
                 BoxLayout:
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     orientation: 'horizontal'
                     canvas.before:
                         Color:
@@ -2663,6 +2690,16 @@
                         width: '100dp'
                         on_release:
                             root.remote_rv.fill_dir(sort_key = 'size', keyword = root.ti_remote_search.text)
+                BoxLayout:
+                    size_hint_y: None
+                    height: app.touch_target if app.android_touch else 0
+                    opacity: 1 if app.android_touch else 0
+                    disabled: not app.android_touch
+                    Button:
+                        text: tr._('Done selecting') if remote_rv.touch_selection_mode else tr._('Select files')
+                        on_release: remote_rv.touch_selection_mode = not remote_rv.touch_selection_mode
+                    Label:
+                        text: str(len(remote_rv.curr_selected_files)) + ' ' + tr._('selected')
                 RemoteRV:
                     id: remote_rv
                     root: root
@@ -2674,7 +2711,7 @@
                     viewclass: 'DataRow'
                     on_select: root.update_remote_buttons()
                     SelectableRecycleBoxLayout:
-                        default_size: None, dp(40)
+                        default_size: None, (app.touch_target if app.android_touch else dp(40))
                         default_size_hint: 1, None
                         size_hint_y: None
                         height: self.minimum_height
@@ -2702,7 +2739,7 @@
                     Button:
                         id: btn_select
                         disabled: True
-                        text: tr._("Select")
+                        text: tr._("Open") if app.android_touch else tr._("Select")
                         on_release:
                             app.root.check_and_download()
                             root.dismiss()
@@ -2713,7 +2750,7 @@
                 orientation: 'vertical'
                 BoxLayout:
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     TransparentButton:
                         size_hint_x: None
                         width: '35dp'
@@ -2745,7 +2782,7 @@
                         width: '100dp'
                         disabled: root.firmware_mode or not root.local_rv.curr_selected_file or root.local_rv.curr_selected_is_dir
                         opacity: 0 if root.firmware_mode else 1
-                        text: tr._("View")
+                        text: tr._("Open") if app.android_touch else tr._("View")
                         on_release:
                             app.root.view_local_file()
                     Button:
@@ -2781,7 +2818,7 @@
                     height: '5dp'
                 BoxLayout:
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     orientation: 'horizontal'
                     padding: '5dp'
                     canvas.before:
@@ -2875,7 +2912,7 @@
                                 root.ti_local_search.text = ''
                 BoxLayout:
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     orientation: 'horizontal'
                     canvas.before:
                         Color:
@@ -2919,7 +2956,7 @@
                     viewclass: 'DataRow'
                     on_select: root.update_local_buttons()
                     SelectableRecycleBoxLayout:
-                        default_size: None, dp(40)
+                        default_size: None, (app.touch_target if app.android_touch else dp(40))
                         default_size_hint: 1, None
                         size_hint_y: None
                         height: self.minimum_height
@@ -2951,7 +2988,7 @@
         orientation: 'vertical'
         BoxLayout:
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             TransparentButton:
                 icon: 'data/config_start.png'
                 halign: "left"
@@ -2986,7 +3023,7 @@
                     padding: '5dp', '0dp', '5dp', '10dp'
                     spacing: '5dp'
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     Label:
                         text: tr._("Background:")
                     Spinner:
@@ -2998,7 +3035,7 @@
                 BoxLayout:
                     padding: '0.5dp'
                     size_hint_y: None
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     disabled: app.model != 'C1'
                     Label:
                         text: tr._("Auto Vacuum")
@@ -3028,7 +3065,7 @@
                 BoxLayout:
                     padding: '0.5dp'
                     size_hint_y: None
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     disabled: not (app.is_community_firmware and app.fw_version_digitized >= digitize_v("2.2.0"))
                     Label:
                         text: tr._("Auto Ext. Out")
@@ -3064,7 +3101,7 @@
 
                 BoxLayout:
                     size_hint_y: None
-                    height: '25dp'
+                    height: app.touch_target if app.android_touch else dp(25)
                     canvas.before:
                         Color:
                             rgba: 65/255, 65/255, 65/255, 1
@@ -3089,7 +3126,7 @@
                 Label:
                     id: lb_origin
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     text: tr._(" (0, 0) from Anchor1")
                     halign: "left"
                     valign: "middle"
@@ -3099,7 +3136,7 @@
                     padding: '5dp', '0dp', '5dp', '10dp'
                     spacing: '5dp'
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     Label:
                     Button:
                         id: btn_origin
@@ -3109,7 +3146,7 @@
 
                 BoxLayout:
                     size_hint_y: None
-                    height: '25dp'
+                    height: app.touch_target if app.android_touch else dp(25)
                     disabled:  (root.mode != 'Run' and root.mode != 'Margin') or app.lasering
                     canvas.before:
                         Color:
@@ -3123,7 +3160,7 @@
                             root.set_config('margin', 'active', self.active)
                             root.toggle_config()
                     MCQLabel:
-                        on_press: cbx_margin._do_press()
+                        on_release: cbx_margin._do_press()
                         text: tr._(' Scan Margin')
                     Widget:
                         size_hint_x: None
@@ -3140,7 +3177,7 @@
 
                 BoxLayout:
                     size_hint_y: None
-                    height: '25dp'
+                    height: app.touch_target if app.android_touch else dp(25)
                     disabled:  (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active or app.lasering
                     canvas.before:
                         Color:
@@ -3156,7 +3193,7 @@
                             root.set_config('zprobe', 'active', self.active)
                             root.toggle_config()
                     MCQLabel:
-                        on_press: cbx_zprobe._do_press()
+                        on_release: cbx_zprobe._do_press()
                         text: tr._(' Auto Z Probe')
                     Widget:
                         size_hint_x: None
@@ -3170,7 +3207,7 @@
                 Label:
                     id: lb_zprobe
                     size_hint_y: None
-                    height: '25dp'
+                    height: app.touch_target if app.android_touch else dp(25)
                     disabled:  (root.mode != 'Run' and root.mode != 'ZProbe') or root.cbx_leveling.active or app.lasering
                     text: tr._(" (10, 10) from Path Origin")
                     halign: "left"
@@ -3181,7 +3218,7 @@
                     padding: '5dp', '0dp', '5dp', '10dp'
                     spacing: '5dp'
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     Label:
                     Button:
                         id: btn_zprobe
@@ -3192,7 +3229,7 @@
 
                 BoxLayout:
                     size_hint_y: None
-                    height: '25dp'
+                    height: app.touch_target if app.android_touch else dp(25)
                     disabled:  (root.mode != 'Run' and root.mode != 'Leveling') or app.has_4axis or app.lasering
                     canvas.before:
                         Color:
@@ -3215,7 +3252,7 @@
                             root.load_zprobe_label()
                             root.toggle_config()
                     MCQLabel:
-                        on_press: cbx_leveling._do_press()
+                        on_release: cbx_leveling._do_press()
                         text: tr._(' Auto Leveling')
                     Widget:
                         size_hint_x: None
@@ -3240,7 +3277,7 @@
                     padding: '5dp', '0dp', '5dp', '10dp'
                     spacing: '5dp'
                     size_hint_y: None
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     Label:
                     Button:
                         id: btn_leveling
@@ -3251,7 +3288,7 @@
 
                 BoxLayout:
                     size_hint_y: None
-                    height: '25dp'
+                    height: app.touch_target if app.android_touch else dp(25)
                     padding: '5dp', 0, 0, 0
                     disabled: root.mode != 'Run'
                     canvas.before:
@@ -3263,7 +3300,7 @@
                     MCQCheckBox:
                         id: cbx_startline
                     MCQLabel:
-                        on_press: cbx_startline._do_press()
+                        on_release: cbx_startline._do_press()
                         text: tr._('  Resume at line:')
                     EditingTextInput:
                         id: txt_startline
@@ -3403,7 +3440,7 @@
         orientation: 'vertical'
         BoxLayout:
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Label:
                 text: tr._("   Diagnostic Panel")
                 bold: True
@@ -3509,7 +3546,7 @@
                 Label:
         BoxLayout:
             size_hint_y: None
-            height: '20dp'
+            height: app.touch_target if app.android_touch else dp(20)
             Label:
                 text: tr._("Changes in values are applied after 2 seconds.")
                 halign: "right"
@@ -3538,7 +3575,7 @@
         orientation: 'vertical'
         BoxLayout:
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Label:
                 text: tr._(" Settings")
                 bold: True
@@ -3562,8 +3599,15 @@
                 root.dismiss()
 
 <SplitterStrip>:
-    background_down: 'data/splitter-strip.png'
-    background_normal: 'data/splitter-strip.png'
+    background_down: '' if app.android_touch else 'data/splitter-strip.png'
+    background_normal: '' if app.android_touch else 'data/splitter-strip.png'
+    background_color: (0, 0, 0, 0) if app.android_touch else (1, 1, 1, 1)
+    canvas.after:
+        Color:
+            rgba: (0.4, 0.4, 0.4, 1) if app.android_touch else (0, 0, 0, 0)
+        Rectangle:
+            pos: (self.x, self.center_y - dp(2)) if self.horizontal else (self.center_x - dp(2), self.y)
+            size: (self.width, dp(4)) if self.horizontal else (dp(4), self.height)
 
 <Makera>:
     gcode_rv: gcode_rv
@@ -3781,7 +3825,7 @@
                                         id: step_xy
                                         center: 0.5, 0.5
                                         size_hint_y: None
-                                        height: '40dp'
+                                        height: app.touch_target if app.android_touch else dp(40)
                                         text: app.jog_step_xy
                                         on_text: app.jog_step_xy = self.text
                                         values: '10', '1', '0.1', '0.01', '0.005'
@@ -3836,21 +3880,21 @@
                                                 text: tr._('Macro 1')
                                                 id: touch_macro_1_btn
                                                 center: 0.5, 0.5
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 on_release: app.root.run_macro(1)
 
                                         GridBoxLayout:
                                             SmallRoundButton:
                                                 id: touch_macro_2_btn
                                                 text: tr._('Macro 2')
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 on_release: app.root.run_macro(2)
 
                                         GridBoxLayout:
                                             SmallRoundButton:
                                                 id: touch_macro_3_btn
                                                 text: tr._('Macro 3')
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 on_release: app.root.run_macro(3)
 
                             Widget:
@@ -3927,7 +3971,7 @@
                                         GridBoxLayout:
                                             Spinner:
                                                 center: 0.5, 0.5
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 disabled: app.state != 'Idle'
                                                 text: tr._('Goto...')
                                                 values: 'Clearance', 'Work Origin', 'Path Origin', 'Anchor1', 'Anchor2'
@@ -3947,22 +3991,22 @@
 
                                         # 4th row
                                         GridBoxLayout:
-                                            ToggleButton:
+                                            TouchToggleButton:
                                                 id: light_toggle
                                                 text: tr._('Light')
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 on_release: app.root.controller.setLightSwitch(not self.state=="normal")
 
                                         GridBoxLayout:
-                                            ToggleButton:
+                                            TouchToggleButton:
                                                 text: tr._('Ext. Control')
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 on_release: app.root.controller.setExternalControl(100 if self.state=="down" else 0)
 
                                         GridBoxLayout:
                                             Spinner:
                                                 center: 0.5, 0.5
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 disabled: not app.is_community_firmware or app.state != 'Idle'
                                                 text: tr._('Tools...')
                                                 values: [tr._('CMM Workbench...'), tr._('Facing...')]
@@ -3997,7 +4041,7 @@
                                                 text: app.jog_speed_text
                                                 id: jog_speed_btn
                                                 center: 0.5, 0.5
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 on_release: root.jog_speed_drop_down.open(self)
 
                                         GridBoxLayout:
@@ -4005,21 +4049,21 @@
                                                 id: jog_mode_btn
                                                 disabled: not (app.is_community_firmware and app.fw_version_digitized >= digitize_v("2.0.0"))
                                                 text: tr._('Jog Mode:Step')
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 on_release: app.root.toggle_jog_mode()
                                         GridBoxLayout:
-                                            ToggleButton:
+                                            TouchToggleButton:
                                                 id: kb_jog_btn
                                                 text: tr._('Keyboard Jogging')
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 state: app.jog_keyboard_enable
                                                 on_release: app.root.toggle_keyboard_jog_control()
                                         GridBoxLayout:
-                                            ToggleButton:
+                                            TouchToggleButton:
                                                 id: pendant_jogging_en_btn
                                                 text: app.jog_pendant_text
                                                 state: app.jog_pendant_enable
-                                                height: '35dp'
+                                                height: app.touch_target if app.android_touch else dp(35)
                                                 on_release: app.root.toggle_pendant_jog_control()
 
                         BoxLayout:
@@ -4057,7 +4101,7 @@
                                         id: step_a
                                         center: 0.5, 0.5
                                         size_hint_y: None
-                                        height: '40dp'
+                                        height: app.touch_target if app.android_touch else dp(40)
                                         text: app.jog_step_a
                                         on_text: app.jog_step_a = self.text
                                         values: '90', '10', '1', '0.1'
@@ -4068,7 +4112,7 @@
                                         id: step_z
                                         center: 0.5, 0.5
                                         size_hint_y: None
-                                        height: '40dp'
+                                        height: app.touch_target if app.android_touch else dp(40)
                                         text: app.jog_step_z
                                         on_text: app.jog_step_z = self.text
                                         values: '10', '1', '0.1', '0.01', '0.005'
@@ -4134,7 +4178,7 @@
                                                 bar_width: dp(20)
                                                 viewclass: 'GCodeRow'
                                                 SelectableRecycleBoxLayout:
-                                                    default_size: None, dp(20)
+                                                    default_size: None, (app.touch_target if app.android_touch else dp(20))
                                                     default_size_hint: 1, None
                                                     size_hint_y: None
                                                     height: self.minimum_height
@@ -4145,7 +4189,7 @@
                                             BoxLayout:
                                                 orientation: 'horizontal'
                                                 size_hint_y: None
-                                                height: '33dp'
+                                                height: app.touch_target if app.android_touch else dp(33)
                                                 ToolTipButton:
                                                     id: toggle_mdi
                                                     width: '40dp'
@@ -4207,7 +4251,7 @@
                                                 bar_width: dp(20)
                                                 viewclass: 'Row'
                                                 SelectableRecycleBoxLayout:
-                                                    default_size: None, dp(20)
+                                                    default_size: None, (app.touch_target if app.android_touch else dp(20))
                                                     default_size_hint: 1, None
                                                     size_hint_y: None
                                                     height: self.minimum_height
@@ -4410,13 +4454,29 @@
                                             root.gcode_play_to_end()
 
                                     Widget:
+                                BoxLayout:
+                                    size_hint_y: None
+                                    height: app.touch_target if app.android_touch else dp(32)
+                                    Button:
+                                        text: tr._('Previous line')
+                                        on_release: root.gcode_play_slider.step_line(-1)
+                                    Button:
+                                        text: tr._('Next line')
+                                        on_release: root.gcode_play_slider.step_line(1)
                                 GcodePlaySlider:
                                     id: gcode_play_slider
-                                    height: '15dp'
+                                    height: app.touch_target if app.android_touch else dp(24)
+                                    size_hint_y: None
                                     min: 0
                                     max: 1000
                                     value: 1000
                                     disabled: app.selected_remote_filename == '' and app.selected_local_filename == ''
+                            Button:
+                                text: tr._('Controls')
+                                size_hint: None, None
+                                size: dp(104), app.touch_target if app.android_touch else dp(32)
+                                pos: float_layout.x + dp(8), float_layout.top - self.height - dp(8)
+                                on_release: app.show_gcode_ctl_bar = not app.show_gcode_ctl_bar
                             TransparentButton:
                                 size_hint: None, None
                                 size: '70dp', '28dp'
@@ -4543,12 +4603,19 @@
                             font_size: '16sp'
                             color: 240/255, 240/255, 240/255, 1
 
+                Button:
+                    text: '?'
+                    size_hint_x: None
+                    width: app.touch_target if app.android_touch else 0
+                    disabled: not app.android_touch
+                    opacity: 1 if app.android_touch else 0
+                    on_release: app._touch_layout.show_help() if app._touch_layout else None
                 IconButton:
                     icon: 'data/stop.png'
                     tooltip_txt: tr._('E-Stop')
                     icon_size: 40
                     disabled: app.state == 'N/A'
-                    on_release:
+                    on_press:
                         app.root.controller.estopCommand()
 
     Button:
@@ -4583,7 +4650,7 @@
                     size: self.size
             id: caption
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             text: tr._('WCS Settings')
             halign: 'left'
             valign: 'middle'
@@ -4603,7 +4670,7 @@
                     text: 'WCS'
                     size_hint: (None, None)
                     width: '50dp'
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     canvas.before:
                         Color:
                             rgba: 60/255, 60/255, 60/255, 1
@@ -4614,7 +4681,7 @@
                     text: 'X Offset'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     canvas.before:
                         Color:
                             rgba: 60/255, 60/255, 60/255, 1
@@ -4625,7 +4692,7 @@
                     text: 'Y Offset'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     canvas.before:
                         Color:
                             rgba: 60/255, 60/255, 60/255, 1
@@ -4636,7 +4703,7 @@
                     text: 'Z Offset'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     canvas.before:
                         Color:
                             rgba: 60/255, 60/255, 60/255, 1
@@ -4647,7 +4714,7 @@
                     text: 'A Offset'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     canvas.before:
                         Color:
                             rgba: 60/255, 60/255, 60/255, 1
@@ -4658,7 +4725,7 @@
                     text: 'Rotation'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     canvas.before:
                         Color:
                             rgba: 60/255, 60/255, 60/255, 1
@@ -4669,7 +4736,7 @@
                     text: 'Clear Offsets'
                     size_hint: (None, None)
                     width: '100dp'
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     canvas.before:
                         Color:
                             rgba: 60/255, 60/255, 60/255, 1
@@ -4680,7 +4747,7 @@
                     text: 'Description'
                     size_hint_y: None
                     size_hint_x: 1
-                    height: '30dp'
+                    height: app.touch_target if app.android_touch else dp(30)
                     canvas.before:
                         Color:
                             rgba: 60/255, 60/255, 60/255, 1
@@ -4693,7 +4760,7 @@
                     text: 'G54'
                     size_hint: (None, None)
                     width: '50dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     on_release: 
                         root.activate_wcs('G54')
                 EditingTextInput:
@@ -4701,7 +4768,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4712,7 +4779,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4723,7 +4790,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4734,7 +4801,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4745,7 +4812,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4755,7 +4822,7 @@
                     text: 'Clear'
                     size_hint: (None, None)
                     width: '100dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     on_release: root.clear_wcs_offsets('G54')
                     disabled: app.is_community_firmware == False
                     on_text: root.check_for_changes()
@@ -4764,7 +4831,7 @@
                     text: 'G54'
                     size_hint_y: None
                     size_hint_x: 1
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'text'
                     multiline: False
                     disabled: app.is_community_firmware == False
@@ -4776,7 +4843,7 @@
                     text: 'G55'
                     size_hint: (None, None)
                     width: '50dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     on_release: 
                         root.activate_wcs('G55')
                 EditingTextInput:
@@ -4784,7 +4851,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4795,7 +4862,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4806,7 +4873,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4817,7 +4884,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4828,7 +4895,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4838,7 +4905,7 @@
                     text: 'Clear'
                     size_hint: (None, None)
                     width: '100dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     disabled: app.is_community_firmware == False
                     on_release: root.clear_wcs_offsets('G55')
                     on_text: root.check_for_changes()
@@ -4847,7 +4914,7 @@
                     text: 'G55'
                     size_hint_y: None
                     size_hint_x: 1
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'text'
                     multiline: False
                     disabled: app.is_community_firmware == False
@@ -4859,7 +4926,7 @@
                     text: 'G56'
                     size_hint: (None, None)
                     width: '50dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     on_release: 
                         root.activate_wcs('G56')
                 EditingTextInput:
@@ -4867,7 +4934,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4878,7 +4945,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4889,7 +4956,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4900,7 +4967,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4911,7 +4978,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4921,7 +4988,7 @@
                     text: 'Clear'
                     size_hint: (None, None)
                     width: '100dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     disabled: app.is_community_firmware == False
                     on_release: root.clear_wcs_offsets('G56')
                     on_text: root.check_for_changes()
@@ -4930,7 +4997,7 @@
                     text: 'G56'
                     size_hint_y: None
                     size_hint_x: 1
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'text'
                     multiline: False
                     disabled: app.is_community_firmware == False
@@ -4942,7 +5009,7 @@
                     text: 'G57'
                     size_hint: (None, None)
                     width: '50dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     on_release: 
                         root.activate_wcs('G57')
                 EditingTextInput:
@@ -4950,7 +5017,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4961,7 +5028,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4972,7 +5039,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4983,7 +5050,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -4994,7 +5061,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5004,7 +5071,7 @@
                     text: 'Clear'
                     size_hint: (None, None)
                     width: '100dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     disabled: app.is_community_firmware == False
                     on_release: root.clear_wcs_offsets('G57')
                     on_text: root.check_for_changes()
@@ -5013,7 +5080,7 @@
                     text: 'G57'
                     size_hint_y: None
                     size_hint_x: 1
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'text'
                     multiline: False
                     disabled: app.is_community_firmware == False
@@ -5025,7 +5092,7 @@
                     text: 'G58'
                     size_hint: (None, None)
                     width: '50dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     on_release: 
                         root.activate_wcs('G58')
                 EditingTextInput:
@@ -5033,7 +5100,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5044,7 +5111,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5055,7 +5122,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5066,7 +5133,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5077,7 +5144,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5087,7 +5154,7 @@
                     text: 'Clear'
                     size_hint: (None, None)
                     width: '100dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     disabled: app.is_community_firmware == False
                     on_release: root.clear_wcs_offsets('G58')
                     on_text: root.check_for_changes()
@@ -5096,7 +5163,7 @@
                     text: 'G58'
                     size_hint_y: None
                     size_hint_x: 1
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'text'
                     multiline: False
                     disabled: app.is_community_firmware == False
@@ -5108,7 +5175,7 @@
                     text: 'G59'
                     size_hint: (None, None)
                     width: '50dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     on_release: 
                         root.activate_wcs('G59')
                 EditingTextInput:
@@ -5116,7 +5183,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5127,7 +5194,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5138,7 +5205,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5149,7 +5216,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5160,7 +5227,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5170,7 +5237,7 @@
                     text: 'Clear'
                     size_hint: (None, None)
                     width: '100dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     disabled: app.is_community_firmware == False
                     on_release: root.clear_wcs_offsets('G59')
                     on_text: root.check_for_changes()
@@ -5179,7 +5246,7 @@
                     text: 'G59'
                     size_hint_y: None
                     size_hint_x: 1
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'text'
                     multiline: False
                     disabled: app.is_community_firmware == False
@@ -5191,7 +5258,7 @@
                     text: 'G59.1'
                     size_hint: (None, None)
                     width: '50dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     on_release: 
                         root.activate_wcs('G59.1')
                 EditingTextInput:
@@ -5199,7 +5266,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5210,7 +5277,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5221,7 +5288,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5232,7 +5299,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5243,7 +5310,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5253,7 +5320,7 @@
                     text: 'Clear'
                     size_hint: (None, None)
                     width: '100dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     disabled: app.is_community_firmware == False
                     on_release: root.clear_wcs_offsets('G59.1')
                     on_text: root.check_for_changes()
@@ -5262,7 +5329,7 @@
                     text: 'G59.1'
                     size_hint_y: None
                     size_hint_x: 1
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'text'
                     multiline: False
                     disabled: True
@@ -5274,7 +5341,7 @@
                     text: 'G59.2'
                     size_hint: (None, None)
                     width: '50dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     on_release: 
                         root.activate_wcs('G59.2')
                 EditingTextInput:
@@ -5282,7 +5349,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5293,7 +5360,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5304,7 +5371,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5315,7 +5382,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5326,7 +5393,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5336,7 +5403,7 @@
                     text: 'Clear'
                     size_hint: (None, None)
                     width: '100dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     disabled: app.is_community_firmware == False
                     on_release: root.clear_wcs_offsets('G59.2')
                     on_text: root.check_for_changes()
@@ -5345,7 +5412,7 @@
                     text: 'G59.2'
                     size_hint_y: None
                     size_hint_x: 1
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'text'
                     multiline: False
                     disabled: True
@@ -5357,7 +5424,7 @@
                     text: 'G59.3'
                     size_hint: (None, None)
                     width: '50dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     on_release: 
                         root.activate_wcs('G59.3')
                 EditingTextInput:
@@ -5365,7 +5432,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5376,7 +5443,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5387,7 +5454,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5398,7 +5465,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5409,7 +5476,7 @@
                     text: '0.000'
                     size_hint: (None, None)
                     width: '70dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'number'
                     input_filter: 'float'
                     multiline: False
@@ -5419,7 +5486,7 @@
                     text: 'Clear'
                     size_hint: (None, None)
                     width: '100dp'
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     disabled: app.is_community_firmware == False
                     on_release: root.clear_wcs_offsets('G59.3')
                     on_text: root.check_for_changes()
@@ -5428,7 +5495,7 @@
                     text: 'G59.3'
                     size_hint_y: None
                     size_hint_x: 1
-                    height: '40dp'
+                    height: app.touch_target if app.android_touch else dp(40)
                     input_type: 'text'
                     multiline: False
                     disabled: True
@@ -5436,7 +5503,7 @@
         
         BoxLayout:
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             spacing: '5dp'
             
             Button:
@@ -5478,7 +5545,7 @@
                     size: self.size
             id: caption
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             text: tr._('Set Rotation')
             halign: 'left'
             valign: 'middle'
@@ -5490,7 +5557,7 @@
         
         BoxLayout:
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             Label:
                 text: 'Rotation:'
                 halign: "left"
@@ -5511,7 +5578,7 @@
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Button:
                 id: btn_cancel
                 text: tr._('Cancel')
@@ -5540,7 +5607,7 @@
 
 <GCodeLineContextMenu>:
     size_hint: None, None
-    size: dp(250), dp(86)
+    size: (dp(320), app.touch_target * 3) if app.android_touch else (dp(250), dp(86))
 
     BoxLayout:
         orientation: 'vertical'
@@ -5553,7 +5620,7 @@
             id: resume_option
             text: 'Resume at this line on next run'
             size_hint_y: None
-            height: dp(26)
+            height: app.touch_target if app.android_touch else dp(26)
             font_size: '15sp'
             background_color: (250/255, 250/255, 250/255, 1)
             color: (1, 1, 1, 1)
@@ -5566,7 +5633,7 @@
             id: clear_resume_option
             text: 'Clear resume at line'
             size_hint_y: None
-            height: dp(26)
+            height: app.touch_target if app.android_touch else dp(26)
             font_size: '15sp'
             pos_hint:{'top': 1,'right':1}
             disabled: not app.root.coord_popup.cbx_startline.active
@@ -5577,7 +5644,7 @@
             id: cancel_option
             text: 'Cancel'
             size_hint_y: None
-            height: dp(26)
+            height: app.touch_target if app.android_touch else dp(26)
             font_size: '15sp'
             background_color: (250/255, 250/255, 250/255, 1)
             color: (1, 1, 1, 1)

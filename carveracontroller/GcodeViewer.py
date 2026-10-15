@@ -44,6 +44,7 @@ from kivy.input.provider import MotionEventProvider
 
 from .addons.tool_visualization.mesh_builder import build_tool_meshes
 from .arcball_from_cpp import *
+from .ui.touch import Gesture, PointerTransform, TOUCH_CANCELLED, gesture_owners
 from .Objloader import ObjFile
 from .ui.ViewCube import (
     VERTEX_FORMAT as VIEW_CUBE_VERTEX_FORMAT,
@@ -1542,7 +1543,7 @@ class GCodeViewer(Widget):
     def get_cur_pos_index(self):
         line_number = -1
 
-        if self.cur_line_index < len(self.raw_linenumbers):
+        if self.raw_linenumbers and self.cur_line_index < len(self.raw_linenumbers):
             line_number = self.raw_linenumbers[int(self.cur_line_index)]
 
         return [self.display_count, line_number]
@@ -1821,75 +1822,73 @@ class GCodeViewer(Widget):
     # mouse event
     #
     def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            try:
-                if self._handle_view_cube_touch(touch):
-                    return True
-
-                touch.ud[TOUCH_CLAIMED] = True
-                touchpos = [touch.pos[0], self.size[1] - touch.pos[1]]
-                self.m_lastPos = touchpos.copy()
-                self.m_xLastRot = self.m_xRot
-                self.m_yLastRot = self.m_yRot
-                self.m_xLastPan = self.m_xPan
-                self.m_yLastPan = self.m_yPan
-
-                if "button" in touch.profile:
-                    if touch.is_mouse_scrolling:
-                        if touch.button == "scrolldown":
-                            self.zoom_out()
-                        elif touch.button == "scrollup":
-                            self.zoom_in()
-
-                self.update_proj()
-                self.update_view()
-                self._scene_dirty = True
-
-                if touch.is_double_tap:
-                    self.restore_default_view()
-
-            except:
-                print(sys.exc_info()[1])
+        if self.disabled or not self.collide_point(*touch.pos):
+            return False
+        if getattr(touch, "is_mouse_scrolling", False):
+            if touch.button == "scrolldown":
+                self.zoom_out()
+            elif touch.button == "scrollup":
+                self.zoom_in()
+            return True
+        if not hasattr(self, "_view_gesture"):
+            gesture_owners.add(self)
+            self._view_gesture = PointerTransform()
+            self._view_taps = {}
+        self._view_gesture.begin(touch)
+        self._view_taps[touch.uid] = Gesture(touch)
+        touch.ud["carvera_view_cube"] = self._view_cube_active() and self._view_cube_touch_ndc(touch) is not None
+        if len(self._view_gesture.points) > 1:
+            for candidate in self._view_taps.values():
+                candidate.cancel()
+        touch.grab(self)
+        return True
 
     def on_touch_move(self, touch):
-        if touch.ud.get(TOUCH_CLAIMED) and self.collide_point(*touch.pos):
-            try:
-                touchpos = [touch.pos[0], self.size[1] - touch.pos[1]]
-
-                if not "button" in touch.profile or touch.button == "left":
-                    if self.orbit:
-                        self.m_yRot = normalize_angle(self.m_yLastRot - (touchpos[0] - self.m_lastPos[0]) * 0.5)
-                        self.m_xRot = self.m_xLastRot + (touchpos[1] - self.m_lastPos[1]) * 0.5
-
-                        if self.m_xRot < -90:
-                            self.m_xRot = -90.0
-                        if self.m_xRot > 90:
-                            self.m_xRot = 90.0
-
-                        self.update_view()
-                    else:
-                        self.m_xPan = self.m_xLastPan - (touchpos[0] - self.m_lastPos[0]) * 1 / self.size[0]
-                        self.m_yPan = self.m_yLastPan + (touchpos[1] - self.m_lastPos[1]) * 1 / self.size[1]
-
-                        self.update_proj()
-
-                elif "button" in touch.profile and touch.button == "right":
-                    self.m_xPan = self.m_xLastPan - (touchpos[0] - self.m_lastPos[0]) * 1 / self.size[0]
-                    self.m_yPan = self.m_yLastPan + (touchpos[1] - self.m_lastPos[1]) * 1 / self.size[1]
-
-                    self.update_proj()
-
-                self.g_cursor = [touch.pos[0], touch.pos[1]]
-                self._scene_dirty = True
-            except:
-                print(sys.exc_info()[1])
+        gesture = getattr(self, "_view_gesture", None)
+        if gesture is None or touch.uid not in gesture.points:
+            return False
+        if touch.ud.get(TOUCH_CANCELLED):
+            return True
+        self._view_taps[touch.uid].move()
+        dx, dy, ratio, count = gesture.move(touch)
+        if count == 1 and (touch.ud.get("carvera_view_cube") or not self._view_taps[touch.uid].cancelled):
+            return True
+        if count >= 2 or not self.orbit or ("button" in touch.profile and touch.button == "right"):
+            self.m_xPan -= dx / max(1, self.width)
+            self.m_yPan -= dy / max(1, self.height)
+            lo, hi = self._zoom_bounds()
+            self.m_zoom = max(lo, min(hi, self.m_zoom / ratio))
+            self.update_proj()
+        else:
+            self.m_yRot = normalize_angle(self.m_yRot - dx * 0.5)
+            self.m_xRot = max(-90.0, min(90.0, self.m_xRot - dy * 0.5))
+        self.update_view()
+        self.g_cursor = list(touch.pos)
+        self._scene_dirty = True
+        return True
 
     def on_touch_up(self, touch):
-        if touch.ud.get(TOUCH_CLAIMED) and self.collide_point(*touch.pos):
-            try:
-                self.g_old_curosr = self.g_cursor = [touch.pos[0], touch.pos[1]]
-            except:
-                print(sys.exc_info()[1])
+        gesture = getattr(self, "_view_gesture", None)
+        if gesture is None or touch.uid not in gesture.points:
+            return False
+        gesture.end(touch)
+        candidate = self._view_taps.pop(touch.uid)
+        if candidate.finish():
+            if touch.ud.get("carvera_view_cube"):
+                self._handle_view_cube_touch(touch)
+            elif touch.is_double_tap:
+                self.restore_default_view()
+        touch.ungrab(self)
+        self.g_old_curosr = self.g_cursor = list(touch.pos)
+        return True
+
+    def cancel_gestures(self):
+        for candidate in getattr(self, "_view_taps", {}).values():
+            candidate.cancel()
+            candidate.touch.ungrab(self)
+        if hasattr(self, "_view_gesture"):
+            self._view_gesture.points.clear()
+            self._view_taps.clear()
 
     def zoom_in(self):
         lo, _ = self._zoom_bounds()

@@ -9,7 +9,7 @@
             size_hint_y: None
             height: self.minimum_height
             spacing:dp(2)
-            row_default_height: dp(28)
+            row_default_height: app.touch_target if app.android_touch else dp(28)
             row_force_default: True
             padding:dp(1)
             halign:'right'
@@ -250,7 +250,7 @@
                             id: wcs_btn1
                             text: tr._('Disabled')
                             size_hint_y: None
-                            height: '40dp'
+                            height: app.touch_target if app.android_touch else dp(40)
                             on_release:
                                 root.setting_changed('ZeroXYPosition', "0")
                                 wcs_drop_content.select(self.text)
@@ -259,7 +259,7 @@
                             id: wcs_btn2
                             text: tr._('X/Y')
                             size_hint_y: None
-                            height: '40dp'
+                            height: app.touch_target if app.android_touch else dp(40)
                             on_release:
                                 root.setting_changed('ZeroXYPosition', "1")
                                 wcs_drop_content.select(self.text)
@@ -268,7 +268,7 @@
                             id: wcs_btn3
                             text: tr._('X/Y/Z')
                             size_hint_y: None
-                            height: '40dp'
+                            height: app.touch_target if app.android_touch else dp(40)
                             on_release:
                                 root.setting_changed('ZeroXYPosition', "2")
                                 wcs_drop_content.select(self.text)     

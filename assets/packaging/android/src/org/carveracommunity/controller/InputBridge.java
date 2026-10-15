@@ -10,8 +10,10 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.Window;
 import android.view.WindowInsets;
+import android.view.ViewTreeObserver;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
+import java.util.HashMap;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.kivy.android.PythonActivity;
@@ -23,21 +25,30 @@ public final class InputBridge {
     private static boolean interrupted;
     private static boolean focused = true;
     private static Activity activity;
+    private static Window.Callback originalCallback;
+    private static InputManager inputManager;
+    private static InputManager.InputDeviceListener inputListener;
+    private static View decorView;
+    private static ViewTreeObserver.OnGlobalLayoutListener layoutListener;
     private static int keyboardHeight;
     private static int left, top, right, bottom;
     private static int slop;
     private static int hold;
     private static float density;
+    private static final HashMap<Integer, float[]> starts = new HashMap<>();
 
     public static void install(Activity owner) {
         owner.runOnUiThread(() -> {
             if (activity == owner) return;
+            detach();
             activity = owner;
+            focused = owner.hasWindowFocus();
             density = owner.getResources().getDisplayMetrics().density;
             slop = ViewConfiguration.get(owner).getScaledTouchSlop();
             hold = ViewConfiguration.getLongPressTimeout();
             Window window = owner.getWindow();
             Window.Callback original = window.getCallback();
+            originalCallback = original;
             window.setCallback((Window.Callback) Proxy.newProxyInstance(
                 Window.Callback.class.getClassLoader(), new Class<?>[]{Window.Callback.class},
                 (proxy, method, args) -> {
@@ -46,7 +57,7 @@ public final class InputBridge {
                     } else if (method.getName().equals("onWindowFocusChanged")) {
                         synchronized (lock) {
                             focused = (Boolean) args[0];
-                            if (!focused) interrupted = true;
+                            if (!focused) { interrupted = true; starts.clear(); }
                         }
                     }
                     try {
@@ -56,24 +67,56 @@ public final class InputBridge {
                     }
                 }));
             View decor = window.getDecorView();
-            decor.getViewTreeObserver().addOnGlobalLayoutListener(() -> updateInsets(decor));
+            decorView = decor;
+            layoutListener = () -> updateInsets(decor);
+            decor.getViewTreeObserver().addOnGlobalLayoutListener(layoutListener);
             InputManager inputs = (InputManager) owner.getSystemService(Activity.INPUT_SERVICE);
-            inputs.registerInputDeviceListener(new InputManager.InputDeviceListener() {
+            inputManager = inputs;
+            inputListener = new InputManager.InputDeviceListener() {
                 public void onInputDeviceAdded(int id) {}
                 public void onInputDeviceChanged(int id) {}
                 public void onInputDeviceRemoved(int id) {
                     synchronized (lock) { interrupted = true; }
                 }
-            }, null);
+            };
+            inputs.registerInputDeviceListener(inputListener, null);
             updateInsets(decor);
         });
+    }
+
+    private static void detach() {
+        if (activity != null && originalCallback != null) activity.getWindow().setCallback(originalCallback);
+        if (decorView != null && layoutListener != null && decorView.getViewTreeObserver().isAlive()) {
+            decorView.getViewTreeObserver().removeOnGlobalLayoutListener(layoutListener);
+        }
+        if (inputManager != null && inputListener != null) inputManager.unregisterInputDeviceListener(inputListener);
+        activity = null;
+        originalCallback = null;
+        decorView = null;
+        layoutListener = null;
+        inputManager = null;
+        inputListener = null;
+        synchronized (lock) {
+            starts.clear();
+            edges = new JSONArray();
+            interrupted = true;
+        }
+    }
+
+    public static void uninstall() {
+        Activity owner = activity;
+        if (owner != null) owner.runOnUiThread(InputBridge::detach);
     }
 
     private static void record(MotionEvent event) {
         if ((event.getSource() & InputDevice.SOURCE_TOUCHSCREEN) != InputDevice.SOURCE_TOUCHSCREEN) return;
         int action = event.getActionMasked();
-        if (action == MotionEvent.ACTION_MOVE) return;
         synchronized (lock) {
+            for (int i = 0; i < event.getPointerCount(); i++) {
+                float[] start = starts.get(event.getPointerId(i));
+                if (start != null) start[2] = Math.max(start[2], (float) Math.hypot(event.getX(i) - start[0], event.getY(i) - start[1]));
+            }
+            if (action == MotionEvent.ACTION_MOVE) return;
             if (edges.length() > 256) {
                 edges = new JSONArray();
                 interrupted = true;
@@ -81,7 +124,9 @@ public final class InputBridge {
             if (action == MotionEvent.ACTION_CANCEL) {
                 for (int i = 0; i < event.getPointerCount(); i++) addEdge(event.getPointerId(i), "cancel");
             } else if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
-                addEdge(event.getPointerId(event.getActionIndex()), "down");
+                int i = event.getActionIndex();
+                starts.put(event.getPointerId(i), new float[]{event.getX(i), event.getY(i), 0});
+                addEdge(event.getPointerId(i), "down");
             } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP) {
                 addEdge(event.getPointerId(event.getActionIndex()), "up");
             }
@@ -89,7 +134,9 @@ public final class InputBridge {
     }
 
     private static void addEdge(int id, String action) {
-        edges.put(new JSONArray().put(id).put(action));
+        float[] start = starts.get(id);
+        edges.put(new JSONArray().put(id).put(action).put(start == null ? 0 : start[2]));
+        if (!action.equals("down")) starts.remove(id);
     }
 
     private static void updateInsets(View decor) {
@@ -100,6 +147,7 @@ public final class InputBridge {
                 android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
                 left = bars.left; top = bars.top; right = bars.right; bottom = bars.bottom;
                 keyboardHeight = insets.isVisible(WindowInsets.Type.ime()) ? insets.getInsets(WindowInsets.Type.ime()).bottom : 0;
+                if (keyboardHeight != 0) bottom = 0;
             } else {
                 Rect visible = new Rect();
                 decor.getWindowVisibleDisplayFrame(visible);

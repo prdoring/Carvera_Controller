@@ -5,7 +5,7 @@
     markup: True
     font_size: dp(14)
     size_hint_y: None
-    height: dp(24)
+    height: app.touch_target if app.android_touch else dp(24)
     shorten: False
     text_size: self.width - dp(16), None
     padding_x: dp(10)
@@ -33,11 +33,11 @@
         id: ti_name
         input_policy: 'filename'
         size_hint_y: None
-        height: dp(40)
+        height: app.touch_target if app.android_touch else dp(40)
         multiline: False
     BoxLayout:
         size_hint_y: None
-        height: dp(44)
+        height: app.touch_target if app.android_touch else dp(44)
         spacing: dp(8)
         Button:
             id: btn_cancel
@@ -108,7 +108,7 @@
                                     cols: 2
                                     size_hint_y: None
                                     height: self.minimum_height
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     spacing: dp(4)
 
                                     Label:
@@ -118,8 +118,7 @@
                                         values: ['']
                                         text: ''
                                         size_hint_y: None
-                                        height: dp(40)
-
+                                        height: app.touch_target if app.android_touch else dp(40)
                                     Label:
                                         text: tr._('Width (mm)')
                                     EditingTextInput:
@@ -200,7 +199,7 @@
                                     cols: 2
                                     size_hint_y: None
                                     height: self.minimum_height
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     spacing: dp(4)
 
                                     Label:
@@ -222,16 +221,16 @@
                                     Label:
                                         text: tr._('Pattern')
                                     BoxLayout:
-                                        ToggleButton:
+                                        TouchToggleButton:
                                             id: raster_x_btn
                                             text: tr._('Along X')
                                             group: 'facing_pattern'
                                             state: 'down'
-                                        ToggleButton:
+                                        TouchToggleButton:
                                             id: raster_y_btn
                                             text: tr._('Along Y')
                                             group: 'facing_pattern'
-                                        ToggleButton:
+                                        TouchToggleButton:
                                             id: raster_spiral_btn
                                             text: tr._('Spiral')
                                             group: 'facing_pattern'
@@ -243,8 +242,7 @@
                                         values: ['']
                                         text: ''
                                         size_hint_y: None
-                                        height: dp(40)
-
+                                        height: app.touch_target if app.android_touch else dp(40)
                                     Label:
                                         text: tr._('Rough feed (mm/min)')
                                     EditingTextInput:
@@ -287,7 +285,7 @@
 
                                     Label:
                                         text: tr._('Finish pass')
-                                    CheckBox:
+                                    TouchCheckBox:
                                         id: chk_finish
                                         active: default_values.DEFAULT_CHK_FINISH
                                         size_hint_x: 0.3
@@ -348,12 +346,12 @@
                                     cols: 2
                                     size_hint_y: None
                                     height: self.minimum_height
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     spacing: dp(4)
 
                                     Label:
                                         text: tr._('Include Z grid probe')
-                                    CheckBox:
+                                    TouchCheckBox:
                                         id: chk_probe
                                         active: default_values.DEFAULT_CHK_PROBE
                                         size_hint_x: 0.3
@@ -365,8 +363,7 @@
                                         values: ['']
                                         text: ''
                                         size_hint_y: None
-                                        height: dp(40)
-
+                                        height: app.touch_target if app.android_touch else dp(40)
                                     Label:
                                         text: tr._('Grid NX')
                                     EditingTextInput:
@@ -448,7 +445,7 @@
                                     cols: 2
                                     size_hint_y: None
                                     height: self.minimum_height
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     spacing: dp(4)
 
                                     Label:
@@ -474,8 +471,7 @@
                                         values: ['']
                                         text: ''
                                         size_hint_y: None
-                                        height: dp(40)
-
+                                        height: app.touch_target if app.android_touch else dp(40)
                                     Label:
                                         text: tr._('TLO repeats (optional)')
                                     EditingTextInput:
@@ -510,7 +506,7 @@
 
                                     Label:
                                         text: tr._('Ext. port (vacuum, coolant, …)')
-                                    CheckBox:
+                                    TouchCheckBox:
                                         id: chk_ext_port
                                         active: default_values.DEFAULT_CHK_EXT_PORT
                                         size_hint_x: 0.3
@@ -538,7 +534,7 @@
                     Label:
                         id: lbl_preview_error
                         size_hint_y: None
-                        height: dp(22)
+                        height: app.touch_target if app.android_touch else dp(22)
                         font_size: dp(10)
                         text_size: self.width, None
                         halign: 'center'
@@ -601,7 +597,7 @@
         BoxLayout:
             orientation: 'vertical'
             size_hint_y: None
-            height: dp(60)
+            height: self.minimum_height if app.android_touch else dp(60)
             padding: dp(6), dp(4), dp(6), dp(8)
             spacing: dp(6)
             canvas.before:
@@ -612,10 +608,9 @@
                     size: self.width, dp(1)
 
             BoxLayout:
-                orientation: 'horizontal'
                 spacing: dp(10)
                 size_hint_y: None
-                height: dp(44)
+                height: app.touch_target if app.android_touch else dp(44)
                 Button:
                     id: btn_presets_menu
                     size_hint_x: 1

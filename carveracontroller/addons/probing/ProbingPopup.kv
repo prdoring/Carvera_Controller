@@ -59,25 +59,25 @@
                                 
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_outside_corner_probing_pressed("TopLeft")
+                                on_release: root.on_outside_corner_probing_pressed("TopLeft")
                                 image: 'addons/probing/data/icons_1024x768/outside_corner/X+Y-.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_outside_corner_probing_pressed("TopRight")
+                                on_release: root.on_outside_corner_probing_pressed("TopRight")
                                 image: 'addons/probing/data/icons_1024x768/outside_corner/X-Y-.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_outside_corner_probing_pressed("BottomLeft")
+                                on_release: root.on_outside_corner_probing_pressed("BottomLeft")
                                 image: 'addons/probing/data/icons_1024x768/outside_corner/X+Y+.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_outside_corner_probing_pressed("BottomRight")
+                                on_release: root.on_outside_corner_probing_pressed("BottomRight")
                                 image: 'addons/probing/data/icons_1024x768/outside_corner/X-Y+.png'
 
                         BoxLayout:
@@ -106,25 +106,25 @@
                                 halign: 'right'
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_inside_corner_probing_pressed("TopLeft")
+                                on_release: root.on_inside_corner_probing_pressed("TopLeft")
                                 image: 'addons/probing/data/icons_1024x768/inside_corner/inX+Y-.png'
                             ProbeButton:
                                 halign: 'left'
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_inside_corner_probing_pressed("TopRight")
+                                on_release: root.on_inside_corner_probing_pressed("TopRight")
                                 image: 'addons/probing/data/icons_1024x768/inside_corner/inX-Y-.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_inside_corner_probing_pressed("BottomLeft")
+                                on_release: root.on_inside_corner_probing_pressed("BottomLeft")
                                 image: 'addons/probing/data/icons_1024x768/inside_corner/inX+Y+.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_inside_corner_probing_pressed("BottomRight")
+                                on_release: root.on_inside_corner_probing_pressed("BottomRight")
                                 image: 'addons/probing/data/icons_1024x768/inside_corner/inX-Y+.png'
 
                         BoxLayout:
@@ -156,7 +156,7 @@
                                 size_hint: [.33,.33]
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_single_axis_probing_pressed("Top")
+                                on_release: root.on_single_axis_probing_pressed("Top")
                                 image: 'addons/probing/data/icons_1024x768/single_axis/Y-.png'
 
                             EmptySpace:
@@ -167,21 +167,21 @@
                                 size_hint: [.33,.33]
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_single_axis_probing_pressed("Left")
+                                on_release: root.on_single_axis_probing_pressed("Left")
                                 image: 'addons/probing/data/icons_1024x768/single_axis/X+.png'
 
                             ProbeButton:
                                 size_hint: [.33,.33]
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_single_axis_probing_pressed("WorkpieceTop")
+                                on_release: root.on_single_axis_probing_pressed("WorkpieceTop")
                                 image: 'addons/probing/data/icons_1024x768/single_axis/Z-.png'
 
                             ProbeButton:
                                 size_hint: [.33,.33]
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_single_axis_probing_pressed("Right")
+                                on_release: root.on_single_axis_probing_pressed("Right")
                                 image: 'addons/probing/data/icons_1024x768/single_axis/X-.png'
 
                             EmptySpace:
@@ -192,7 +192,7 @@
                                 size_hint: [.33,.33]
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_single_axis_probing_pressed("Bottom")
+                                on_release: root.on_single_axis_probing_pressed("Bottom")
                                 image: 'addons/probing/data/icons_1024x768/single_axis/Y+.png'
 
                             EmptySpace:
@@ -224,25 +224,25 @@
                                 
                                 tooltip_txt: ''
                                 tooltip_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
-                                on_press: root.on_bore_probing_pressed("CenterX")
+                                on_release: root.on_bore_probing_pressed("CenterX")
                                 image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_rectangular_pocket_x.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
-                                on_press: root.on_bore_probing_pressed("CenterY")
+                                on_release: root.on_bore_probing_pressed("CenterY")
                                 image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_rectangular_pocket_y.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
-                                on_press: root.on_bore_probing_pressed("CenterBore")
+                                on_release: root.on_bore_probing_pressed("CenterBore")
                                 image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_circular_bore.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
-                                on_press: root.on_bore_probing_pressed("CenterPocket")
+                                on_release: root.on_bore_probing_pressed("CenterPocket")
                                 image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_rectangular_pocket.png'
 
                         BoxLayout:
@@ -270,25 +270,25 @@
                                 
                                 tooltip_txt: ''
                                 tooltip_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
-                                on_press: root.on_boss_probing_pressed("CenterX")
+                                on_release: root.on_boss_probing_pressed("CenterX")
                                 image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_rect_boss_x.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
-                                on_press: root.on_boss_probing_pressed("CenterY")
+                                on_release: root.on_boss_probing_pressed("CenterY")
                                 image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_rect_boss_y.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
-                                on_press: root.on_boss_probing_pressed("CenterBoss")
+                                on_release: root.on_boss_probing_pressed("CenterBoss")
                                 image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_circular_boss.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
-                                on_press: root.on_boss_probing_pressed("CenterBlock")
+                                on_release: root.on_boss_probing_pressed("CenterBlock")
                                 image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_rect_boss.png'
 
                         BoxLayout:
@@ -316,26 +316,26 @@
                                 
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_angle_probing_pressed("XAbove")
+                                on_release: root.on_angle_probing_pressed("XAbove")
                                 image: 'addons/probing/data/icons_1024x768/angle/probe_angle_x_above.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_angle_probing_pressed("YLeft")
+                                on_release: root.on_angle_probing_pressed("YLeft")
                                 image: 'addons/probing/data/icons_1024x768/angle/probe_angle_y_left.png'
                             
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_angle_probing_pressed("XBelow")
+                                on_release: root.on_angle_probing_pressed("XBelow")
                                 image: 'addons/probing/data/icons_1024x768/angle/probe_angle_x_below.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
                                 tooltip_image: ''
-                                on_press: root.on_angle_probing_pressed("YRight")
+                                on_release: root.on_angle_probing_pressed("YRight")
                                 image: 'addons/probing/data/icons_1024x768/angle/probe_angle_y_right.png'
 
                         BoxLayout:
@@ -363,24 +363,24 @@
                                 
                                 tooltip_txt: tr._('Calibrate probe tip using a known bore diameter')
                                 tooltip_image: ''
-                                on_press: root.on_probeTip_probing_pressed("Bore")
+                                on_release: root.on_probeTip_probing_pressed("Bore")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_BoreX.png'
                             ProbeButton:
                                 
                                 tooltip_txt: tr._('Calibrate probe tip using a known boss in the X direction')
                                 tooltip_image: ''
-                                on_press: root.on_probeTip_probing_pressed("BossX")
+                                on_release: root.on_probeTip_probing_pressed("BossX")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_BossX.png'
                             ProbeButton:
                                 tooltip_txt: tr._('Calibrate probe tip using anchor 2. This uses the config value Anchor Width and will move to position on its own')
                                 tooltip_image: ''
-                                on_press: root.on_probeTip_probing_pressed("Anchor2")
+                                on_release: root.on_probeTip_probing_pressed("Anchor2")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_On_Anchor_2.png'
                             ProbeButton:
                                 
                                 tooltip_txt: tr._('Calibrate probe tip using a known boss in the Y direction')
                                 tooltip_image: ''
-                                on_press: root.on_probeTip_probing_pressed("BossY")
+                                on_release: root.on_probeTip_probing_pressed("BossY")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_BossY.png'
 
                         BoxLayout:
@@ -407,26 +407,26 @@
                                 
                                 tooltip_txt: 'Calibrate 4th Axis Center (M469.6)'
                                 tooltip_image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_M469.6_Front.png'
-                                on_press: root.on_callibration_probing_pressed("FourthY")
+                                on_release: root.on_callibration_probing_pressed("FourthY")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_M469.6_Top.png'
                             ProbeButton:
                                 
                                 tooltip_txt: 'Calibrate 4th Axis Z offset'
                                 tooltip_image: ''
-                                on_press: root.on_callibration_probing_pressed("FourthZ")
+                                on_release: root.on_callibration_probing_pressed("FourthZ")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_Z.png'
                             
                             ProbeButton:
                                 
                                 tooltip_txt: 'Calibrate Machine Anchor 1 Position'
                                 tooltip_image: ''
-                                on_press: root.on_callibration_probing_pressed("Anchor1")
+                                on_release: root.on_callibration_probing_pressed("Anchor1")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_Anchor_1.png'
                             ProbeButton:
                                 
                                 tooltip_txt: 'Calibrate Machine Anchor 2 Position'
                                 tooltip_image: ''
-                                on_press: root.on_callibration_probing_pressed("Anchor2")
+                                on_release: root.on_callibration_probing_pressed("Anchor2")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_Anchor_2.png'
 
                         BoxLayout:
@@ -453,7 +453,7 @@
                             ProbeButton:
                                 tooltip_txt: tr._('Probe 4th Axis (A-Axis) stock to determine angular position (M465.1)')
                                 tooltip_image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_Level_03.png'
-                                on_press: root.on_fourth_axis_probing_pressed("Level")
+                                on_release: root.on_fourth_axis_probing_pressed("Level")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_Level_02.png'
                             EmptySpace:
                             EmptySpace:
@@ -518,7 +518,7 @@
                                     id: step_xy
                                     center: 0.5, 0.5
                                     size_hint_y: None
-                                    height: '30dp'
+                                    height: app.touch_target if app.android_touch else dp(30)
                                     text: app.jog_step_xy
                                     on_text: app.jog_step_xy = self.text
                                     values: '10', '1', '0.1', '0.01', '0.005'
@@ -574,7 +574,7 @@
                                 id: step_a
                                 center: 0.5, 0.5
                                 size_hint_y: 0.9
-                                height: '30dp'
+                                height: app.touch_target if app.android_touch else dp(30)
                                 text: app.jog_step_a
                                 on_text: app.jog_step_a = self.text
                                 values: '90', '10', '1', '0.1'
@@ -585,7 +585,7 @@
                                 id: step_z
                                 center: 0.5, 0.5
                                 size_hint_y: 0.9
-                                height: '30dp'
+                                height: app.touch_target if app.android_touch else dp(30)
                                 text: app.jog_step_z
                                 on_text: app.jog_step_z = self.text
                                 values: '10', '1', '0.1', '0.01', '0.005'
@@ -630,7 +630,7 @@
                                     text: app.jog_speed_text
                                     id: jog_speed_btn_probing
                                     center: 0.5, 0.5
-                                    height: '35dp'
+                                    height: app.touch_target if app.android_touch else dp(35)
                                     on_release: app.root.jog_speed_drop_down.open(self)
 
                             GridBoxLayout:
@@ -638,30 +638,30 @@
                                     id: jog_mode_btn_probing
                                     disabled: not (app.is_community_firmware and app.fw_version_digitized >= digitize_v("2.0.0"))
                                     text: app.jog_mode_text
-                                    height: '35dp'
+                                    height: app.touch_target if app.android_touch else dp(35)
                                     on_release: app.root.toggle_jog_mode()
 
                             GridBoxLayout:
-                                ToggleButton:
+                                TouchToggleButton:
                                     id: kb_jog_btn_probing
                                     text: tr._('Keyboard Jogging')
-                                    height: '35dp'
+                                    height: app.touch_target if app.android_touch else dp(35)
                                     state: app.jog_keyboard_enable
                                     on_release: app.root.toggle_keyboard_jog_control()
                         
                             GridBoxLayout:
-                                ToggleButton:
+                                TouchToggleButton:
                                     id: pendant_jogging_en_btn_probing
                                     text: app.jog_pendant_text
                                     state: app.jog_pendant_enable
                                     disabled: app.jog_pendant_text == tr._('No Pendant')
-                                    height: '35dp'
+                                    height: app.touch_target if app.android_touch else dp(35)
                                     on_release: app.root.toggle_pendant_jog_control()
 
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             halign: 'center'
 
             Label:
@@ -679,7 +679,7 @@
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Button:
                 id: btn_close
                 text: tr._('Close')

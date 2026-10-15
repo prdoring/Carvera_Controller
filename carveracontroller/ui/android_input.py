@@ -3,8 +3,6 @@
 import json
 from collections import defaultdict, deque
 
-from kivy.clock import Clock
-
 from . import touch as gestures
 
 
@@ -22,12 +20,11 @@ class AndroidInput:
             self.api.install(autoclass("org.kivy.android.PythonActivity").mActivity)
 
         install()
-        self._poll_event = Clock.schedule_interval(lambda dt: self.poll(), 0.05)
 
     def poll(self):
         state = json.loads(self.api.drain())
-        for pointer, action in state["edges"]:
-            self.edges[str(pointer)].append(action)
+        for pointer, action, travel in state["edges"]:
+            self.edges[str(pointer)].append((action, travel))
         if state["slop"]:
             gestures.touch_slop = state["slop"]
             gestures.hold_timeout = state["hold_ms"] / 1000
@@ -37,20 +34,26 @@ class AndroidInput:
             self.edges.clear()
         self.app.safe_area_padding = state["insets"]
         self.app.android_keyboard_height = state["keyboard_height"]
+        return state["interrupted"]
 
     def process(self, events):
-        self.poll()
+        interrupted = self.poll()
         for phase, motion in events:
+            if interrupted:
+                gestures.cancel_touch(motion)
             if motion.device != "sdl" or phase not in ("begin", "end"):
                 continue
             queue = self.edges[str(motion.id)]
             if queue:
-                action = queue.popleft()
-                if action == "cancel" or (phase == "end" and action != "up"):
+                action, travel = queue.popleft()
+                if travel > gestures.touch_slop:
+                    motion.ud["carvera_dragged"] = True
+                if action == "cancel" or (phase == "end" and action != "up") or (phase == "begin" and action != "down"):
                     gestures.cancel_touch(motion)
             if not queue:
                 self.edges.pop(str(motion.id), None)
         return events
 
     def stop(self):
-        self._poll_event.cancel()
+        self.edges.clear()
+        self.api.uninstall()

@@ -20,7 +20,7 @@
             size: self.size
     BoxLayout:
         size_hint_y: None
-        height: dp(36)
+        height: app.touch_target if app.android_touch else dp(36)
         spacing: dp(6)
         padding: dp(6), dp(4)
         canvas.before:
@@ -40,7 +40,7 @@
             id: visibility_toggle
             size_hint: None, None
             width: dp(32)
-            height: dp(28)
+            height: app.touch_target if app.android_touch else dp(28)
             icon: 'data/eye.png'
             icon_size: 18
             active: root.any_visible

@@ -15,7 +15,7 @@
                     pos: self.pos
                     size: self.size
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             text: tr._('Advanced TLO Calibrate')
             halign: 'center'
             valign: 'middle'
@@ -33,7 +33,7 @@
 
                 BoxLayout:
                     size_hint_y: None
-                    height: dp(28)
+                    height: app.touch_target if app.android_touch else dp(28)
                     Widget:
                     ProbeSettingLabel:
                         size_hint_x: None
@@ -56,7 +56,7 @@
 
                 BoxLayout:
                     size_hint_y: None
-                    height: dp(28)
+                    height: app.touch_target if app.android_touch else dp(28)
                     Widget:
                     ProbeSettingLabel:
                         size_hint_x: None
@@ -79,7 +79,7 @@
 
                 BoxLayout:
                     size_hint_y: None
-                    height: dp(28)
+                    height: app.touch_target if app.android_touch else dp(28)
                     Widget:
                     ProbeSettingLabel:
                         size_hint_x: None
@@ -104,7 +104,7 @@
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Button:
                 text: tr._('Cancel')
                 on_release: root.dismiss()

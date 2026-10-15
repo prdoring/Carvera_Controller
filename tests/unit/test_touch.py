@@ -10,7 +10,8 @@ from kivy.uix.button import Button
 from kivy.uix.widget import Widget
 
 from carveracontroller.ui.touch import (
-    TOUCH_CANCELLED, Gesture, JogTouchButton, TapBehavior, TouchPostprocessor, cancel_all_touches,
+    TOUCH_CANCELLED, Gesture, JogTouchButton, PointerTransform, TapBehavior, TouchCheckBox,
+    TouchPostprocessor, cancel_all_touches,
 )
 
 
@@ -161,6 +162,85 @@ def test_tap_behavior_dispatches_once_and_drag_dispatches_nothing():
         dispatch("update", motion)
         move(motion, 50, 50)
         dispatch("end", motion)
+        row.on_tap.assert_not_called()
+    finally:
+        row.cancel_gestures()
+        Window.remove_widget(row)
+
+
+def test_two_finger_transform_rebases_when_contacts_change():
+    transform = PointerTransform()
+    first, second = finger(100, 100), finger(200, 100, "2")
+    transform.begin(first)
+    assert transform.move(first) == (0, 0, 1, 1)
+    transform.begin(second)
+    assert transform.move(second) == (0, 0, 1, 2)
+    move(second, 220, 100)
+    dx, dy, ratio, count = transform.move(second)
+    assert (dx, dy, count) == pytest.approx((10, 0, 2))
+    assert ratio == pytest.approx(1.2)
+    transform.end(first)
+    assert transform.move(second) == (0, 0, 1, 1)
+
+
+def test_completed_toggle_does_not_toggle_after_drag_or_cancellation():
+    button = TouchCheckBox(size_hint=(None, None), size=(100, 100))
+    Window.add_widget(button)
+    with patch("carveracontroller.ui.touch.platform", "android"):
+        try:
+            motion = finger()
+            dispatch("begin", motion)
+            assert not button.active
+            dispatch("end", motion)
+            assert button.active
+            motion = finger(ident="2")
+            dispatch("begin", motion)
+            move(motion, 180, 50)
+            dispatch("update", motion)
+            move(motion, 50, 50)
+            dispatch("end", motion)
+            assert button.active
+            motion = finger(ident="3")
+            dispatch("begin", motion)
+            motion.ud[TOUCH_CANCELLED] = True
+            dispatch("end", motion)
+            assert button.active
+        finally:
+            button.cancel_gestures()
+            Window.remove_widget(button)
+
+
+def test_same_frame_native_cancel_suppresses_initial_press():
+    button = Button(size_hint=(None, None), size=(100, 100))
+    pressed = Mock()
+    button.bind(on_press=pressed)
+    Window.add_widget(button)
+    try:
+        motion = finger()
+        motion.ud[TOUCH_CANCELLED] = True
+        for phase, touch in TouchPostprocessor().process([("begin", motion), ("end", motion)]):
+            dispatch(phase, touch)
+        pressed.assert_not_called()
+    finally:
+        Window.remove_widget(button)
+
+
+def test_recycled_row_cancels_pending_hold():
+    class HoldTestRow(TapBehavior, Widget):
+        supports_hold = True
+        on_hold = Mock()
+        on_tap = Mock()
+
+    row = HoldTestRow(size_hint=(None, None), size=(100, 100))
+    Window.add_widget(row)
+    try:
+        motion = finger()
+        dispatch("begin", motion)
+        candidate = row._tap_gesture
+        row.cancel_gestures()
+        candidate._hold(row.on_hold)
+        dispatch("end", motion)
+        row.on_hold.assert_not_called()
         row.on_tap.assert_not_called()
     finally:
         row.cancel_gestures()

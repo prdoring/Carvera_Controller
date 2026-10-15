@@ -43,14 +43,14 @@
     Label:
         text: tr._('Choose folder and file name')
         size_hint_y: None
-        height: dp(28)
+        height: app.touch_target if app.android_touch else dp(28)
         font_size: dp(15)
         text_size: self.width, None
         halign: 'left'
         color: 0.78, 0.79, 0.82, 1
     BoxLayout:
         size_hint_y: None
-        height: dp(40)
+        height: app.touch_target if app.android_touch else dp(40)
         orientation: 'horizontal'
         padding: dp(5)
         spacing: dp(4)
@@ -128,7 +128,7 @@
     Label:
         text: tr._('File name')
         size_hint_y: None
-        height: dp(24)
+        height: app.touch_target if app.android_touch else dp(24)
         font_size: dp(15)
         halign: 'left'
         text_size: self.width, None
@@ -137,10 +137,10 @@
         input_policy: 'filename'
         multiline: False
         size_hint_y: None
-        height: dp(36)
+        height: app.touch_target if app.android_touch else dp(36)
     BoxLayout:
         size_hint_y: None
-        height: dp(44)
+        height: app.touch_target if app.android_touch else dp(44)
         spacing: dp(8)
         Button:
             id: btn_cancel

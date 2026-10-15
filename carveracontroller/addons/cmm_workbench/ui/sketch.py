@@ -6,9 +6,16 @@ import math
 from collections.abc import Callable
 
 from kivy.core.text import Label as CoreLabel
-from kivy.graphics import Color, Line, PopMatrix, PushMatrix, Rectangle, Translate
+from kivy.clock import Clock
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.popup import Popup
+from kivy.uix.scrollview import ScrollView
+from carveracontroller.ui.touch import Gesture, PointerTransform, TOUCH_CANCELLED, gesture_owners
+from carveracontroller.translation import tr
+from kivy.graphics import Canvas, Color, Line, PopMatrix, PushMatrix, Rectangle, Translate
 from kivy.metrics import dp
-from kivy.uix.widget import Widget
+from kivy.uix.stencilview import StencilView
 
 from ..core.features import (
     CircleGeom,
@@ -51,11 +58,27 @@ def _ellipse_polyline_px(
     return pts
 
 
-class CMMWorkbenchPreviewSketch(Widget):
+class CMMWorkbenchPreviewSketch(StencilView):
     """Redraw when features or table/focus/selection state change via ``set_features``."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._drawing = Canvas()
+        self.canvas.add(self._drawing)
+        self._view_zoom = 1.0
+        self._view_pan = [0.0, 0.0]
+        self._gesture = PointerTransform()
+        self._tap_candidates = {}
+        self._redraw_trigger = Clock.create_trigger(self._redraw, 0)
+        gesture_owners.add(self)
+        self._zoom_controls = BoxLayout(size_hint=(None, None), size=(dp(144), dp(48)))
+        for label, callback in [("−", lambda *_: self.zoom(1 / 1.25)),
+                                ("+", lambda *_: self.zoom(1.25)),
+                                (tr._("Fit"), lambda *_: self.fit_view())]:
+            button = Button(text=label)
+            button.bind(on_release=callback)
+            self._zoom_controls.add_widget(button)
+        self.add_widget(self._zoom_controls)
         self._features: list[CMMWorkbenchFeature] = []
         self._hidden_ids: set[str] = set()
         self._focus_id: str | None = None
@@ -218,25 +241,106 @@ class CMMWorkbenchPreviewSketch(Widget):
         return float("inf")
 
     def on_touch_down(self, touch):
-        if not self.collide_point(*touch.pos) or not self._has_valid_transform or not self._features:
-            return super().on_touch_down(touch)
-        tx = touch.x - self.x
-        ty = touch.y - self.y
-        by_id = index_by_id(self._features)
-        best_id: str | None = None
-        best_dist = float("inf")
-        for f in self._features:
-            if not self._is_visible(f):
-                continue
-            d = self._distance_to_feature_px(f, by_id, tx, ty)
-            hr = self._hit_radius_for_feature(f, by_id)
-            if d <= hr and d < best_dist:
-                best_dist = d
-                best_id = f.id
-        if best_id is not None and self.on_feature_tap is not None:
-            self.on_feature_tap(best_id)
+        if super().on_touch_down(touch):
             return True
-        return super().on_touch_down(touch)
+        if self.disabled or not self.collide_point(*touch.pos) or not self._has_valid_transform:
+            return False
+        if getattr(touch, "is_mouse_scrolling", False):
+            self.zoom(1.25 if touch.button == "scrollup" else 1 / 1.25)
+            return True
+        self._gesture.begin(touch)
+        self._tap_candidates[touch.uid] = Gesture(touch)
+        if len(self._gesture.points) > 1:
+            for candidate in self._tap_candidates.values():
+                candidate.cancel()
+        touch.grab(self)
+        return True
+
+    def on_touch_move(self, touch):
+        if touch.uid not in self._gesture.points:
+            return super().on_touch_move(touch)
+        self._tap_candidates[touch.uid].move()
+        if len(self._gesture.points) == 1 and not self._tap_candidates[touch.uid].cancelled:
+            return True
+        if not touch.ud.get(TOUCH_CANCELLED):
+            dx, dy, ratio, count = self._gesture.move(touch)
+            self._view_pan[0] -= dx / self._last_scale
+            self._view_pan[1] -= dy / self._last_scale
+            self._last_cx -= dx / self._last_scale
+            self._last_cy -= dy / self._last_scale
+            if count > 1:
+                points = list(self._gesture.points.values())[:2]
+                self._zoom_at(ratio, (sum(p[0] for p in points) / 2 - self.x,
+                                      sum(p[1] for p in points) / 2 - self.y))
+            self._redraw_trigger()
+        return True
+
+    def on_touch_up(self, touch):
+        if touch.uid not in self._gesture.points:
+            return super().on_touch_up(touch)
+        self._gesture.end(touch)
+        candidate = self._tap_candidates.pop(touch.uid)
+        if candidate.finish() and self.collide_point(*touch.pos):
+            self._select_at(touch.x - self.x, touch.y - self.y)
+        touch.ungrab(self)
+        return True
+
+    def cancel_gestures(self):
+        for candidate in self._tap_candidates.values():
+            candidate.cancel()
+            candidate.touch.ungrab(self)
+        self._tap_candidates.clear()
+        self._gesture.points.clear()
+
+    def _select_at(self, x, y):
+        by_id = index_by_id(self._features)
+        matches = []
+        for feature in self._features:
+            if self._is_visible(feature):
+                distance = self._distance_to_feature_px(feature, by_id, x, y)
+                if distance <= self._hit_radius_for_feature(feature, by_id):
+                    matches.append((distance, feature))
+        matches.sort(key=lambda entry: entry[0])
+        if not matches or self.on_feature_tap is None:
+            return
+        if len(matches) == 1:
+            self.on_feature_tap(matches[0][1].id)
+            return
+        choices = BoxLayout(orientation="vertical", size_hint_y=None)
+        choices.bind(minimum_height=choices.setter("height"))
+        scroll = ScrollView()
+        scroll.add_widget(choices)
+        popup = Popup(title=tr._("Choose feature"), content=scroll, size_hint=(0.65, 0.65))
+        def choose(_button, feature_id):
+            popup.dismiss()
+            self.on_feature_tap(feature_id)
+        for _, feature in matches:
+            button = Button(text=feature.label or feature.id, size_hint_y=None, height=dp(48))
+            button.bind(on_release=lambda button, feature_id=feature.id: choose(button, feature_id))
+            choices.add_widget(button)
+        popup.open()
+
+    def _zoom_at(self, factor, local):
+        new_zoom = max(0.25, min(32.0, self._view_zoom * factor))
+        factor = new_zoom / self._view_zoom
+        anchor_x, anchor_y = self._px_to_world(*local)
+        new_scale = self._last_scale * factor
+        cx = anchor_x - (local[0] - self.width / 2) / new_scale
+        cy = anchor_y - (local[1] - self.height / 2) / new_scale
+        self._view_pan[0] += cx - self._last_cx
+        self._view_pan[1] += cy - self._last_cy
+        self._last_cx, self._last_cy, self._last_scale = cx, cy, new_scale
+        self._view_zoom = new_zoom
+
+    def zoom(self, factor):
+        if self._has_valid_transform:
+            self._zoom_at(factor, (self.width / 2, self.height / 2))
+            self._redraw_trigger()
+
+    def fit_view(self):
+        self._view_zoom = 1.0
+        self._view_pan = [0.0, 0.0]
+        self._redraw_trigger()
 
     def _draw_feature_highlight(
         self,
@@ -449,11 +553,12 @@ class CMMWorkbenchPreviewSketch(Widget):
         return min(xs), min(ys), max(xs), max(ys)
 
     def _redraw(self, *args):
-        self.canvas.clear()
+        self._zoom_controls.pos = (self.right - self._zoom_controls.width, self.top - self._zoom_controls.height)
+        self._drawing.clear()
         iw = max(self.width, 1.0)
         ih = max(self.height, 1.0)
 
-        with self.canvas:
+        with self._drawing:
             PushMatrix()
             Translate(self.x, self.y)
             Color(0.12, 0.12, 0.13, 1)
@@ -474,9 +579,9 @@ class CMMWorkbenchPreviewSketch(Widget):
             max_y += pad
             span_x = max(max_x - min_x, 1e-6)
             span_y = max(max_y - min_y, 1e-6)
-            scale = min(iw / span_x, ih / span_y) * 0.88
-            cx = (min_x + max_x) / 2.0
-            cy = (min_y + max_y) / 2.0
+            scale = min(iw / span_x, ih / span_y) * 0.88 * self._view_zoom
+            cx = (min_x + max_x) / 2.0 + self._view_pan[0]
+            cy = (min_y + max_y) / 2.0 + self._view_pan[1]
 
             # Save transform for hit-testing in on_touch_down.
             self._last_scale = scale

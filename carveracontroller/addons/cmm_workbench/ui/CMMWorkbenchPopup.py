@@ -18,7 +18,7 @@ from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
 from kivy.uix.popup import Popup
 from carveracontroller.ui.editing import EditingTextInput as TextInput
-from kivy.uix.togglebutton import ToggleButton
+from carveracontroller.ui.touch import TouchToggleButton as ToggleButton
 
 from carveracontroller.addons.probing.operations.ConfigUtils import get_machine_config_hint
 from carveracontroller.CNC import CNC

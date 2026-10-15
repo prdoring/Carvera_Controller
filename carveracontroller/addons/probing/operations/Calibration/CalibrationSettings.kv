@@ -9,7 +9,7 @@
             size_hint_y: None
             height: self.minimum_height
             spacing:dp(2)
-            row_default_height: dp(28)
+            row_default_height: app.touch_target if app.android_touch else dp(28)
             row_force_default: True
             padding:dp(1)
             halign:'right'

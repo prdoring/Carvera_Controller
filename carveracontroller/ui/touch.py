@@ -9,13 +9,19 @@ from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.metrics import dp
-from kivy.properties import StringProperty
+from kivy.properties import BooleanProperty, StringProperty
 from kivy.uix.behaviors import ButtonBehavior
+from kivy.uix.behaviors import ToggleButtonBehavior
+from kivy.uix.checkbox import CheckBox
+from kivy.uix.togglebutton import ToggleButton
+from kivy.uix.widget import Widget
+from kivy.utils import platform
 
 from carveracontroller.addons.tooltips.Tooltips import ToolTipButton
 
 TOUCH_CANCELLED = "carvera_touch_cancelled"
 _gestures = weakref.WeakSet()
+gesture_owners = weakref.WeakSet()
 _jog_owner = None
 touch_slop = dp(8)
 hold_timeout = 0.5
@@ -23,6 +29,8 @@ hold_timeout = 0.5
 
 def cancel_all_touches():
     cancel_jog()
+    for owner in list(gesture_owners):
+        owner.cancel_gestures()
     for gesture in list(_gestures):
         gesture.cancel()
     for touch in list(EventLoop.touches):
@@ -36,8 +44,8 @@ def cancel_touch(touch):
         if isinstance(widget, ButtonBehavior):
             if isinstance(widget, JogTouchButton):
                 widget.cancel_jog()
-            widget.state = "normal"
-            widget._last_touch = None
+            if not isinstance(widget, ToggleButtonBehavior):
+                widget.state = "normal"
             touch.ungrab(widget)
 
 
@@ -53,7 +61,8 @@ class Gesture:
         _gestures.add(self)
 
     def move(self):
-        if math.dist(self.start, self.touch.pos) > touch_slop or self.touch.ud.get(TOUCH_CANCELLED):
+        if (math.dist(self.start, self.touch.pos) > touch_slop or self.touch.ud.get(TOUCH_CANCELLED)
+                or self.touch.ud.get("carvera_dragged")):
             self.cancel()
 
     def _hold(self, callback):
@@ -77,13 +86,49 @@ class Gesture:
         _gestures.discard(self)
 
 
+class PointerTransform:
+    """Incremental pan and scale deltas; finger-count changes have no delta."""
+
+    def __init__(self):
+        self.points = {}
+
+    def begin(self, touch):
+        self.points[touch.uid] = tuple(touch.pos)
+
+    def move(self, touch):
+        if touch.uid not in self.points:
+            return None
+        previous = list(self.points.values())[:2]
+        self.points[touch.uid] = tuple(touch.pos)
+        current = list(self.points.values())[:2]
+        count = len(current)
+        dx = sum(p[0] for p in current) / count - sum(p[0] for p in previous) / count
+        dy = sum(p[1] for p in current) / count - sum(p[1] for p in previous) / count
+        ratio = 1.0
+        if count == 2:
+            old_span = math.dist(*previous)
+            if old_span > touch_slop:
+                ratio = max(0.1, math.dist(*current) / old_span)
+        return dx, dy, ratio, count
+
+    def end(self, touch):
+        self.points.pop(touch.uid, None)
+
+
 class TapBehavior:
     """Completed taps and holds that coexist with a parent ScrollView."""
+
+    touch_pressed = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        gesture_owners.add(self)
 
     def on_touch_down(self, touch):
         if super().on_touch_down(touch):
             return True
-        if self.disabled or not self.collide_point(*touch.pos) or getattr(touch, "is_mouse_scrolling", False):
+        if (touch.ud.get(TOUCH_CANCELLED) or self.disabled or not self.collide_point(*touch.pos)
+                or getattr(touch, "is_mouse_scrolling", False)):
             return False
         if getattr(touch, "button", "left") == "right":
             self.on_hold(touch)
@@ -91,6 +136,7 @@ class TapBehavior:
         if getattr(self, "_tap_gesture", None) is not None:
             return True
         self._tap_gesture = Gesture(touch, self.on_hold if getattr(self, "supports_hold", False) else None)
+        self.touch_pressed = True
         touch.grab(self)
         return True
 
@@ -98,6 +144,7 @@ class TapBehavior:
         gesture = getattr(self, "_tap_gesture", None)
         if gesture is not None and gesture.touch is touch:
             gesture.move()
+            self.touch_pressed = not gesture.cancelled
         return super().on_touch_move(touch)
 
     def on_touch_up(self, touch):
@@ -105,6 +152,7 @@ class TapBehavior:
         if gesture is not None and gesture.touch is touch:
             accepted = gesture.finish() and self.collide_point(*touch.pos) and not self.disabled
             self._tap_gesture = None
+            self.touch_pressed = False
             touch.ungrab(self)
             if accepted:
                 self.on_tap(touch)
@@ -112,6 +160,7 @@ class TapBehavior:
         return super().on_touch_up(touch)
 
     def cancel_gestures(self):
+        self.touch_pressed = False
         gesture = getattr(self, "_tap_gesture", None)
         if gesture is not None:
             gesture.cancel()
@@ -120,6 +169,68 @@ class TapBehavior:
 
     def on_hold(self, touch):
         pass
+
+
+class CompletedToggle:
+    touch_pressed = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        self._toggle_gesture = None
+        super().__init__(**kwargs)
+        gesture_owners.add(self)
+
+    def on_touch_down(self, touch):
+        if platform != "android":
+            return super().on_touch_down(touch)
+        if Widget.on_touch_down(self, touch):
+            return True
+        if (self.disabled or not self.collide_point(*touch.pos) or getattr(touch, "is_mouse_scrolling", False)
+                or touch.ud.get(TOUCH_CANCELLED)):
+            return False
+        if self._toggle_gesture is None:
+            self._toggle_gesture = Gesture(touch)
+            self.touch_pressed = True
+            touch.grab(self)
+        return True
+
+    def on_touch_move(self, touch):
+        if platform != "android":
+            return super().on_touch_move(touch)
+        if self._toggle_gesture is not None and self._toggle_gesture.touch is touch:
+            self._toggle_gesture.move()
+            if self._toggle_gesture.cancelled:
+                self.touch_pressed = False
+            return True
+        return False
+
+    def on_touch_up(self, touch):
+        if platform != "android":
+            return super().on_touch_up(touch)
+        gesture = self._toggle_gesture
+        if gesture is None or gesture.touch is not touch:
+            return False
+        accepted = gesture.finish() and self.collide_point(*touch.pos) and not self.disabled
+        self.cancel_gestures()
+        if accepted:
+            self._do_press()
+            self.dispatch("on_press")
+            self.dispatch("on_release")
+        return True
+
+    def cancel_gestures(self):
+        if self._toggle_gesture is not None:
+            self._toggle_gesture.cancel()
+            self._toggle_gesture.touch.ungrab(self)
+            self._toggle_gesture = None
+        self.touch_pressed = False
+
+
+class TouchCheckBox(CompletedToggle, CheckBox):
+    pass
+
+
+class TouchToggleButton(CompletedToggle, ToggleButton):
+    pass
 
 
 class JogTouchButton(ToolTipButton):
@@ -135,7 +246,8 @@ class JogTouchButton(ToolTipButton):
 
     def on_touch_down(self, touch):
         global _jog_owner
-        if self.disabled or not self.collide_point(*touch.pos) or getattr(touch, "is_mouse_scrolling", False):
+        if (touch.ud.get(TOUCH_CANCELLED) or self.disabled or not self.collide_point(*touch.pos)
+                or getattr(touch, "is_mouse_scrolling", False)):
             return False
         if "button" in touch.profile and touch.button != "left":
             return False
@@ -207,14 +319,19 @@ class TouchPostprocessor:
             pos = (touch.sx * Window.width, touch.sy * Window.height)
             if phase == "begin":
                 touch.ud["carvera_start"] = pos
-                touch.ud["carvera_dragged"] = False
+                touch.ud.setdefault("carvera_dragged", False)
             else:
                 start = touch.ud.get("carvera_start", pos)
                 if math.dist(start, pos) > touch_slop:
                     touch.ud["carvera_dragged"] = True
             if phase == "end" and (touch.ud.get("carvera_dragged") or touch.ud.get(TOUCH_CANCELLED)):
                 cancel_touch(touch)
-        return events
+        # A cancel may arrive in the same frame as its down event. Its grabbed
+        # widgets do not exist yet, so suppress that down instead of activating it.
+        return [(phase, touch) for phase, touch in events if phase != "begin"
+                or not (touch.ud.get(TOUCH_CANCELLED) or touch.ud.get("carvera_dragged"))]
 
 
 Factory.register("JogTouchButton", cls=JogTouchButton)
+Factory.register("TouchCheckBox", cls=TouchCheckBox)
+Factory.register("TouchToggleButton", cls=TouchToggleButton)

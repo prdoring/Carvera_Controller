@@ -196,7 +196,7 @@ from kivy.config import ConfigParser
 from kivy.lang import Builder
 
 from . import Utils, custom_widgets
-from .ui.touch import TapBehavior, TouchPostprocessor, cancel_all_touches, cancel_jog
+from .ui.touch import TapBehavior, TouchPostprocessor, cancel_all_touches, cancel_jog, gesture_owners
 from .__version__ import __version__
 from .addons.camera.CameraView import ADJUST_DEFAULT
 from .addons.camera.Z1Camera import (
@@ -399,30 +399,60 @@ class GcodePlaySlider(Slider):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._pending_line_update = None  # Track pending scheduled line update
+        self.sensitivity = "all"
+        gesture_owners.add(self)
 
     def on_touch_down(self, touch):
-        if self.disabled:
-            return None
-        released = super().on_touch_down(touch)
-        if released and self.collide_point(*touch.pos):
-            app = App.get_running_app()
-            app.root.gcode_viewer.set_pos_by_distance(self.value * app.root.gcode_viewer_distance / 1000)
-
-            self._update_line_highlighting()  # Add line highlighting when slider is moved
-            return True
-        return released
+        if getattr(self, "_scrub_touch", None) is not None:
+            return self.collide_point(*touch.pos)
+        handled = super().on_touch_down(touch)
+        if handled and any(ref() is self for ref in touch.grab_list):
+            self._scrub_touch = touch
+            self._sync_scrub()
+        return handled
 
     def on_touch_move(self, touch):
-        if self.disabled:
-            return None
-        released = super().on_touch_move(touch)
-        if self.collide_point(*touch.pos):
-            app = App.get_running_app()
-            app.root.gcode_viewer.set_pos_by_distance(self.value * app.root.gcode_viewer_distance / 1000)
-
-            self._update_line_highlighting()  # Add line highlighting when slider is moved
+        handled = super().on_touch_move(touch)
+        if getattr(self, "_scrub_touch", None) is touch and touch.grab_current is self:
+            self._sync_scrub()
             return True
-        return released
+        return handled
+
+    def on_touch_up(self, touch):
+        owned = getattr(self, "_scrub_touch", None) is touch and touch.grab_current is self
+        handled = super().on_touch_up(touch)
+        if owned:
+            self._sync_scrub()
+            self._scrub_touch = None
+            touch.ungrab(self)
+            return True
+        return handled
+
+    def _sync_scrub(self):
+        app = App.get_running_app()
+        app.root.gcode_viewer.set_pos_by_distance(self.value * app.root.gcode_viewer_distance / 1000)
+        self._update_line_highlighting()
+
+    def cancel_gestures(self):
+        touch = getattr(self, "_scrub_touch", None)
+        if touch is not None:
+            touch.ungrab(self)
+            self._scrub_touch = None
+        if self._pending_line_update is not None:
+            self._pending_line_update.cancel()
+            self._pending_line_update = None
+
+    def step_line(self, direction):
+        root = App.get_running_app().root
+        viewer = root.gcode_viewer
+        if not viewer.raw_linenumbers or not root.gcode_viewer_distance:
+            return
+        position = viewer.get_cur_pos_index()
+        line = max(1, min(max(viewer.raw_linenumbers), (position[1] if position else 1) + direction))
+        viewer.set_distance_by_lineidx(line, 0.5)
+        distance = viewer.get_distance_by_lineidx(line, 0.5)
+        self.value = max(self.min, min(self.max, distance * 1000 / root.gcode_viewer_distance))
+        root.gcode_rv.set_selected_line(line)
 
     def _update_line_highlighting(self):
         """Update line highlighting in the file viewer based on current slider position"""
@@ -454,41 +484,10 @@ class GcodePlaySlider(Slider):
 
 
 class FloatBox(FloatLayout):
-    touch_interval = 0
     color_scheme_panel = ObjectProperty(None)
     camera_controls = ObjectProperty(None)
     camera_view = ObjectProperty(None)
     tool_bar = ObjectProperty(None)
-
-    def _viewer_chrome_hit(self, touch):
-        if self.gcode_ctl_bar.collide_point(*touch.pos):
-            return True
-        if self.tool_bar is not None and self.tool_bar.collide_point(*touch.pos):
-            return True
-        if self.camera_view is not None and self.camera_view.collide_point(*touch.pos):
-            return True
-        return any(
-            panel is not None and panel.collide_point(*touch.pos)
-            for panel in (self.color_scheme_panel, self.camera_controls)
-        )
-
-    def on_touch_down(self, touch):
-        if super().on_touch_down(touch):
-            return True
-
-        if self.collide_point(*touch.pos) and not self._viewer_chrome_hit(touch):
-            if ("button" in touch.profile and touch.button == "left") or not "button" in touch.profile:
-                self.touch_interval = time.time()
-
-    def on_touch_up(self, touch):
-        if super().on_touch_up(touch):
-            return True
-
-        app = App.get_running_app()
-        if self.collide_point(*touch.pos) and not self._viewer_chrome_hit(touch):
-            if ("button" in touch.profile and touch.button == "left") or not "button" in touch.profile:
-                if time.time() - self.touch_interval < MAX_TOUCH_INTERVAL:
-                    app.show_gcode_ctl_bar = not app.show_gcode_ctl_bar
 
 
 class BoxStencil(BoxLayout, StencilView):
@@ -2404,7 +2403,7 @@ class GCodeRow(TapBehavior, RecycleDataViewBehavior, BoxLayout):
 Factory.register("GCodeRow", cls=GCodeRow)
 
 
-class SelectableBoxLayout(RecycleDataViewBehavior, BoxLayout):
+class SelectableBoxLayout(TapBehavior, RecycleDataViewBehavior, BoxLayout):
     """Add selection support to the Label"""
 
     index = None
@@ -2414,28 +2413,47 @@ class SelectableBoxLayout(RecycleDataViewBehavior, BoxLayout):
 
     def refresh_view_attrs(self, rv, index, data):
         """Catch and handle the view changes"""
+        self.cancel_gestures()
         self.index = index
         return super().refresh_view_attrs(rv, index, data)
 
-    def on_touch_down(self, touch):
-        """Add selection on touch down"""
-        if super().on_touch_down(touch):
-            return True
-        if self.collide_point(*touch.pos) and self.selectable:
-            rv = self.parent.recycleview
-            if getattr(rv, "multi_select_enabled", False) and self.touch_has_desktop_modifier(touch):
-                self.select_with_desktop_modifiers(rv, touch)
-                return True
-            if touch.is_double_tap:
-                if rv.data[self.index]["is_dir"]:
-                    rv.child_dir(rv.data[self.index]["filename"])
-                else:
-                    rv.dispatch("on_double_tap")
-                return True
-            if getattr(rv, "multi_select_enabled", False):
-                self.select_with_desktop_modifiers(rv, touch)
-                return True
-            return self.parent.select_with_touch(self.index, touch)
+    def on_tap(self, touch):
+        if not self.selectable or self.parent is None:
+            return
+        rv = self.parent.recycleview
+        if kivy_platform == "android":
+            if rv.touch_selection_mode and rv.multi_select_enabled:
+                self.toggle_file_checkbox()
+            elif rv.data[self.index]["is_dir"]:
+                rv.child_dir(rv.data[self.index]["filename"])
+            else:
+                self.parent.clear_selection()
+                self.parent.select_node(self.index)
+                rv.update_selected_files_from_layout(current_index=self.index)
+                rv.dispatch("on_select")
+        elif getattr(rv, "multi_select_enabled", False) and self.touch_has_desktop_modifier(touch):
+            self.select_with_desktop_modifiers(rv, touch)
+        elif touch.is_double_tap:
+            if rv.data[self.index]["is_dir"]:
+                rv.child_dir(rv.data[self.index]["filename"])
+            else:
+                rv.dispatch("on_double_tap")
+        elif getattr(rv, "multi_select_enabled", False):
+            self.select_with_desktop_modifiers(rv, touch)
+        else:
+            self.parent.select_with_touch(self.index, touch)
+
+    def toggle_file_checkbox(self):
+        if self.parent is None:
+            return
+        layout = self.parent
+        rv = layout.recycleview
+        if self.index in layout.selected_nodes:
+            layout.deselect_node(self.index)
+        else:
+            layout.select_node(self.index)
+        rv.update_selected_files_from_layout(current_index=self.index)
+        rv.dispatch("on_select")
 
     def touch_desktop_modifiers(self, touch):
         modifiers = set()
@@ -2522,6 +2540,7 @@ class DataRV(RecycleView):
     curr_selected_files = ListProperty([])
     curr_selected_file_infos = ListProperty([])
     multi_select_enabled = BooleanProperty(False)
+    touch_selection_mode = BooleanProperty(False)
     last_selected_index = NumericProperty(-1)
 
     def __init__(self, **kwargs):
@@ -8272,6 +8291,9 @@ class MakeraApp(App):
     # UIWindow.safeAreaInsets (see _update_safe_area_padding).
     safe_area_padding = ListProperty([0, 0, 0, 0])
     android_keyboard_height = NumericProperty(0)
+    android_touch = BooleanProperty(kivy_platform == "android")
+    touch_target = NumericProperty(48 * float(os.environ.get("CARVERA_ANDROID_DENSITY", "1")))
+    _touch_layout = None
     _android_input = None
 
     def on_stop(self):

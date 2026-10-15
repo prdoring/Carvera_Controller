@@ -504,3 +504,18 @@ and filename text. Initial numeric selection is bound once and cancelled by
 editing or blur. Probe settings retain incomplete drafts without saving them;
 preview validates them before generating commands. Valid saves are coalesced.
 The existing probe storage location and probe defaults are unchanged.
+
+Viewer fingers now have independent captured state. Finger-count changes rebase
+without applying a movement delta. The viewer retains orbit/pan controls and adds
+an always-visible Controls toggle. Scrubbing owns one finger, follows release
+outside the slider, and synchronizes the selected line. Previous/Next line
+buttons provide precise stepping. G-code rows expose their menu button; recycled
+rows cancel pending holds. Menu dismissal consumes the outside gesture.
+
+Android file lists use completed single taps for folders and selection. The
+remote list exposes selection mode, checkboxes, count and existing Open/Delete
+actions; local Open/Upload retain their existing workflow and confirmations.
+CMM sketch controls provide zoom/Fit, captured pan/pinch, completed feature
+selection and an overlap chooser. Host widget checks cover slider ownership and
+outside release, menu dismissal, completed toggles, cancelled holds and
+finger-count transitions. Physical CA1 jogging remains pending.

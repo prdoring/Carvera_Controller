@@ -18,7 +18,7 @@
                     size: self.size
             id: caption
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             text: root.title
             halign: 'left'
             valign: 'middle'
@@ -28,7 +28,7 @@
             orientation: 'vertical'
         BoxLayout:
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             Label:
                 text: 'Value:'
                 halign: "left"
@@ -47,7 +47,7 @@
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Button:
                 id: btn_cancel
                 text: tr._('Cancel')
@@ -74,7 +74,7 @@
                     size: self.size
             id: caption
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             text: root.title
             halign: 'left'
             valign: 'middle'
@@ -84,7 +84,7 @@
             orientation: 'vertical'
         BoxLayout:
             size_hint_y: None
-            height: '30dp'
+            height: app.touch_target if app.android_touch else dp(30)
             Label:
                 text: 'Value:'
                 halign: "left"
@@ -103,7 +103,7 @@
         BoxLayout:
             spacing: '5dp'
             size_hint_y: None
-            height: '40dp'
+            height: app.touch_target if app.android_touch else dp(40)
             Button:
                 id: btn_cancel
                 text: tr._('Cancel')

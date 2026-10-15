@@ -31,6 +31,7 @@ from carveracontroller.GcodeViewer import (
 )
 from carveracontroller.translation import tr
 from carveracontroller.Utils import second2hour
+from .touch import TapBehavior
 
 LEGEND_PANEL_MAX_HEIGHT = dp(280)
 HEADER_HEIGHT = dp(36)
@@ -328,7 +329,7 @@ class _RowHoverToolTip(ToolTipButton):
         return False
 
 
-class LegendRow(BoxLayout):
+class LegendRow(TapBehavior, BoxLayout):
     """Clickable legend row that toggles path visibility for one category."""
 
     visible = BooleanProperty(True)
@@ -356,6 +357,9 @@ class LegendRow(BoxLayout):
         # tool in the list can show an icon (defs and/or static icons like laser).
         use_tool_row = show_icon_column or tool_def is not None or static_icon is not None
         row_height = LEGEND_TOOL_ROW_HEIGHT if use_tool_row else LEGEND_ROW_HEIGHT
+        app = App.get_running_app()
+        if app is not None and getattr(app, "android_touch", False):
+            row_height = max(row_height, app.touch_target)
 
         super().__init__(
             orientation="horizontal",
@@ -374,7 +378,6 @@ class LegendRow(BoxLayout):
         self._duration_sec = entry.get("duration_sec")
         self._duration_available = self._duration_sec is not None
         self._name_label = None
-        self._press_pos = None
 
         swatch_holder = AnchorLayout(
             size_hint=(None, None),
@@ -502,28 +505,9 @@ class LegendRow(BoxLayout):
         self._sync_appearance()
         self.bind(visible=self._sync_appearance, is_active_tool=self._sync_appearance)
 
-    def on_touch_down(self, touch):
-        # Mouse wheel must not count as a click (visibility flicker while scrolling).
-        if getattr(touch, "is_mouse_scrolling", False):
-            return super().on_touch_down(touch)
-        if self.collide_point(*touch.pos):
-            self._press_pos = (touch.x, touch.y)
-            touch.ud["legend_row"] = self
-        return super().on_touch_down(touch)
-
-    def on_touch_up(self, touch):
-        if getattr(touch, "is_mouse_scrolling", False):
-            self._press_pos = None
-            return super().on_touch_up(touch)
-        if touch.ud.get("legend_row") is self and self.collide_point(*touch.pos):
-            press = self._press_pos
-            self._press_pos = None
-            if press is not None and abs(touch.x - press[0]) < dp(8) and abs(touch.y - press[1]) < dp(8):
-                if callable(self._on_toggle):
-                    self._on_toggle(self.entry_kind, self.entry_key)
-                return True
-        self._press_pos = None
-        return super().on_touch_up(touch)
+    def on_tap(self, touch):
+        if callable(self._on_toggle):
+            self._on_toggle(self.entry_kind, self.entry_key)
 
     def set_active_color(self, active_color):
         self._active_color = active_color

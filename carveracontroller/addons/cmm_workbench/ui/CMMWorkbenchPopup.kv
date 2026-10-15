@@ -48,7 +48,7 @@
     multiline: False
     font_size: dp(15)
     size_hint_y: None
-    height: dp(40)
+    height: app.touch_target if app.android_touch else dp(40)
     halign: 'right'
     padding: [dp(10), dp(8), dp(10), dp(8)]
     input_filter: 'float'
@@ -141,7 +141,7 @@
                                     cols: 2
                                     spacing: dp(4)
                                     padding: dp(0), dp(4), dp(0), dp(2)
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     row_force_default: True
                                     size_hint_y: None
                                     height: self.minimum_height
@@ -229,7 +229,7 @@
                                     cols: 2
                                     spacing: dp(4)
                                     padding: dp(8)
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     row_force_default: True
                                     size_hint_y: None
                                     height: self.minimum_height
@@ -282,7 +282,7 @@
                                 Button:
                                     text: tr._('Run probe and capture')
                                     size_hint_y: None
-                                    height: dp(46)
+                                    height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_probe_axis466()
 
                     TabbedPanelItem:
@@ -340,7 +340,7 @@
                                     cols: 2
                                     spacing: dp(4)
                                     padding: dp(8)
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     row_force_default: True
                                     size_hint_y: None
                                     height: self.minimum_height
@@ -403,7 +403,7 @@
                                 Button:
                                     text: tr._('Run bore probe and capture')
                                     size_hint_y: None
-                                    height: dp(46)
+                                    height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_bore461()
 
                     TabbedPanelItem:
@@ -461,7 +461,7 @@
                                     cols: 2
                                     spacing: dp(4)
                                     padding: dp(8)
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     row_force_default: True
                                     size_hint_y: None
                                     height: self.minimum_height
@@ -529,7 +529,7 @@
                                 Button:
                                     text: tr._('Run boss probe and capture')
                                     size_hint_y: None
-                                    height: dp(46)
+                                    height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_boss462()
 
                     TabbedPanelItem:
@@ -587,7 +587,7 @@
                                     cols: 2
                                     spacing: dp(4)
                                     padding: dp(8)
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     row_force_default: True
                                     size_hint_y: None
                                     height: self.minimum_height
@@ -645,7 +645,7 @@
                                 Button:
                                     text: tr._('Run inside corner probe')
                                     size_hint_y: None
-                                    height: dp(46)
+                                    height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_in463()
 
                     TabbedPanelItem:
@@ -703,7 +703,7 @@
                                     cols: 2
                                     spacing: dp(4)
                                     padding: dp(8)
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     row_force_default: True
                                     size_hint_y: None
                                     height: self.minimum_height
@@ -761,7 +761,7 @@
                                 Button:
                                     text: tr._('Run outside corner probe')
                                     size_hint_y: None
-                                    height: dp(46)
+                                    height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_out464()
 
                     TabbedPanelItem:
@@ -819,7 +819,7 @@
                                     cols: 2
                                     spacing: dp(4)
                                     padding: dp(8)
-                                    row_default_height: dp(40)
+                                    row_default_height: app.touch_target if app.android_touch else dp(40)
                                     row_force_default: True
                                     size_hint_y: None
                                     height: self.minimum_height
@@ -872,7 +872,7 @@
                                 Button:
                                     text: tr._('Measure angle and capture')
                                     size_hint_y: None
-                                    height: dp(46)
+                                    height: app.touch_target if app.android_touch else dp(46)
                                     on_release: root.on_angle465()
 
                 BoxLayout:
@@ -884,7 +884,7 @@
                     Label:
                         text: tr._('XY preview')
                         size_hint_y: None
-                        height: dp(24)
+                        height: app.touch_target if app.android_touch else dp(24)
                         font_size: dp(14)
 
                     FloatLayout:
@@ -911,7 +911,7 @@
                     Label:
                         text: tr._('Features')
                         size_hint_y: None
-                        height: dp(24)
+                        height: app.touch_target if app.android_touch else dp(24)
                         font_size: dp(14)
 
                     GridLayout:
@@ -966,7 +966,6 @@
                             padding: [dp(4), dp(4), dp(20), dp(10)]
 
             BoxLayout:
-                orientation: 'horizontal'
                 size_hint_y: None
                 height: dp(58)
                 spacing: dp(6)
@@ -1062,12 +1061,12 @@
         BoxLayout:
             orientation: 'vertical'
             size_hint_y: None
-            height: dp(29)
+            height: app.touch_target if app.android_touch else dp(29)
             spacing: dp(2)
             Label:
                 text: tr._('Jog')
                 size_hint_y: None
-                height: dp(24)
+                height: app.touch_target if app.android_touch else dp(24)
                 font_size: dp(17)
                 color: 0.95, 0.96, 0.97, 1
                 bold: True
@@ -1137,7 +1136,7 @@
                                     id: scan_jog_step_xy
                                     center: 0.5, 0.5
                                     size_hint_y: None
-                                    height: dp(39)
+                                    height: app.touch_target if app.android_touch else dp(39)
                                     text: app.jog_step_xy
                                     on_text: app.jog_step_xy = self.text
                                     values: '10', '1', '0.1', '0.01', '0.005'
@@ -1257,7 +1256,7 @@
                                 halign: 'center'
                                 on_release: app.root.toggle_jog_mode()
                         GridBoxLayout:
-                            ToggleButton:
+                            TouchToggleButton:
                                 id: kb_jog_btn_scan
                                 text: tr._('Keyboard Jogging')
                                 height: dp(52)
@@ -1267,7 +1266,7 @@
                                 state: app.jog_keyboard_enable
                                 on_release: app.root.toggle_keyboard_jog_control()
                         GridBoxLayout:
-                            ToggleButton:
+                            TouchToggleButton:
                                 id: pendant_jog_btn_scan
                                 text: app.jog_pendant_text
                                 state: app.jog_pendant_enable
