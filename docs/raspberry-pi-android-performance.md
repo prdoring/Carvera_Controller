@@ -18,8 +18,9 @@ the CPU governor corrected. It built many optional interfaces and repeatedly
 attempted failed probing-settings saves during startup. Large G-code files also
 caused work on the UI thread.
 
-The application performance changes below are now implemented and installed as
-**Carvera Performance Test**. A comparison using the separate test package and
+The application performance changes below are now implemented and installed in
+the normal **Carvera Community Controller** app. The separate test app was removed
+after checking the replacement and its saved preferences. A comparison using that test package and
 the same saved preferences reduced startup from 19.589 to 13.467 seconds,
 approximately 31 percent. This measures application main-loop startup, not
 Android boot or the completion of machine connection setup. The probing-settings
@@ -502,13 +503,13 @@ C after repeated launches, with `throttled=0x0`. Prolonged combined CPU/GPU
 thermal behavior is still unverified. Android boot time was not remeasured.
 The frame limit remains 60; no release-build speedup is claimed.
 
-The updated test app is labeled **Carvera Performance Test** and retains package
+The benchmark test app was labeled **Carvera Performance Test**, using package
 `org.carveracommunity.carveracontrollercommunityusbtest`, version code `20203`.
 The original controller's package and data were preserved. Its test-app
 preferences were restored after the Android bootstrap replaced the unpacked
 application directory during the APK update.
 
-The final APK is `controller-2.2.0-android-performance-test.apk`, 51,751,918 bytes,
+The benchmark APK is `controller-2.2.0-android-performance-test.apk`, 51,751,918 bytes,
 saved in the local measurement directory listed above. SHA-256:
 
 ```text
@@ -519,6 +520,53 @@ Supporting local files include `performance-final-startup.json`,
 `performance-desktop-before.json`, `performance-desktop-after.json`,
 `performance-final-tests.log`, `performance-final-pi-validation.json`,
 `performance-final-pi-log.txt`, and `performance-final-pi.png`.
+
+## Replacement of the normal controller app
+
+The updated code subsequently replaced the original controller installation at
+the user's request. The Pi now has one controller package,
+`org.carveracommunity.carveracontrollercommunity`, labeled
+**Carvera Community Controller**. Its Android version name is `2.2.0.4` and
+version code is `20204`. The controller's internal Python version string remains
+`2.2.0.1`; the Android package code and APK checksum identify this installed build.
+
+The previous APK and the new build had different signing certificates, so Android
+required reinstalling the base package. Before that operation, both apps' full
+private data and the original APK were backed up and checksummed locally.
+User data was restored after the new bootstrap unpacked its program files.
+All 17 restored files were verified byte-for-byte before launch, and all
+144 saved preference values from the working configuration matched exactly after
+launch. This includes its working USB identity and automatic USB reconnect.
+The original and active configurations differed only in five USB/reconnect
+preferences and the application version field.
+
+The replacement selected the Makera protocol and received CA1 firmware `2.2.0c`
+over USB with no captured Python errors. Its screen still showed `Sleep` and
+`USB`; the reset confirmation remained untouched. The extra test app was then
+uninstalled. The normal home-screen shortcut was restored to its original
+position and used to open the replacement successfully. Other launcher favorites
+were preserved. Launching remains manual, as requested; boot behavior was not
+changed.
+
+The replacement APK is `controller-2.2.0.4-android-improvements.apk`,
+51,751,360 bytes. SHA-256:
+
+```text
+dcc8d042f2a5b31db4a0d40fa0141f5a22ef8b2d603c74975bb34505a380df0c
+```
+
+The local measurement directory contains the backups,
+`base-replacement-validation.json`, and launcher/connection screenshots.
+The development signing key was also retained locally for subsequent compatible
+updates; private data, signing keys, and APK binaries were excluded from Git.
+The bootstrap's settings-storage behavior remains unchanged, so future APK
+updates still need to preserve and restore these preferences until that separate
+issue is addressed.
+
+The source checkpoint is on
+[prdoring/Carvera_Controller, android-improvements](https://github.com/prdoring/Carvera_Controller/tree/android-improvements).
+The initial implementation commit is
+[`dee274e`](https://github.com/prdoring/Carvera_Controller/commit/dee274eba0b360f1cb1513ada693069fb7ec64cc).
 
 ## References
 
