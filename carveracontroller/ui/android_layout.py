@@ -46,7 +46,8 @@ class TouchActionRow(GridLayout):
     def __init__(self, **kwargs):
         kwargs.setdefault("rows", None)
         super().__init__(**kwargs)
-        self.bind(width=self._columns, children=self._columns, stacked=self._columns)
+        self.bind(width=self._columns, children=self._columns, stacked=self._columns,
+                  padding=self._columns, spacing=self._columns)
         self.bind(minimum_height=self.setter("height"))
         self.size_hint_y = None
         self._columns()
@@ -57,7 +58,9 @@ class TouchActionRow(GridLayout):
         width = max([app.touch_target if mobile else dp(48)] + [
             min(dp(200), _text_width(str(child.text), getattr(child, "font_name", "Roboto"), sp(16)) + dp(24))
             for child in self.children if mobile and hasattr(child, "text")])
-        self.cols = (1 if self.stacked else max(1, min(len(self.children) or 1, int(self.width / width)))) if mobile else max(1, len(self.children))
+        available = max(1, self.width - self.padding[0] - self.padding[2])
+        self.cols = (1 if self.stacked else max(1, min(len(self.children) or 1,
+                     int((available + self.spacing[0]) / (width + self.spacing[0]))))) if mobile else max(1, len(self.children))
         self.row_force_default = True
         self.row_default_height = max(app.touch_target, sp(16) * 2 + dp(16)) if mobile else dp(40)
         if mobile:
@@ -65,7 +68,7 @@ class TouchActionRow(GridLayout):
                 child.size_hint_x = 1
                 if isinstance(child, Button):
                     child.font_size = sp(16)
-                    child.text_size = (max(1, self.width / self.cols - dp(24)), None)
+                    child.text_size = (max(1, (available - self.spacing[0] * (self.cols - 1)) / self.cols - dp(24)), None)
                     child.halign = "center"
                     child.valign = "middle"
                     child.texture_update()
@@ -91,6 +94,17 @@ class DialogLabel(Label):
 
 class DialogSurface(BoxLayout):
     """An explicitly managed dialog with a content viewport and fixed footer."""
+
+    def on_parent(self, *_args):
+        Clock.schedule_once(self._prepare_attached, 0)
+
+    def _prepare_attached(self, _dt):
+        app = App.get_running_app()
+        if app is not None and app.android_touch and self.get_root_window() is not None:
+            self.prepare()
+            layout = getattr(app, "_touch_layout", None)
+            if layout is not None:
+                layout._update()
 
     def prepare(self):
         if getattr(self, "_prepared", False):
@@ -236,7 +250,8 @@ class AndroidTouchLayout:
         self.app.root.size_hint = (None, None)
         self.app.root.pos = (0, keyboard)
         self.app.root.size = (Window.width, available)
-        self.app.compact_layout = Window.width / dp(1) < 960 or available / dp(1) < 560
+        text_scale = max(1, Metrics.fontscale)
+        self.app.compact_layout = Window.width / dp(1) / text_scale < 960 or available / dp(1) / text_scale < 560
         for modal in list(Window.children):
             if not isinstance(modal, ModalView):
                 continue
@@ -254,8 +269,12 @@ class AndroidTouchLayout:
                 panel.height = 0 if keyboard else height
                 panel.opacity = 0 if keyboard else 1
                 panel.disabled = bool(keyboard)
-            modal.unbind(center=modal._align_center, size=modal._align_center)
-            Window.unbind(on_keyboard=modal._handle_keyboard)
+            # ModalView adds another fbind on every open, including reused dialogs.
+            for name in ("center", "size"):
+                for callback in modal.get_property_observers(name):
+                    if callback == modal._align_center:
+                        modal.funbind(name, callback)
+            Window.unbind(on_resize=modal._align_center, on_keyboard=modal._handle_keyboard)
             modal.size_hint_y = None
             desired = state["height"] if state["size_hint_y"] is None else Window.height * state["size_hint_y"]
             if state.get("managed"):

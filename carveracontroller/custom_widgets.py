@@ -1,6 +1,7 @@
 import json
 
 from kivy.animation import Animation
+from kivy.app import App
 from kivy.clock import Clock
 from kivy.factory import Factory
 from kivy.graphics import Color, Rectangle
@@ -17,6 +18,7 @@ from kivy.uix.settings import SettingItem
 from kivy.uix.widget import Widget
 
 from carveracontroller.translation import tr
+from carveracontroller.ui.android_layout import DialogSurface, TouchActionRow
 from carveracontroller.ui.editing import EditingTextInput as TextInput
 
 
@@ -70,6 +72,10 @@ class ScrollingLabel(ScrollView):
             self._marquee_only = False
             self._stop_marquee()
             self.scroll_x = 0
+            return
+        if App.get_running_app().android_touch:
+            self._marquee_only = True
+            self._start_marquee_anim()
             return
         # Try 80% font size to avoid scrolling
         base = self._parse_font_size(self.font_size)
@@ -231,14 +237,24 @@ class SettingColorPicker(SettingItem):
 
     def open_popup(self, *args):
         """Open the color picker popup."""
-        content = BoxLayout(orientation="vertical", spacing=dp(10), padding=dp(10))
+        content = (DialogSurface if App.get_running_app().android_touch else BoxLayout)(orientation="vertical", spacing=dp(10), padding=dp(10))
 
         # Color picker widget
         self.picker = ColorPicker(color=self._current_color)
+        if App.get_running_app().android_touch:
+            self.picker.size_hint_y = None
+            self.picker.height = dp(360)
+            palette = TouchActionRow(spacing=dp(8))
+            for name, color in (("White", (1, 1, 1, 1)), ("Black", (0, 0, 0, 1)),
+                                ("Red", (1, 0, 0, 1)), ("Green", (0, 1, 0, 1)), ("Blue", (0, 0, 1, 1))):
+                button = Button(text=tr._(name))
+                button.bind(on_release=lambda _button, rgba=color: setattr(self.picker, "color", rgba))
+                palette.add_widget(button)
+            content.add_widget(palette)
         content.add_widget(self.picker)
 
         # Buttons
-        btns = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10))
+        btns = TouchActionRow(spacing=dp(10))
 
         popup = Popup(
             title=self.title or tr._("Select Color"), content=content, size_hint=(0.8, 0.9), auto_dismiss=False
@@ -343,17 +359,17 @@ class SettingGCodeSnippet(SettingItem):
         name = obj.get("name", "")
         gcode = obj.get("gcode", "")
 
-        content = BoxLayout(orientation="vertical", spacing=dp(10), padding=dp(10))
+        content = (DialogSurface if App.get_running_app().android_touch else BoxLayout)(orientation="vertical", spacing=dp(10), padding=dp(10))
 
         self.name_input = TextInput(text=name, multiline=False, size_hint_y=None, height=dp(40))
         content.add_widget(Label(text=tr._("Name:"), size_hint_y=None, height=dp(20)))
         content.add_widget(self.name_input)
 
-        self.gcode_input = TextInput(input_policy="gcode", text=gcode, size_hint=(1, 1))
+        self.gcode_input = TextInput(input_policy="gcode", text=gcode, size_hint=(1, None) if App.get_running_app().android_touch else (1, 1), height=dp(240))
         content.add_widget(Label(text=tr._("G-code:"), size_hint_y=None, height=dp(20)))
         content.add_widget(self.gcode_input)
 
-        btns = BoxLayout(size_hint_y=None, height=dp(40), spacing=dp(10))
+        btns = TouchActionRow(spacing=dp(10))
         popup = Popup(
             title=self.title or tr._("Edit command"), content=content, size_hint=(0.8, 0.8), auto_dismiss=False
         )
@@ -372,7 +388,7 @@ class SettingGCodeSnippet(SettingItem):
         self._popup = popup
 
     def _save_and_close(self, popup):
-        obj = {"name": self.name_input.text.strip(), "gcode": self.gcode_input.text.strip()}
+        obj = {"name": self.name_input.text.strip(), "gcode": self.gcode_input.text}
 
         new_value = json.dumps(obj)
 

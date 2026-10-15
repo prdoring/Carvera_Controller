@@ -12,6 +12,7 @@ def _root(widget):
         manual_rv=SimpleNamespace(scroll_y=1, data=[]),
         controller=SimpleNamespace(executeCommand=Mock()),
         refocus_cmd=Mock(),
+        _append_to_mdi=Mock(),
     )
 
 
@@ -52,3 +53,13 @@ def test_empty_send_does_not_record_history():
 
     assert widget.past_mdi_commands == []
     root.controller.executeCommand.assert_not_called()
+
+
+def test_unsent_command_keeps_the_editor_draft():
+    widget = MDITextInput(text="G0 X1")
+    root = _root(widget)
+    root.controller.executeCommand.return_value = False
+    Makera.send_cmd(root)
+    assert widget.text == "G0 X1"
+    root.refocus_cmd.assert_not_called()
+    assert "not sent" in root._append_to_mdi.call_args.args[0][0]["text"]

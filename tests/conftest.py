@@ -4,7 +4,15 @@ Provides machine state fixtures that set CNC.vars to simulate different
 machine states without needing real hardware.
 """
 
+import os
+from pathlib import Path
+
 import pytest
+
+_hid_dll_directory = None
+if os.name == "nt":
+    # ctypes needs the packaged HID runtime when collecting pendant unit tests.
+    _hid_dll_directory = os.add_dll_directory(str(Path(__file__).resolve().parents[1] / "assets/packaging/hidapi/windows"))
 
 
 @pytest.fixture

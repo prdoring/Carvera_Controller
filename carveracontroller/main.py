@@ -1388,6 +1388,10 @@ class DiagnosePopup(ModalView):
 
     def on_open(self):
         self.showing = True
+        if App.get_running_app().android_touch:
+            from .ui.mobile_diagnostics import prepare_diagnostics
+
+            prepare_diagnostics(self)
 
     def on_dismiss(self):
         self.showing = False
@@ -1457,6 +1461,13 @@ class ConfigPopup(ModalView):
 
     def on_open(self):
         App.get_running_app().root._ensure_controller_settings_panels()
+        if App.get_running_app().android_touch:
+            from .ui.mobile_settings import MobileSettings
+
+            if not hasattr(self, "_mobile_settings"):
+                self._mobile_settings = MobileSettings(self.settings_panel, self)
+            else:
+                self._mobile_settings.refresh()
         self._widget_snapshot = {}
         for widget in self._all_setting_items():
             self._widget_snapshot[(widget.section, widget.key)] = widget.value
@@ -1813,11 +1824,12 @@ class SetRotationPopup(ModalView):
 
 class MakeraConfigPanel(SettingsWithSidebar):
     def __init__(self, *args, **kwargs):
-        from .ui.settings_fields import EditingSettingNumeric, EditingSettingString
+        from .ui.settings_fields import EditingSettingNumeric, EditingSettingOptions, EditingSettingString
 
         super().__init__(*args, **kwargs)
         self.register_type("string", EditingSettingString)
         self.register_type("numeric", EditingSettingNumeric)
+        self.register_type("options", EditingSettingOptions)
         self.register_type("pendant", SettingPendantSelector)
         self.register_type("gcodesnippet", custom_widgets.SettingGCodeSnippet)
         self.register_type("colorpicker", custom_widgets.SettingColorPicker)
@@ -2716,7 +2728,7 @@ class DataRV(RecycleView):
                 )
             except IndexError:
                 logger.error("Tried to write to recycle view data at same time as reading, ignore (indexError)")
-        self.browser_state = "" if self.data else tr._("No matching files") if keyword else tr._("This folder is empty")
+        self.browser_state = getattr(self, "_directory_error", "") or ("" if self.data else tr._("No matching files") if keyword else tr._("This folder is empty"))
         self.dispatch("on_select")
 
     def goto_path(self, index):
@@ -2753,6 +2765,10 @@ class RemoteRV(DataRV):
         self.curr_dir = self.base_dir
         self.curr_dir_name = "gcodes"
 
+    def directory_failed(self, message, *_args):
+        self._directory_error = message
+        self.browser_state = message
+
     # -----------------------------------------------------------------------
     def parent_dir(self):
         normpath = os.path.normpath(self.curr_dir)
@@ -2770,11 +2786,16 @@ class RemoteRV(DataRV):
         if new_dir == None:
             new_dir = self.curr_dir
 
+        app = App.get_running_app()
+        if app.state in ("N/A", "Wait"):
+            self.directory_failed(tr._("Mill disconnected. Connect, then retry this folder."))
+            return
+
         self.clear_selection()
         self.curr_file_list_buff = []
+        self._directory_error = ""
         self.browser_state = tr._("Loading files from the mill…")
 
-        app = App.get_running_app()
         threading.Thread(target=app.root.loadRemoteDir, args=(new_dir,), daemon=True).start()
         self.curr_dir = str(new_dir)
         # self.curr_dir_name = os.path.normpath(self.curr_dir)
@@ -2813,6 +2834,7 @@ class LocalRV(DataRV):
         new_dir = os.path.normpath(new_dir or self.curr_dir)
         self._directory_request = getattr(self, "_directory_request", 0) + 1
         request = self._directory_request
+        self._directory_error = ""
         self.browser_state = tr._("Loading files on this device…")
         self.clear_selection()
         if not hasattr(self, "_directory_worker"):
@@ -2839,7 +2861,8 @@ class LocalRV(DataRV):
                 try:
                     files = future.result()
                 except OSError as error:
-                    self.browser_state = tr._("Cannot access this folder:") + " " + str(error)
+                    self._directory_error = tr._("Cannot access this folder:") + " " + str(error)
+                    self.browser_state = self._directory_error
                     return
                 self.curr_file_list_buff = files
                 self.curr_dir = new_dir
@@ -4351,10 +4374,12 @@ class Makera(RelativeLayout):
             if self.controller.loadNUM == LOAD_DIR:
                 if self.controller.loadEOF or self.controller.loadERR or t - self.short_load_time > SHORT_LOAD_TIMEOUT:
                     if self.controller.loadERR:
+                        Clock.schedule_once(partial(self.file_popup.remote_rv.directory_failed, tr._("Could not load this mill folder. Retry when connected.")), 0)
                         Clock.schedule_once(
                             partial(self.loadError, tr._("Error loading dir") + " '%s'!" % (self.loading_dir)), 0
                         )
                     elif t - self.short_load_time > SHORT_LOAD_TIMEOUT:
+                        Clock.schedule_once(partial(self.file_popup.remote_rv.directory_failed, tr._("Mill folder request timed out. Retry when connected.")), 0)
                         Clock.schedule_once(
                             partial(self.loadError, tr._("Timeout loading dir") + " '%s'!" % (self.loading_dir)), 0
                         )
@@ -4858,20 +4883,13 @@ class Makera(RelativeLayout):
 
     # -----------------------------------------------------------------------
     def finish_backing_up_config(self, downloaded_file_paths, selected_dir, _selected_file):
+        failures = []
         for source_file_path in downloaded_file_paths:
             dest_file_path = os.path.join(selected_dir, os.path.basename(source_file_path))
             try:
                 shutil.copyfile(source_file_path, dest_file_path)
             except Exception as e:
-                Clock.schedule_once(
-                    partial(
-                        self.show_message_popup,
-                        tr._(f"Couldn't back up '{source_file_path}'. The error was:\n\n{e}"),
-                        False,
-                    ),
-                    0,
-                )
-                print("Error backing up config file:", e)
+                failures.append(f"{source_file_path}: {e}")
 
         self.pick_file_popup.dismiss()
         self.pick_file_popup = None
@@ -4881,9 +4899,9 @@ class Makera(RelativeLayout):
         # next time they open the gcode file browser
         self.file_popup.remote_rv.curr_dir = self.file_popup.remote_rv.base_dir
 
-        Clock.schedule_once(
-            partial(self.show_message_popup, tr._("Configuration files backed up successfully"), False), 0
-        )
+        message = (tr._("Some configuration files could not be backed up:") + "\n" + "\n".join(failures)
+                   if failures else tr._("Configuration files backed up successfully"))
+        Clock.schedule_once(partial(self.show_message_popup, message, False), 0)
 
     # -----------------------------------------------------------------------
     def download_config_file(self):
@@ -7017,14 +7035,14 @@ class Makera(RelativeLayout):
 
     def update_ui_for_jog_mode_step(self):
         self.controller.setJogMode(Controller.JOG_MODE_STEP)
-        self.ids.jog_mode_btn.text = tr._("Jog Mode:Step")
+        self.ids.jog_mode_btn.text = tr._("Mode: Step") if App.get_running_app().android_touch and App.get_running_app().compact_layout else tr._("Jog Mode:Step")
         App.get_running_app().jog_mode_text = tr._("Jog Mode:Step")
         self._set_jog_step_inputs_disabled(False)
         self.update_pendant_jog_text()
 
     def update_ui_for_jog_mode_cont(self):
         self.controller.setJogMode(Controller.JOG_MODE_CONTINUOUS)
-        self.ids.jog_mode_btn.text = tr._("Jog Mode:Continuous")
+        self.ids.jog_mode_btn.text = tr._("Mode: Continuous") if App.get_running_app().android_touch and App.get_running_app().compact_layout else tr._("Jog Mode:Continuous")
         App.get_running_app().jog_mode_text = tr._("Jog Mode:Continuous")
         self._set_jog_step_inputs_disabled(True)
         self.update_pendant_jog_text()
@@ -8420,6 +8438,7 @@ class MakeraApp(App):
 
         if getattr(self, "simulation", None) is not None:
             self.title += " — SIMULATION"
+            self.simulation.attach(self)
 
         if os.path.isfile(os.path.join(self.user_data_dir, "interaction-profile.enabled")):
             from .ui.interaction_profile import InteractionProfile
@@ -8491,7 +8510,7 @@ class MakeraApp(App):
 
     def on_resume(self):
         if self.android_touch:
-            Metrics.get_fontscale(force_recompute=True)
+            Metrics.fontscale = Metrics.get_fontscale(force_recompute=True)
             if self._touch_layout is not None:
                 self._touch_layout.size_controls(self.root)
                 self._touch_layout.update()
@@ -8511,9 +8530,9 @@ def load_app_configs():
         except ValueError:
             scale = 1.0
             Config.set("carvera", "android_ui_scale", "1.0")
-        Metrics.set_density(density * scale)
+        Metrics.density = density * scale
     elif Config.getboolean("carvera", "ui_density_override", fallback=False):
-        Metrics.set_density(float(Config.get("carvera", "ui_density")))
+        Metrics.density = float(Config.get("carvera", "ui_density"))
 
     # Configure logging level from config
     if Config.has_option("kivy", "log_level"):

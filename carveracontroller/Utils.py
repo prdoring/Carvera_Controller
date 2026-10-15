@@ -668,13 +668,19 @@ def request_android_permissions():
         if has_all_files_access():
             logger.info("Already have all files access permission")
             return
-        from android import mActivity
+        from android.runnable import run_on_ui_thread
         from jnius import autoclass
 
-        Intent = autoclass("android.content.Intent")
-        Settings = autoclass("android.provider.Settings")
-        intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-        mActivity.startActivity(intent)
+        @run_on_ui_thread
+        def open_permission_settings():
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            Intent = autoclass("android.content.Intent")
+            Settings = autoclass("android.provider.Settings")
+            Uri = autoclass("android.net.Uri")
+            intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            intent.setData(Uri.parse("package:" + activity.getPackageName()))
+            activity.startActivity(intent)
+        open_permission_settings()
     except Exception as e:
         logger.error("Error requesting permissions: %s", e)
 
@@ -692,10 +698,15 @@ def common_local_directories():
     logger = logging.getLogger(__name__)
     entries = []
     home_path = Path.home()
+    if kivy_platform == "android":
+        from kivy.app import App
+
+        home_path = Path(App.get_running_app().user_data_dir) / "exports"
+        home_path.mkdir(exist_ok=True)
     if home_path.exists():
         entries.append(
             {
-                "name": os.path.basename(home_path),
+                "name": tr._("Controller files") if kivy_platform == "android" else os.path.basename(home_path),
                 "path": str(home_path),
                 "icon": "data/folder-home.png",
             }
@@ -714,7 +725,6 @@ def common_local_directories():
         try:
             from android.storage import primary_external_storage_path
 
-            request_android_permissions()
             android_storage_path = primary_external_storage_path()
             if android_storage_path and os.path.exists(android_storage_path):
                 entries.append(

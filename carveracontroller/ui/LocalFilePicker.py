@@ -6,10 +6,13 @@ import os
 from collections.abc import Callable, Sequence
 
 from kivy.app import App
+from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.properties import ListProperty, StringProperty
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
 from kivy.uix.dropdown import DropDown
 from kivy.uix.filechooser import FileChooserListView
 from kivy.uix.popup import Popup
@@ -18,6 +21,7 @@ from kivy.utils import platform
 from carveracontroller import Utils
 from carveracontroller.translation import tr
 
+from .android_layout import DialogLabel, DialogSurface, TouchActionRow
 from .touch import Gesture
 
 
@@ -54,6 +58,7 @@ class LocalFilePickerSheet(BoxLayout):
 
     curr_path_list = ListProperty([])
     curr_dir_name = StringProperty("")
+    storage_status = StringProperty("")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -62,6 +67,57 @@ class LocalFilePickerSheet(BoxLayout):
         self._recent_dirs: list[str] = []
         self._dir_dropdown = DropDown(auto_width=False, width="190dp")
         self._dir_dropdown.bind(on_select=self._on_dir_dropdown_select)
+
+    def on_kv_post(self, base_widget):
+        super().on_kv_post(base_widget)
+        if platform == "android":
+            App.get_running_app().bind(on_resume=self._resume_storage)
+            self._refresh_storage_status()
+
+    def _refresh_storage_status(self, *_args):
+        self.storage_status = tr._("Storage access is available") if Utils.has_all_files_access() else tr._("Some folders need storage access. Your file name and folder stay here while you grant access.")
+
+    def show_folder_path(self):
+        surface = DialogSurface(orientation="vertical", padding="12dp", spacing="8dp")
+        surface.add_widget(DialogLabel(text=self.ids.fc.path))
+        actions = TouchActionRow()
+        up, close = Button(text=tr._("Parent folder")), Button(text=tr._("Close"))
+        actions.add_widget(up)
+        actions.add_widget(close)
+        surface.add_widget(actions)
+        popup = Popup(title=tr._("Current folder"), content=surface, size_hint=(.9, .75))
+        up.bind(on_release=lambda *_: (setattr(self.ids.fc, "path", os.path.dirname(self.ids.fc.path)), popup.dismiss()))
+        close.bind(on_release=lambda *_: popup.dismiss())
+        popup.open()
+
+    def show_storage_access(self):
+        self._refresh_storage_status()
+        surface = DialogSurface(orientation="vertical", padding="12dp", spacing="8dp")
+        label = DialogLabel(text=self.storage_status)
+        self.bind(storage_status=lambda _widget, text: setattr(label, "text", text))
+        surface.add_widget(label)
+        actions = TouchActionRow()
+        grant, retry, close = (Button(text=tr._(text)) for text in ("Grant access", "Retry folder", "Close"))
+        for button in (grant, retry, close):
+            actions.add_widget(button)
+        surface.add_widget(actions)
+        popup = Popup(title=tr._("Storage access"), content=surface, size_hint=(.9, .75))
+        grant.bind(on_release=lambda *_: self.request_storage())
+        retry.bind(on_release=lambda *_: self.retry_storage())
+        close.bind(on_release=lambda *_: popup.dismiss())
+        popup.open()
+
+    def request_storage(self):
+        Window.release_all_keyboards()
+        Utils.request_android_permissions()
+
+    def retry_storage(self):
+        self._refresh_storage_status()
+        self.ids.fc._update_files()
+
+    def _resume_storage(self, *_args):
+        if self.get_root_window() is not None:
+            Clock.schedule_once(lambda _dt: self.retry_storage(), .1)
 
     def _on_dir_dropdown_select(self, _dropdown, path: str) -> None:
         self.ids.fc.path = path
@@ -94,6 +150,11 @@ if "LocalFilePickerSheet" not in Factory.classes:
 
 
 def home_directory() -> str:
+    if platform == "android":
+        app = App.get_running_app()
+        folder = os.path.join(app.user_data_dir, "exports")
+        os.makedirs(folder, exist_ok=True)
+        return folder
     try:
         home = os.path.expanduser("~")
         return home if os.path.isdir(home) else os.getcwd()

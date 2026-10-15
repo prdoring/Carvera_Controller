@@ -2316,6 +2316,8 @@
                 size_hint_x: None
                 width: '200dp'
 
+        DialogLabel:
+            text: tr._('Controller downloads and firmware installation are separate actions. Make a machine configuration backup from a desktop controller before firmware installation.') if app.android_touch else ''
         BoxLayout:
             padding: '5dp'
             spacing: '5dp'
@@ -2333,7 +2335,7 @@
                     text: tr._('Controller')
                     BoxLayout:
                         orientation: 'vertical'
-                        BoxLayout:
+                        TouchActionRow:
                             size_hint_y: None
                             height: app.touch_target if app.android_touch else dp(40)
                             padding: '5dp'
@@ -2381,7 +2383,7 @@
                     text: tr._('Firmware')
                     BoxLayout:
                         orientation: 'vertical'
-                        BoxLayout:
+                        TouchActionRow:
                             size_hint_y: None
                             height: app.touch_target if app.android_touch else dp(40)
                             padding: '5dp'
@@ -2431,7 +2433,7 @@
                             text: ''
                             font_size: '13sp'
 
-        BoxLayout:
+        TouchActionRow:
             spacing: '5dp'
             padding: '5dp'
             size_hint_y: None
@@ -3579,7 +3581,7 @@
     btn_apply: btn_apply
     BoxLayout:
         orientation: 'vertical'
-        BoxLayout:
+        TouchActionRow:
             size_hint_y: None
             height: app.touch_target if app.android_touch else dp(40)
             Label:
@@ -4050,7 +4052,7 @@
                                         spacing: '3dp'
                                         GridBoxLayout:
                                             Button:
-                                                text: app.jog_speed_text
+                                                text: app.jog_speed_text.replace(tr._('Jog Speed:'), tr._('Speed ')) if app.android_touch and app.compact_layout else app.jog_speed_text
                                                 id: jog_speed_btn
                                                 center: 0.5, 0.5
                                                 height: app.touch_target if app.android_touch else dp(35)
@@ -4060,20 +4062,20 @@
                                             Button:
                                                 id: jog_mode_btn
                                                 disabled: not (app.is_community_firmware and app.fw_version_digitized >= digitize_v("2.0.0"))
-                                                text: tr._('Jog Mode:Step')
+                                                text: app.jog_mode_text.replace(tr._('Jog Mode:'), tr._('Mode: ')) if app.android_touch and app.compact_layout else app.jog_mode_text
                                                 height: app.touch_target if app.android_touch else dp(35)
                                                 on_release: app.root.toggle_jog_mode()
                                         GridBoxLayout:
                                             TouchToggleButton:
                                                 id: kb_jog_btn
-                                                text: tr._('Keyboard Jogging')
+                                                text: tr._('Keyboard') if app.android_touch and app.compact_layout else tr._('Keyboard Jogging')
                                                 height: app.touch_target if app.android_touch else dp(35)
                                                 state: app.jog_keyboard_enable
                                                 on_release: app.root.toggle_keyboard_jog_control()
                                         GridBoxLayout:
                                             TouchToggleButton:
                                                 id: pendant_jogging_en_btn
-                                                text: app.jog_pendant_text
+                                                text: tr._('Pendant') if app.android_touch and app.compact_layout else app.jog_pendant_text
                                                 state: app.jog_pendant_enable
                                                 height: app.touch_target if app.android_touch else dp(35)
                                                 on_release: app.root.toggle_pendant_jog_control()

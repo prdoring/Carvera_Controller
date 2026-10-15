@@ -11,7 +11,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.config import Config
 from kivy.core.window import Window
-from kivy.metrics import dp
+from kivy.metrics import dp, sp
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -763,7 +763,7 @@ class GamepadBindingsPopup(Popup):
         scroll.add_widget(self._list_layout)
         root.add_widget(scroll)
 
-        btn_bar = BoxLayout(size_hint_y=None, height=dp(44), spacing=dp(10))
+        btn_bar = BoxLayout(size_hint_y=None, height=max(dp(48), sp(16) * 2 + dp(16)), spacing=dp(10))
 
         self._preset_spinner = Spinner(
             text=tr._("Load preset..."),
@@ -794,7 +794,7 @@ class GamepadBindingsPopup(Popup):
         label_text = tr._(gamepad_module.ACTION_LABELS.get(action, action))
         current = self._describe_binding(action)
 
-        row = BoxLayout(orientation="horizontal", size_hint_y=None, height=dp(36), spacing=dp(6))
+        row = BoxLayout(orientation="horizontal", size_hint_y=None, height=max(dp(64), sp(16) * 2 + dp(16)) if App.get_running_app().android_touch else dp(36), spacing=dp(6))
 
         name_lbl = Label(text=label_text, size_hint_x=0.35, halign="left", valign="middle")
         name_lbl.bind(size=lambda w, s: setattr(w, "text_size", s))
@@ -836,9 +836,13 @@ class GamepadBindingsPopup(Popup):
 
     def _start_listening(self, action: str, btn, binding_lbl) -> None:
         if self._listening_for is not None:
+            same = self._listening_for == action
             self._stop_listening()
+            if same:
+                return
 
         self._listening_for = action
+        self.title = tr._("Waiting for input — tap the waiting button to cancel")
         self._listen_btn = btn
         self._listen_label = binding_lbl
         btn.text = tr._("Waiting...")
@@ -849,6 +853,7 @@ class GamepadBindingsPopup(Popup):
         )
 
     def _stop_listening(self) -> None:
+        self.title = tr._("Gamepad bindings")
         Window.unbind(
             on_joy_axis=self._listen_axis,
             on_joy_button_down=self._listen_button,

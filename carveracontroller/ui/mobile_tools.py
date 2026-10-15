@@ -102,7 +102,7 @@ def select_panes(parent, first, second, first_title, second_title, compact):
                 if button is not _button:
                     button.state = "normal"
         if not any(button.state == "down" for button in buttons):
-            _button.state = "down"
+            (_button or buttons[0]).state = "down"
         cancel_jog()
         for button, pane in zip(buttons, (first, second)):
             visible = button.state == "down"
@@ -117,6 +117,11 @@ def select_panes(parent, first, second, first_title, second_title, compact):
         selectors.add_widget(button)
         buttons.append(button)
     parent.add_widget(selectors, index=max(0, len(parent.children) - 1))
+    def reflow(*_args):
+        if app.compact_layout and sum(button.state == "down" for button in buttons) > 1:
+            buttons[1].state = "normal"
+        apply()
+    app.bind(compact_layout=reflow)
     apply()
     return selectors
 
@@ -152,7 +157,7 @@ def prepare_tool_dialog(modal, app):
                 widget.bind(minimum_height=widget.setter("height"))
     elif name == "FacingWizardPopup":
         row = modal.ids.btn_generate_program.parent
-        compact_actions(modal, row, lambda button: button is modal.ids.btn_generate_program or getattr(button, "text", "") == tr._("Close"), app)
+        compact_actions(modal, row, lambda button: button == modal.ids.btn_generate_program or getattr(button, "text", "") == tr._("Close"), app)
         for panel in panels:
             for tab in panel.tab_list:
                 for widget in tab.content.walk():
@@ -231,8 +236,9 @@ def compact_features(modal, column, app):
 def prepare_jog_overlay(modal, app):
     modal._mobile_jog_ready = True
     buttons = {widget.text: widget for widget in modal.walk() if isinstance(widget, JogTouchButton)}
-    step_xy, step_a, step_z = (modal.ids[name] for name in ("scan_jog_step_xy", "scan_jog_step_a", "scan_jog_step_z"))
-    settings = [modal.ids[name] for name in ("jog_speed_btn_scan", "jog_mode_btn_scan", "kb_jog_btn_scan", "pendant_jog_btn_scan")]
+    # KV ids are weak proxies; retain the controls while replacing their parents.
+    step_xy, step_a, step_z = (modal.ids[name].__self__ for name in ("scan_jog_step_xy", "scan_jog_step_a", "scan_jog_step_z"))
+    settings = [modal.ids[name].__self__ for name in ("jog_speed_btn_scan", "jog_mode_btn_scan", "kb_jog_btn_scan", "pendant_jog_btn_scan")]
     for widget in list(buttons.values()) + [step_xy, step_a, step_z] + settings:
         widget.parent.remove_widget(widget)
         widget.size_hint = (1, 1)

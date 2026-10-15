@@ -5,27 +5,8 @@ from kivy.core.window import Window
 from kivy.metrics import Metrics, dp
 from kivy.uix.scrollview import ScrollView
 
-from carveracontroller.ui.android_layout import AndroidTouchLayout, DialogSurface, TouchActionRow
+from carveracontroller.ui.android_layout import DialogSurface, TouchActionRow
 from tests.integration.conftest import pump_frames
-
-
-@pytest.fixture
-def mobile(kivy_app):
-    app = kivy_app
-    original = (Window.size, Metrics.density, Metrics.fontscale, app.touch_target, app.android_touch)
-    app.android_touch = True
-    Metrics.density = 1
-    app.touch_target = 48
-    layout = AndroidTouchLayout(app)
-    app._touch_layout = layout
-    yield app, layout
-    for modal in list(layout.dialogs):
-        modal.dismiss(force=True, animation=False)
-    app.android_keyboard_height = 0
-    layout.stop()
-    app._touch_layout = None
-    Window.size, Metrics.density, Metrics.fontscale, app.touch_target, app.android_touch = original
-    pump_frames(3)
 
 
 def test_simulator_blocks_physical_connections_and_records_actions(kivy_app):
@@ -77,6 +58,80 @@ def test_large_text_choices_grow_instead_of_shrinking(mobile):
         row._columns()
         assert row.row_default_height >= dp(48)
         assert all(w.height >= dp(48) for w in row.children)
+
+
+def test_font_scale_can_grow_and_return_without_losing_a_draft(mobile):
+    app, layout = mobile
+    field = app.root.coord_popup.setx_popup.txt_offset
+    field.text = "-19.25"
+    layout.size_controls(field)
+    normal = field.font_size
+    Metrics.fontscale = 2
+    layout.size_controls(field)
+    assert field.font_size == pytest.approx(normal * 2)
+    Metrics.fontscale = 1
+    layout.size_controls(field)
+    assert field.font_size == pytest.approx(normal)
+    assert field.text == "-19.25"
+
+
+def test_interface_scale_notifies_existing_layouts(mobile, monkeypatch):
+    from kivy.config import Config
+
+    from carveracontroller import main
+
+    _, layout = mobile
+    old = Config.get("carvera", "android_ui_scale")
+    monkeypatch.setattr(main, "kivy_platform", "android")
+    monkeypatch.setenv("CARVERA_ANDROID_DENSITY", "1.5")
+    notifications = []
+    def changed(_metrics, value):
+        notifications.append(value)
+    Metrics.bind(density=changed)
+    try:
+        Config.set("carvera", "android_ui_scale", "1.5")
+        main.load_app_configs()
+        assert Metrics.density == pytest.approx(2.25)
+        assert notifications == [2.25]
+        layout.update()
+    finally:
+        Metrics.unbind(density=changed)
+        Config.set("carvera", "android_ui_scale", old)
+
+
+def test_reopened_modal_stays_above_keyboard_during_resize(mobile):
+    app, layout = mobile
+    modal = app.root.input_popup
+    for _ in range(4):
+        modal.open(animation=False)
+        pump_frames(3)
+        modal.dismiss(force=True, animation=False)
+    modal.open(animation=False)
+    pump_frames(5)
+    app.android_keyboard_height = Window.height * .45
+    layout.update()
+    Window.dispatch("on_resize", *Window.size)
+    pump_frames(5)
+    assert modal.y >= app.android_keyboard_height
+    assert modal.top <= Window.height + 1
+
+
+def test_switching_origin_tabs_prepares_the_new_content(mobile):
+    from kivy.uix.tabbedpanel import TabbedPanel
+
+    app, _ = mobile
+    popup = app.root.coord_popup.origin_popup
+    popup.open(animation=False)
+    pump_frames(5)
+    panel = next(widget for widget in popup.walk() if isinstance(widget, TabbedPanel))
+    for tab in panel.tab_list:
+        panel.switch_to(tab)
+        pump_frames(6)
+        surface = tab.content
+        assert isinstance(surface, DialogSurface)
+        assert surface._prepared
+        assert isinstance(surface.children[0], TouchActionRow)
+        assert isinstance(surface.children[-1], ScrollView)
 
 
 def test_wcs_preflights_every_draft_and_preserves_descriptions(mobile, monkeypatch):
@@ -146,6 +201,38 @@ def test_main_reflow_and_disclosures_keep_views_and_send_no_commands(mobile):
         main.stop()
 
 
+def test_large_text_main_controls_contain_their_labels(mobile):
+    from carveracontroller.ui.mobile_main import MobileMainLayout
+    from carveracontroller.ui.touch import JogTouchButton
+
+    app, layout = mobile
+    Window.size = (1536, 864)
+    Metrics.fontscale = 2
+    Metrics.density = 2.25
+    app.touch_target = 108
+    layout.update()
+    main = MobileMainLayout(app)
+    try:
+        pump_frames(12, sleep=.02)
+        main._control_sizes()
+        pump_frames(8)
+        summary = app.root._mobile_jog_summary
+        assert summary.height >= summary.texture_size[1]
+        assert app.root._mobile_action_groups[0].parent.parent.height >= app.touch_target
+        before = list(app.simulation.commands)
+        main.show_jog_settings()
+        pump_frames(8)
+        assert all(w.get_root_window() is Window for w in app.root._mobile_jog_buttons)
+        assert app.simulation.commands == before
+        for widget in app.root.walk():
+            if isinstance(widget, JogTouchButton):
+                _, y = widget.to_window(*widget.pos)
+                assert y >= app.root.ids.control_center.parent.y - 1
+                assert y + widget.height <= Window.height
+    finally:
+        main.stop()
+
+
 def test_compact_probing_chooser_keeps_lazy_settings_and_hides_collapsed_jog(mobile):
     from carveracontroller.addons.probing.ProbingPopup import DeferredProbeSettings, ProbingPopup
 
@@ -192,3 +279,34 @@ def test_cmm_full_session_save_state_and_facing_generation_feedback(mobile):
     facing._gcode_plain = "G1 X1"
     facing._mark_facing_gcode_stale_from_ui()
     assert "Out of date" in facing.program_state
+    facing.open(animation=False)
+    pump_frames(8)
+    assert facing.ids.btn_generate_program.parent is not None
+    assert facing.ids.btn_generate_program.get_root_window() is Window
+
+
+def test_cmm_jog_overlay_is_bounded_and_keeps_existing_controls(mobile):
+    from carveracontroller.ui.touch import JogTouchButton
+
+    app, layout = mobile
+    Window.size = (640, 384)
+    cmm = app.root._ensure_cmm_workbench_popup()
+    cmm.open(animation=False)
+    pump_frames(5)
+    cmm.open_jog_popup()
+    pump_frames(10)
+    layout.update()
+    modal = cmm._jog_popup
+    assert modal._mobile_jog_ready
+    assert modal.y >= 0
+    assert modal.top <= Window.height
+    buttons = [w for w in modal.walk() if isinstance(w, JogTouchButton)]
+    assert len(buttons) == 8
+    for widget in buttons:
+        x, y = widget.to_window(*widget.pos)
+        assert x >= modal.x
+        assert x + widget.width <= modal.right + 1
+        assert y >= modal.y
+        assert y + widget.height <= modal.top + 1
+        assert widget.width >= app.touch_target
+        assert widget.height >= app.touch_target

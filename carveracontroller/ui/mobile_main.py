@@ -23,8 +23,11 @@ class MobileMainLayout:
         self.compact = None
         self.details = None
         self._control_prepared = False
+        self._control_sizes = Clock.create_trigger(self._size_control_groups, 0)
+        self._control_buttons = []
         app.bind(compact_layout=self.update, state=self.refresh, machine_units=self.refresh,
-                 has_4axis=self.update)
+                 has_4axis=self.update, jog_mode_text=self.refresh, jog_speed_text=self.refresh,
+                 jog_controls_enabled=self.refresh)
         self.root.coord_system_data_view.bind(main_text=self.refresh)
         self.root.content.bind(current=self.refresh)
         app.bind(android_keyboard_height=self._keyboard)
@@ -56,12 +59,12 @@ class MobileMainLayout:
             return
         self._prepare_control()
         self.bar.orientation = "vertical"
-        coord_height = max(dp(64), sp(18) * 2 + dp(20))
+        coord_height = max(self.app.touch_target, sp(23) + dp(12))
         context = TouchActionRow(spacing=dp(6))
-        context.bind(height=lambda _widget, height: setattr(self.bar, "height", coord_height + height + dp(12)))
+        context.bind(height=self._keyboard)
         self.context_label = Button(font_size=sp(16))
         self.context_label.bind(on_release=lambda button: self.root.status_drop_down.open(button))
-        details = Button(text=tr._("Machine / overrides"))
+        details = Button(text=tr._("Details"))
         details.bind(on_release=self.show_details)
         page = Button(text=tr._("Control / Files"))
         page.bind(on_release=lambda *_: setattr(self.root.content, "current", "File" if self.root.content.current == "Control" else "Control"))
@@ -91,6 +94,8 @@ class MobileMainLayout:
     def _metrics(self, *_args):
         self._key = None
         self.update()
+        if hasattr(self.root, "_mobile_action_groups"):
+            self._size_control_groups()
 
     def _keyboard(self, *_args):
         if not self.compact or not hasattr(self, "coordinate_row"):
@@ -103,8 +108,13 @@ class MobileMainLayout:
         self.bar.height = self.coordinate_row.height + self._context_row.height + dp(12)
 
     def refresh(self, *_args):
+        if hasattr(self.root, "_mobile_jog_summary"):
+            mode = self.app.jog_mode_text.replace(tr._("Jog Mode:"), "")
+            speed = self.app.jog_speed_text.replace(tr._("Jog Speed:"), "")
+            self.root._mobile_jog_summary.text = tr._("Jog settings") + f"\n{mode} · {speed}"
+            self.root._mobile_jog_summary.disabled = not self.app.jog_controls_enabled
         if self.compact:
-            self.context_label.text = f"{self.app.state} · {tr._('Work')} {self.app.machine_units}\n{self.root.coord_system_data_view.main_text}"
+            self.context_label.text = f"{self.app.state} {self.app.machine_units}\n{self.root.coord_system_data_view.main_text} · {tr._('Work')}"
             self.page_button.text = tr._("Files ›") if self.root.content.current == "Control" else tr._("‹ Control")
 
     def show_details(self, *_args):
@@ -143,6 +153,7 @@ class MobileMainLayout:
 
     def _prepare_control(self):
         if getattr(self.root, "_mobile_control_prepared", False):
+            self._bind_control_sizes()
             return
         self.root._mobile_control_prepared = True
         center = self.root.ids.control_center
@@ -158,16 +169,70 @@ class MobileMainLayout:
             content.add_widget(group)
         scroll.add_widget(content)
         center.add_widget(scroll)
-        jog = groups[-1]
-        jog.size_hint_y = None
-        jog.size_hint_min_y = 0
-        jog.height = 2 * (self.app.touch_target + dp(12)) + dp(12)
-        center.add_widget(jog)
+        self.root._mobile_jog_buttons = [w for w in groups[-1].walk() if isinstance(w, Button)]
+        for button in self.root._mobile_jog_buttons:
+            button.parent.remove_widget(button)
+        summary = Button(size_hint_y=None, font_size=sp(16))
+        summary.bind(on_release=self.show_jog_settings, texture_size=self._control_sizes)
+        self.root._mobile_jog_summary = summary
+        center.add_widget(summary)
+        self.root._mobile_action_groups = groups
+        self._bind_control_sizes()
+        self._size_control_groups()
+
+    def _bind_control_sizes(self):
+        self.root._mobile_jog_summary.bind(on_release=self.show_jog_settings, texture_size=self._control_sizes)
+        for group in self.root._mobile_action_groups:
+            for button in group.walk():
+                if isinstance(button, Button) and button not in self._control_buttons:
+                    button.bind(text=self._control_sizes, texture_size=self._control_sizes)
+                    self._control_buttons.append(button)
+        self._control_sizes()
+
+    def show_jog_settings(self, *_args):
+        from .touch import cancel_jog
+
+        cancel_jog()
+        surface = DialogSurface(orientation="vertical", padding=dp(12), spacing=dp(8))
+        choices = TouchActionRow(stacked=True, spacing=dp(8))
+        def availability(*_args):
+            choices.disabled = not self.app.jog_controls_enabled
+        availability()
+        self.app.bind(jog_controls_enabled=availability)
+        for button in self.root._mobile_jog_buttons:
+            if button.parent is not None:
+                button.parent.remove_widget(button)
+            choices.add_widget(button)
+        surface.add_widget(choices)
+        footer = TouchActionRow()
+        close = Button(text=tr._("Close"))
+        footer.add_widget(close)
+        surface.add_widget(footer)
+        sheet = Popup(title=tr._("Jog settings"), content=surface, size_hint=(.85, .9))
+        sheet.bind(on_dismiss=lambda *_: self.app.unbind(jog_controls_enabled=availability))
+        close.bind(on_release=lambda *_: sheet.dismiss())
+        sheet.open()
+
+    def _size_control_groups(self, *_args):
+        target = max(self.app.touch_target, sp(16) * 2 + dp(16))
+        groups = self.root._mobile_action_groups
+        for group, rows in zip(groups[:-1], (1, 4)):
+            natural = max([target] + [button.texture_size[1] + dp(16) for button in group.walk() if isinstance(button, Button)])
+            group.height = rows * (natural + dp(12)) + dp(24)
+        self.root._mobile_jog_summary.height = max(target, self.root._mobile_jog_summary.texture_size[1] + dp(16))
+        for button in self._control_buttons:
+            button.size_hint_y = 1
 
     def stop(self):
+        self._control_sizes.cancel()
+        if hasattr(self.root, "_mobile_jog_summary"):
+            self.root._mobile_jog_summary.unbind(on_release=self.show_jog_settings, texture_size=self._control_sizes)
+        for button in self._control_buttons:
+            button.unbind(text=self._control_sizes, texture_size=self._control_sizes)
         self._stop_refresh()
         self.app.unbind(compact_layout=self.update, state=self.refresh, machine_units=self.refresh,
-                        has_4axis=self.update)
+                        has_4axis=self.update, jog_mode_text=self.refresh, jog_speed_text=self.refresh,
+                        jog_controls_enabled=self.refresh)
         self.root.coord_system_data_view.unbind(main_text=self.refresh)
         self.root.content.unbind(current=self.refresh)
         self.app.unbind(android_keyboard_height=self._keyboard)

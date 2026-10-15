@@ -1,6 +1,6 @@
 """Integration test fixtures for Kivy app testing.
 
-Provides a session-scoped fixture that boots the full MakeraApp with mocked
+Provides a package-scoped fixture that boots the full MakeraApp with mocked
 hardware, plus helpers for screenshot capture and comparison.
 """
 
@@ -35,6 +35,32 @@ from kivy.clock import Clock
 
 REFERENCE_DIR = os.path.join(os.path.dirname(__file__), "reference")
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
+
+
+@pytest.fixture
+def mobile(kivy_app):
+    from kivy.core.window import Window
+    from kivy.metrics import Metrics
+
+    from carveracontroller.ui.android_layout import AndroidTouchLayout
+
+    app = kivy_app
+    original = (Window.size, Metrics.density, Metrics.fontscale, app.touch_target, app.android_touch)
+    app.android_touch = True
+    Metrics.density = 1
+    app.touch_target = 48
+    layout = AndroidTouchLayout(app)
+    app._touch_layout = layout
+    try:
+        yield app, layout
+    finally:
+        for modal in list(layout.dialogs):
+            modal.dismiss(force=True, animation=False)
+        app.android_keyboard_height = 0
+        layout.stop()
+        app._touch_layout = None
+        Window.size, Metrics.density, Metrics.fontscale, app.touch_target, app.android_touch = original
+        pump_frames(3)
 
 
 def pump_frames(count=10, sleep=0):
@@ -160,7 +186,7 @@ def update_references(request):
     return request.config.getoption("--update-references")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="package")
 def kivy_app():
     """Boot the full MakeraApp with mocked hardware.
 
@@ -168,6 +194,9 @@ def kivy_app():
     app.run(), which would block forever in the Kivy event loop. Instead we
     use _run_prepare() to build the widget tree and manually pump frames.
     """
+    from kivy.lang import Builder
+
+    builder_files = set(Builder.files)
     import carveracontroller.main as main_module
     from carveracontroller import translation
     from carveracontroller.main import (
@@ -202,25 +231,28 @@ def kivy_app():
     EventLoop.ensure_window()
     app = MakeraApp()
     app.simulation = simulation
-    app._run_prepare()
+    app._user_data_dir = os.path.join(_kivy_home, "app")
+    os.makedirs(app._user_data_dir, exist_ok=True)
+    try:
+        app._run_prepare()
 
-    # Disable screen transition animations so page switches are instant
-    from kivy.uix.screenmanager import NoTransition
+        # Disable screen transition animations so page switches are instant
+        from kivy.uix.screenmanager import NoTransition
 
-    app.root.content.transition = NoTransition()
-    app.root.cmd_manager.transition = NoTransition()
+        app.root.content.transition = NoTransition()
+        app.root.cmd_manager.transition = NoTransition()
 
-    # Let the UI settle with real elapsed time so timed callbacks complete
-    # (blink_state @ 0.5s, viewport updates @ 0.25s, etc.)
-    pump_frames(60, sleep=0.05)  # 60 frames * 50ms = ~3 seconds
+        # Let the UI settle with real elapsed time so timed callbacks complete
+        # (blink_state @ 0.5s, viewport updates @ 0.25s, etc.)
+        pump_frames(60, sleep=0.05)  # 60 frames * 50ms = ~3 seconds
 
-    yield app
-
-    # Teardown: stop background threads and close the event loop
-    app.root.stop.set()  # signals monitorSerial to exit
-    app.stop()
-    EventLoop.close()
-    simulation.close()
-
-    # Clean up temp Kivy home
-    shutil.rmtree(_kivy_home, ignore_errors=True)
+        yield app
+    finally:
+        if app.root is not None:
+            app.root.stop.set()
+            app.stop()
+        EventLoop.close()
+        simulation.close()
+        for filename in set(Builder.files) - builder_files:
+            Builder.unload_file(filename)
+        shutil.rmtree(_kivy_home, ignore_errors=True)

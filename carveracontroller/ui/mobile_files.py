@@ -1,5 +1,7 @@
 """File actions and destinations with the existing controller callbacks."""
 
+from kivy.app import App
+from kivy.core.window import Window
 from kivy.metrics import dp, sp
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
@@ -7,6 +9,7 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 
+from carveracontroller import Utils
 from carveracontroller.translation import tr
 
 from .android_layout import DialogLabel, DialogSurface, TouchActionRow
@@ -16,6 +19,12 @@ def prepare_file_browser(popup):
     if getattr(popup, "_mobile_files_ready", False):
         return
     popup._mobile_files_ready = True
+    def connection_state(_app, state):
+        if state in ("N/A", "Wait"):
+            popup.remote_rv.directory_failed(tr._("Mill disconnected. Connect, then retry this folder."))
+    app = App.get_running_app()
+    app.bind(state=connection_state)
+    connection_state(app, app.state)
     remote = popup.btn_rename.parent
     local = popup.btn_view.parent
     for header, title in ((remote, tr._("On the mill")), (local, tr._("On this device"))):
@@ -87,10 +96,26 @@ def prepare_file_browser(popup):
             actions = TouchActionRow()
             up, close = Button(text=tr._("Parent folder")), Button(text=tr._("Close"))
             actions.add_widget(up)
+            retry = Button(text=tr._("Retry folder"))
+            actions.add_widget(retry)
+            retry.bind(on_release=lambda *_: view.list_dir())
+            if view is popup.local_rv:
+                status = DialogLabel(text=tr._("Storage access is granted.") if Utils.has_all_files_access()
+                                     else tr._("To use shared folders, grant storage access, then retry. Your folder and selection stay here."))
+                surface.add_widget(status)
+                grant = Button(text=tr._("Grant access"))
+                actions.add_widget(grant)
+                grant.bind(on_release=lambda *_: (Window.release_all_keyboards(), Utils.request_android_permissions()))
             actions.add_widget(close)
             surface.add_widget(actions)
             dialog = Popup(title=tr._("Current folder"), content=surface, size_hint=(.9, .8))
             up.bind(on_release=lambda *_: (dialog.dismiss(), view.parent_dir()))
             close.bind(on_release=lambda *_: dialog.dismiss())
+            def resume(*_args):
+                if view is popup.local_rv:
+                    status.text = tr._("Storage access is granted. Retry the folder.") if Utils.has_all_files_access() else tr._("Storage access is still denied. Grant access or choose another folder.")
+            app = App.get_running_app()
+            app.bind(on_resume=resume)
+            dialog.bind(on_dismiss=lambda *_: app.unbind(on_resume=resume))
             dialog.open()
         path.bind(on_release=show_path)

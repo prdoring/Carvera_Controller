@@ -11,8 +11,9 @@ Unrelated USB work was present in the checkout and was preserved.
 
 Related report: [Android touch support audit](android-touch-audit.md).
 
-Status: audit complete. UI implementation, live mobile testing, and physical
-machine validation remain outstanding.
+Status: the original audit is complete. Landscape implementation and local
+Android verification are recorded below. Pi and physical machine acceptance
+remain pending the user's release of the device.
 
 ## Main conclusion
 
@@ -687,3 +688,155 @@ Facing presents fields before optional help/sketch/program output and labels
 missing, current and stale generation states. Local widget checks cover
 operation selection, deferred panels and save-state changes. Physical probe
 and jog acceptance remains pending.
+
+### Final landscape changes
+
+Settings now retains its existing panels and staged values, with a compact
+category selector, search, and values beneath descriptions. Search hides rows
+without removing their pending values. Text, numeric, option, color and macro
+editors share bounded bodies and reachable actions. Diagnostic controls are
+grouped as outputs and inputs; explanatory text scrolls with the controls.
+Gamepad binding rows are larger and the waiting button cancels input capture.
+
+Storage access opens only from an explicit action. The folder and filename
+remain in their existing widgets through permission denial and return. Retry
+reloads the same destination. Android save dialogs start in writable private
+Controller files; Android's `/data` home directory is inaccessible to the app.
+Shared storage remains available through explicit shortcuts and access grants.
+Directory reads run in a worker and stale
+responses cannot replace a newer folder request. Failed machine backups no
+longer display an unconditional success message.
+
+Display and font changes notify the retained layouts. Action rows reserve
+space for their padding and gaps before choosing how many buttons fit. Reused
+dialogs remove all repeated Kivy centering handlers so reopening and resizing
+cannot recenter them behind the keyboard. The compact main page keeps mode and
+speed in a Jog settings summary; its four existing settings open in a bounded
+panel. Motion buttons remain outside scroll views.
+
+### Finding reconciliation
+
+Implemented below means the code and local checks exist. It does not mean
+physical machine or Pi acceptance is complete. Native document APIs, portrait
+layouts, screen-reader support and a navigation redesign are outside this change.
+
+| Finding | Current implementation | Evidence and remaining acceptance |
+| --- | --- | --- |
+| UX-01 | Layout depends on usable landscape size, interface scale and font scale; existing editors are retained | Widget reflow tests and Android 16 size captures; device resizing/insets pending |
+| UX-02 | Compact status, Work coordinates, WCS and units; machine details and overrides open separately | Main-page captures and no-command reflow regression; real status/capability combinations pending |
+| UX-03 | Menu and Control/Files destinations have visible names | Native and local captures; long translations need further review |
+| UX-04 | Primary jog controls remain separate from scrolling actions; mode/speed remain visible above the jog settings panel | Large-text bounds and disclosure tests; user motion check pending |
+| UX-05 | Config and Run retains one dialog, scrolling options and an optional illustration | Small-screen renders and keyboard bounds tests; actual job setup pending |
+| UX-06 | Consequential choices have full wording, bounded bodies and fixed actions | Actual widget target/bounds tests and native unlock captures |
+| UX-07 | Existing selection and confirmations retained; device/mill destinations and Preview/Upload/Upload and Select are explicit | Native file captures; real transfers and storage media pending |
+| UX-08 | Preview, lines, console, legend and supported camera panes can collapse without replacing their widgets | Retained-view/no-command test; real camera pending |
+| UX-09 | Larger MDI editor, touch history that fills without sending, send status and retained unsent drafts | MDI unit tests; native keyboard checks; command execution intentionally simulated |
+| UX-10 | Compact WCS cards; validate the entire numeric draft before sending; retain drafts on partial sends; descriptions still save immediately | Numeric, partial-send and repeated reflow tests; real G10 effects pending |
+| UX-11 | Existing probing tabs gain an operation selector; parameters and units are readable; jog controls can replace the compact form | Deferred-panel, selector and hide/show tests; all operation/capability variants need device review |
+| UX-12 | Explicit CMM Cancel probe; invalidate results, preserve abort, require a newer stopped status | Early/late/disconnected/duplicate cancellation tests; physical stop validation pending |
+| UX-13 | Retained capture and feature panes, separate sketch/construction views, bounded jog overlay, full-session save state | Widget bounds, session state and gesture regressions; real capture/save workflow pending |
+| UX-14 | Four facing tabs retained; fields precede optional help/preview; missing/current/stale output is named | Native/local captures and stale-state tests; generated toolpath checks remain covered by the existing suite |
+| UX-15 | Compact categories, search, stacked values and bounded editors retain staged changes | Hidden-row/apply inventory and field validation tests; real settings Apply pending |
+| UX-16 | Grouped diagnostics and larger gamepad rows with explicit capture cancellation | Dialog opens without commands; physical diagnostic/gamepad input pending |
+| UX-17 | Explicit storage access and retry; retain picker drafts; distinguish JSON session saves from clipboard/partial exports | Local state tests and emulator permission round trip; Pi media and iOS remain unverified |
+| UX-18 | Readable scalable text, wrapping actions and native-density target sizing | 100–200% text and interface-size captures; no claim that every extreme size/scale combination or translation is accepted |
+| UX-19 | Bounded message/reconnect/progress details, fixed actions and update/backup explanation; backup errors report failure | Repeated-dialog, keyboard and viewport tests; real disconnect/update/install recovery pending |
+
+### Local validation and limits
+
+All automated application tests replace USB, serial, discovery, Wi-Fi,
+reconnection and pendant access before constructing the application. Unexpected
+connection attempts raise an error; commands are recorded. Background file
+loading and calculations still run. Test cleanup restores transport patches
+and removes application KV rules before the unit tests run.
+
+The complete local suite passed 400 tests; 15 existing screenshot comparisons
+were skipped because their reference images are absent. There is one existing
+locale deprecation warning. The additional late-capability-row regression
+passed with the settings checks. Changed UI modules passed Ruff and the diff
+passed whitespace checks. Screenshot review was performed separately from
+the skipped comparisons.
+
+The dedicated Android 16/API 36 x86_64 emulator uses a separate simulation
+package and data directory. It uses Kivy 2.3.1, the same SDL patches and Java
+bridge as the arm64 build. It was the sole target of every Android command.
+No device discovery command, Pi connection, Pi install or mill operation was
+used. The emulator uses software graphics and displayed a System UI timeout
+during initial setup; its startup and timing behavior are not Pi measurements.
+
+Rendered native checks cover 800×480 and 1024×600 at density 1, and
+1920×1080 at density 1.5. The enlarged Pi-size case uses interface size 150%
+(effective density 2.25) and Android text size 200%. Local widget tests also
+exercise desktop size, repeated resize/open/close, larger text, long messages,
+keyboard-visible actions and retained numeric drafts. These are representative
+cases, not an exhaustive Cartesian product of screen sizes, translations,
+fonts and capabilities. Very short windows with both maximum interface and
+text scaling still require further device review.
+
+The packaged Android keyboard was checked with exact G-code, signed decimals,
+and three Back/hide/reopen cycles. The real IME backspace key deleted exactly
+one character each time; the numeric keyboard exposed minus and decimal keys.
+Keyboard-visible field and confirmation bounds were captured. Pi keyboard,
+touchscreen, Back, permission and lifecycle checks remain pending.
+
+Before/after profiling used the 3ef91ef touch checkpoint and the landscape
+changes on the local Windows host with isolated transports. Forty synthetic
+presses measured Kivy motion dispatch to the next frame flip, excluding OS and
+hardware input latency. A 10,000-line file exercised the existing background
+loader and main-thread graphics upload. Shared host load and a single run per
+revision limit the comparison:
+
+| Measurement | Before | Landscape run |
+| --- | ---: | ---: |
+| Press feedback p95 | 18.8 ms | 26.6 ms |
+| Worst press feedback | 19.4 ms | 31.7 ms |
+| Presses over 100 ms | 0/40 | 0/40 |
+| Popup opening plus two event-loop frames, p95 | 62.9 ms | 76.6 ms |
+| 10,000-line preview including fixed settling waits | 4.13 s | 4.36 s |
+| Heavy-preview frame interval p95 / maximum | 54.6 / 393.7 ms | 53.9 / 426.8 ms |
+
+The p95 press target passed locally. An earlier landscape run had one 399.7 ms
+press outlier and a 644.6 ms preview frame. The final local run has no press
+over 100 ms, but still has preview stalls. These changes do not establish a
+speed improvement or eliminate graphics stalls. Repeat profiling on the Pi
+after release and record native
+keyboard, scrolling and large-file behavior separately.
+
+### Device handoff
+
+Production release target is 2.2.0.9/code 20209, with the existing package,
+signer, launcher and manual startup. Build and signature records are retained
+with the local APK artifacts. The arm64 APK passed signature verification and
+contains the same displayed version. Its identity is
+`org.carveracommunity.carveracontrollercommunity`, with launcher
+`org.kivy.android.PythonActivity`. Verification fingerprints:
+
+- APK SHA-256: `8d572c7b21e8523e79aa17172cc071c2f288a51d45328743a24149a49ae93e0a`.
+- Signer SHA-256: `3fa52c8e90aa60a0b41d2784dbf07897427e11c59650c92cee7c5e1993c6a877`.
+- Saved 2.2.0.8 rollback APK SHA-256: `be711dc1c5b698938e08a67b07b0bf2e64badd538477c8e1bc847e7d12b154a4`, verified against the earlier record.
+
+Before replacement, take a fresh user-data
+backup and verify the rollback APK. Bootstrap extraction must finish before
+restoring user files; never overwrite `private.version`, `libpybundle.version`
+or extracted runtime files with older copies.
+
+After the user releases the device, verify settings and user files, displayed
+and package versions, one installed controller, USB reconnection, native Back
+and keyboard behavior, storage denial/retry, enlarged layouts and responsiveness.
+The user operates required jogging and probe cancellation checks. Record the
+actual firmware and effective configuration, including observed stop behavior.
+Device-dependent acceptance remains open until those checks pass.
+
+Verified native examples use the isolated simulation package. Controls are
+disabled because it has no machine connection:
+
+- [800×480 Control](mobile-ux-verified/control-800.png).
+- [800×480 Config and Run](mobile-ux-verified/job-800.png).
+- [800×480 Settings](mobile-ux-verified/settings-800.png).
+- [800×480 Facing](mobile-ux-verified/facing-800.png).
+- [1920×1080 native keyboard with reachable actions](mobile-ux-verified/keyboard-1920.png).
+
+The verified APK is retained locally as
+`C:\Users\prdor\.codex\visualizations\2026\10\14\01a13c63-1a6c-7c50-8bda-d425aba59926\controller-2.2.0.9-android-landscape.apk`.
+The same directory contains `mobile-release.json`, signature/build logs, native
+captures and timing measurements. Installation and fresh Pi backups are pending.
