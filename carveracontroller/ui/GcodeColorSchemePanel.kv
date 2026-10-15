@@ -6,9 +6,9 @@
     orientation: 'vertical'
     size_hint: None, None
     width: dp(270)
-    height: 0 if not app.show_gcode_ctl_bar else (HEADER_HEIGHT + PANEL_BOTTOM_PADDING + legend_scroll.height)
-    opacity: 1 if app.show_gcode_ctl_bar else 0
-    disabled: not app.show_gcode_ctl_bar or (app.selected_remote_filename == '' and app.selected_local_filename == '')
+    height: 0 if not app.show_gcode_ctl_bar or (app.android_touch and not app.show_legend) else (HEADER_HEIGHT + PANEL_BOTTOM_PADDING + legend_scroll.height)
+    opacity: 1 if app.show_gcode_ctl_bar and (not app.android_touch or app.show_legend) else 0
+    disabled: not app.show_gcode_ctl_bar or (app.android_touch and not app.show_legend) or (app.selected_remote_filename == '' and app.selected_local_filename == '')
     pos_hint: {'right': 1.0, 'top': 1.0}
     padding: 0, 0, 0, dp(6)
     spacing: 0

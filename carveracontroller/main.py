@@ -338,6 +338,30 @@ class MDITextInput(TextInput):
         else:
             Window.unbind(on_key_down=self.on_keyboard_down)
 
+    def show_touch_history(self):
+        from .ui.android_layout import DialogLabel, DialogSurface, TouchActionRow
+
+        surface = DialogSurface(orientation="vertical", padding=dp(12), spacing=dp(8))
+        popup = Popup(title=tr._("Command history — tap to edit"), content=surface, size_hint=(.9, .85))
+        if not self.past_mdi_commands:
+            surface.add_widget(DialogLabel(text=tr._("No commands sent in this session.")))
+        for command in reversed(self.past_mdi_commands[-50:]):
+            if not command.strip():
+                continue
+            button = Button(text=command, size_hint_y=None, height=dp(64), text_size=(dp(600), None))
+            def choose(_button, value=command):
+                self.text = value
+                popup.dismiss()
+                self.focus = True
+            button.bind(on_release=choose)
+            surface.add_widget(button)
+        footer = TouchActionRow()
+        close = Button(text=tr._("Close"))
+        close.bind(on_release=lambda *_: popup.dismiss())
+        footer.add_widget(close)
+        surface.add_widget(footer)
+        popup.open()
+
     def on_keyboard_down(self, window, key, scancode, codepoint, modifiers):
         ENTER_KEY = 13
         UP_ARROW_KEY = 273
@@ -1083,6 +1107,12 @@ class AutoLevelPopup(ModalView):
 
 
 class FilePopup(ModalView):
+    def on_open(self):
+        if App.get_running_app().android_touch:
+            from .ui.mobile_files import prepare_file_browser
+
+            prepare_file_browser(self)
+
     firmware_mode = BooleanProperty(False)
 
     def __init__(self, **kwargs):
@@ -1891,7 +1921,16 @@ class CoordinateSystemDropDown(ToolTipDropDown):
 
 
 class FuncDropDown(ToolTipDropDown):
-    pass
+    def open(self, widget, *args, **kwargs):
+        if App.get_running_app().android_touch:
+            self.auto_width = False
+            self.width = min(Window.width - dp(16), dp(340))
+            self.max_height = Window.height * .85
+            for item in self.container.children:
+                if hasattr(item, "tooltip_txt"):
+                    item.text = item.tooltip_txt
+                    item.size_hint_x = 1
+        return super().open(widget, *args, **kwargs)
 
 
 class StatusDropDown(ToolTipDropDown):
@@ -1962,7 +2001,7 @@ class CNCWorkspace(Widget):
         self.draw()
 
     def draw(self, *args):
-        if self.x <= 100:
+        if self.x <= 100 or self.width <= 1 or self.height <= 1 or "origin" not in self.config:
             return
         self.canvas.clear()
         zoom = self.width / CNC.vars["worksize_x"]
@@ -2522,6 +2561,7 @@ class SelectableBoxLayout(TapBehavior, RecycleDataViewBehavior, BoxLayout):
 # Data Recycle View
 # -----------------------------------------------------------------------
 class DataRV(RecycleView):
+    browser_state = StringProperty("")
     curr_dir = ""
     curr_dir_name = StringProperty("")
 
@@ -2676,7 +2716,7 @@ class DataRV(RecycleView):
                 )
             except IndexError:
                 logger.error("Tried to write to recycle view data at same time as reading, ignore (indexError)")
-        # trigger
+        self.browser_state = "" if self.data else tr._("No matching files") if keyword else tr._("This folder is empty")
         self.dispatch("on_select")
 
     def goto_path(self, index):
@@ -2732,6 +2772,7 @@ class RemoteRV(DataRV):
 
         self.clear_selection()
         self.curr_file_list_buff = []
+        self.browser_state = tr._("Loading files from the mill…")
 
         app = App.get_running_app()
         threading.Thread(target=app.root.loadRemoteDir, args=(new_dir,), daemon=True).start()
@@ -2767,49 +2808,47 @@ class LocalRV(DataRV):
 
     # -----------------------------------------------------------------------
     def list_dir(self, new_dir=None):
-        if new_dir == None:
-            new_dir = self.curr_dir
+        from concurrent.futures import ThreadPoolExecutor
 
-        if not new_dir.endswith(os.path.sep):
-            new_dir += os.path.sep
+        new_dir = os.path.normpath(new_dir or self.curr_dir)
+        self._directory_request = getattr(self, "_directory_request", 0) + 1
+        request = self._directory_request
+        self.browser_state = tr._("Loading files on this device…")
+        self.clear_selection()
+        if not hasattr(self, "_directory_worker"):
+            self._directory_worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="local-files")
 
-        self.curr_file_list_buff = []
-        for dirpath, dirnames, filenames in os.walk(new_dir):
-            for dirname in dirnames:
-                if not dirname.startswith("."):
-                    file_time = 0
-                    file_path = os.path.join(new_dir, dirname)
-                    try:
-                        file_time = os.stat(file_path).st_mtime
-                    except:
+        def read_directory():
+            files = []
+            with os.scandir(new_dir) as entries:
+                for entry in entries:
+                    if entry.name.startswith("."):
                         continue
-                    self.curr_file_list_buff.append(
-                        {"name": dirname, "path": file_path, "is_dir": True, "size": 0, "date": file_time}
-                    )
-            for filename in filenames:
-                if not filename.startswith("."):
-                    file_size = 0
-                    file_time = 0
-                    file_path = os.path.join(new_dir, filename)
                     try:
-                        file_size = os.stat(file_path).st_size
-                        file_time = os.stat(file_path).st_mtime
-                    except:
+                        stat = entry.stat()
+                        files.append({"name": entry.name, "path": entry.path, "is_dir": entry.is_dir(),
+                                      "size": stat.st_size, "date": stat.st_mtime})
+                    except OSError:
                         continue
-                    self.curr_file_list_buff.append(
-                        {"name": filename, "path": file_path, "is_dir": False, "size": file_size, "date": file_time}
-                    )
-            break
+            return files
 
-        self.fill_dir(switch_reverse=False)
-
-        self.curr_dir = os.path.normpath(new_dir)
-        self.curr_full_path_list, path_labels = Utils.directory_breadcrumb_paths(
-            self.curr_dir,
-            root_label_markers=(self.base_dir,),
-        )
-        self.curr_path_list = path_labels
-        self.curr_dir_name = path_labels[-1] if path_labels else ""
+        def loaded(future):
+            def apply(_dt):
+                if request != self._directory_request:
+                    return
+                try:
+                    files = future.result()
+                except OSError as error:
+                    self.browser_state = tr._("Cannot access this folder:") + " " + str(error)
+                    return
+                self.curr_file_list_buff = files
+                self.curr_dir = new_dir
+                self.curr_full_path_list, labels = Utils.directory_breadcrumb_paths(new_dir, root_label_markers=(self.base_dir,))
+                self.curr_path_list = labels
+                self.curr_dir_name = labels[-1] if labels else ""
+                self.fill_dir(switch_reverse=False)
+            Clock.schedule_once(apply, 0)
+        self._directory_worker.submit(read_directory).add_done_callback(loaded)
 
     def on_double_tap(self):
         app = App.get_running_app()
@@ -5988,6 +6027,8 @@ class Makera(RelativeLayout):
             if app is None:
                 return
 
+            app.machine_units = "inch" if CNC.vars.get("inch_mode") == 1 else "mm"
+
             # Clear the comms-wait overlay. Machine state itself was never changed.
             if self.comms_waiting:
                 self.comms_waiting = 0
@@ -8249,7 +8290,11 @@ class Makera(RelativeLayout):
                             "color": (250 / 255, 105 / 255, 102 / 255, 1),
                         }
                     )
-                self.controller.executeCommand(sanitized_to_send)
+                accepted = self.controller.executeCommand(sanitized_to_send)
+                self._append_to_mdi([{"text": tr._("Command sent; awaiting machine response.") if accepted else tr._("Command was not sent. Check the connection."),
+                                      "color": (0.7, 0.8, 0.9, 1)}], log_to_mdi_data=False)
+                if accepted is False:
+                    return
         self.manual_cmd.text = ""
         Clock.schedule_once(self.refocus_cmd)
 
@@ -8312,6 +8357,10 @@ class MakeraApp(App):
     safe_area_padding = ListProperty([0, 0, 0, 0])
     android_touch = BooleanProperty(kivy_platform == "android")
     compact_layout = BooleanProperty(False)
+    machine_units = StringProperty("mm")
+    show_preview = BooleanProperty(True)
+    show_lines = BooleanProperty(True)
+    show_legend = BooleanProperty(False)
     touch_target = NumericProperty(48 * float(os.environ.get("CARVERA_ANDROID_DENSITY", "1")))
     _touch_layout = None
     android_keyboard_height = NumericProperty(0)
@@ -8328,6 +8377,8 @@ class MakeraApp(App):
         if getattr(self.root, "_settings_sender", None) is not None:
             self.root._settings_sender.cancel(notify=False)
 
+        if getattr(self, "_mobile_main", None) is not None:
+            self._mobile_main.stop()
         if self._touch_layout is not None:
             self._touch_layout.stop()
         if self._android_input is not None:
@@ -8384,6 +8435,10 @@ class MakeraApp(App):
 
             self.touch_target = max(self.touch_target, dp(48))
             self._touch_layout = AndroidTouchLayout(self)
+            from .ui.mobile_main import MobileMainLayout
+
+            self._touch_layout.update()
+            self._mobile_main = MobileMainLayout(self)
         self._touch_postprocessor = TouchPostprocessor()
         EventLoop.add_postproc_module(self._touch_postprocessor)
         self._focus_touch = lambda _window, focused: cancel_all_touches() if not focused else None

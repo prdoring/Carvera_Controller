@@ -664,3 +664,14 @@ CMM has a separate Cancel probe action; cancellation invalidates results before
 sending the existing abort and waits for a newer stopped-machine report.
 Local WCS validation/reflow and cancellation transition tests pass. Actual
 probe-stop behavior remains unverified for this change until machine testing.
+
+Main-page work now labels navigation, separates compact Work coordinates from
+machine details/overrides, wraps action text, and gives central actions an
+independent scroll area while keeping jog configuration outside it. Preview,
+lines, console, legend and supported camera controls have visible controls.
+The console has touch history that fills without sending, a larger editor,
+and explicit send feedback. File actions reuse their existing callbacks;
+filenames carry secondary metadata, local directory reads run off the UI
+thread, and access errors retain the current destination. Local renders found
+and corrected zero-size-hint clipping and zero-width viewer projection errors.
+Native keyboard and final device flows are still pending.

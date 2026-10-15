@@ -62,7 +62,7 @@ class DialogLabel(Label):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.bind(width=self._fit, texture_size=self._fit)
+        self.bind(width=self._fit, texture_size=self._fit, text=self._fit)
         self._fit()
 
     def _fit(self, *_args):
@@ -71,7 +71,7 @@ class DialogLabel(Label):
             self.size_hint_y = None
             self.font_size = sp(18 if self.bold else 16)
             self.text_size = (max(1, self.width - dp(16)), None)
-            self.height = max(dp(48), self.texture_size[1] + dp(16))
+            self.height = max(dp(48), self.texture_size[1] + dp(16)) if self.text else 0
 
 
 class DialogSurface(BoxLayout):
@@ -147,6 +147,8 @@ class AndroidTouchLayout:
     def size_controls(self, root):
         target = self.app.touch_target
         for widget in root.walk():
+            if not widget.opacity or not widget.height or not widget.width:
+                continue
             if isinstance(widget, (ButtonBehavior, TextInput, Slider, Switch, SettingItem, TapBehavior)):
                 widget.size_hint_min_x = max(widget.size_hint_min_x or 0, target)
                 widget.size_hint_min_y = max(widget.size_hint_min_y or 0, target)
@@ -156,6 +158,14 @@ class AndroidTouchLayout:
                     widget.width = max(widget.width, target)
                 if isinstance(widget, TextInput):
                     widget.font_size = max(widget.font_size, sp(16))
+                if isinstance(widget, Button) and widget.text:
+                    widget.font_size = max(widget.font_size, sp(16))
+                    widget.text_size = (max(1, widget.width - dp(12)), None)
+                    if not getattr(widget, "_mobile_wrap_bound", False):
+                        widget.bind(width=lambda item, width: setattr(item, "text_size", (max(1, width - dp(12)), None)))
+                        widget._mobile_wrap_bound = True
+                    widget.halign = "center"
+                    widget.valign = "middle"
             if isinstance(widget, GridLayout) and widget.row_force_default:
                 widget.row_default_height = max(widget.row_default_height, target)
             if isinstance(widget, RecycleBoxLayout):

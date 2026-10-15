@@ -1167,6 +1167,8 @@ class GCodeViewer(Widget):
         self.canvas.ask_update()
 
     def update_proj(self):
+        if self.width <= 1 or self.height <= 1:
+            return
         asp = self.size[0] / max(self.size[1], 1.0)
         proj = Matrix()
         zoomidx = self.m_zoom

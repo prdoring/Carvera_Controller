@@ -84,6 +84,8 @@
 
 <IconButton>:
     width: '50dp'
+    color: 0, 0, 0, 0
+    disabled_color: 0, 0, 0, 0
     icon: ''
     icon_size: 32
     text: ''
@@ -97,12 +99,16 @@
             size: self.size
     Label:
         text: root.text if root.text else ''
+        color: (.45, .45, .45, 1) if root.disabled else (1, 1, 1, 1)
+        text_size: self.width, None
+        halign: 'left'
+        padding_x: dp(48) if root.text else 0
         canvas.before:
             Color:
                 rgba: (110/255, 110/255, 110/255, 1) if root.disabled else (250/255, 250/255, 250/255, 1)
             Rectangle:
                 source: root.icon
-                pos: self.center_x - dp(root.icon_size / 2), self.center_y - dp(root.icon_size / 2)
+                pos: self.x + dp(12) if root.text else self.center_x - dp(root.icon_size / 2), self.center_y - dp(root.icon_size / 2)
                 size: dp(root.icon_size) if root.icon else 0, dp(root.icon_size) if root.icon else 0
             Color:
                 rgba: 52/255, 152/255, 219/255, 1
@@ -301,7 +307,10 @@
     Label:
         id: id_label1
         text_size: self.size
-        text: root.filename
+        text: root.filename + ('\n' + root.filedate + ' · ' + root.filesize if app.android_touch else '')
+        font_size: '16sp' if app.android_touch else '15sp'
+        shorten: True
+        max_lines: 2 if app.android_touch else 1
         halign: 'left'
         valign: 'middle'
     Label:
@@ -310,7 +319,8 @@
         text: root.filedate
         halign: 'left'
         size_hint_x: None
-        width: '150dp'
+        width: 0 if app.android_touch else dp(150)
+        opacity: 0 if app.android_touch else 1
         valign: 'middle'
     Label:
         id: id_label3
@@ -318,7 +328,8 @@
         text: root.filesize
         halign: 'right'
         size_hint_x: None
-        width: '100dp'
+        width: 0 if app.android_touch else dp(100)
+        opacity: 0 if app.android_touch else 1
         valign: 'middle'
 
 <GridBoxLayout@BoxLayout>:
@@ -1361,6 +1372,9 @@
             color: tuple(app.active_color) if root.scale != 100 else (225/255, 225/255, 225/255, 1)
         Label:
             text: root.minr_text
+            size_hint_y: None if app.android_touch and app.compact_layout else 1
+            height: 0 if app.android_touch and app.compact_layout else dp(24)
+            opacity: 0 if app.android_touch and app.compact_layout else 1
             color: 160/255, 160/255, 160/255, 1
             font_size: '11sp'
             text_size: self.size
@@ -2989,7 +3003,8 @@
             spacing: '5dp'
             orientation: 'horizontal'
             AnchorLayout:
-                size_hint_x: 0 if app.android_touch and app.compact_layout and show_illustration.state != 'down' else 1
+                size_hint_x: None if app.android_touch and app.compact_layout and show_illustration.state != 'down' else 1
+                width: 0 if app.android_touch and app.compact_layout and show_illustration.state != 'down' else dp(300)
                 opacity: 0 if app.android_touch and app.compact_layout and show_illustration.state != 'down' else 1
                 disabled: app.android_touch and app.compact_layout and show_illustration.state != 'down'
                 anchor_x: 'center'
@@ -3639,6 +3654,7 @@
                 size: self.size
 
         TopBar:
+            id: main_top_bar
             padding: '3dp'
             spacing: '3dp'
             height: '50dp'
@@ -3752,6 +3768,9 @@
                 text: ''
 
             IconButton:
+                id: main_menu
+                width: dp(144) if app.android_touch else dp(50)
+                text: tr._('Menu') if app.android_touch else ''
                 icon: 'data/list.png'
                 icon_size: 24
                 notify: (app.fw_has_update or app.ctl_has_update) and app.state != 'N/A'
@@ -3767,7 +3786,8 @@
                 BoxLayout:
                     orientation: 'vertical'
                     Widget:
-                        size_hint_y: 0.2
+                        size_hint_y: None if app.android_touch else 0.2
+                        height: 0 if app.android_touch else dp(100)
                     BoxLayout:
                         orientation: 'horizontal'
                         padding: '10dp'
@@ -3780,7 +3800,7 @@
                                 radius: [self.height / 2,]
                         BoxLayout:
                             disabled: not app.jog_controls_enabled
-                            padding: '25dp'
+                            padding: dp(8) if app.android_touch else dp(25)
                             canvas.before:
                                 Color:
                                     rgba: 50/255, 50/255, 50/255, 1
@@ -3843,6 +3863,7 @@
                                         tooltip_radius: 30 
                                 GridBoxLayout:
                         BoxLayout:
+                            id: control_center
                             orientation: 'vertical'
                             padding: '10dp'
                             Widget:
@@ -4059,7 +4080,7 @@
 
                         BoxLayout:
                             disabled: not app.jog_controls_enabled
-                            padding: '25dp'
+                            padding: dp(8) if app.android_touch else dp(25)
                             orientation: 'horizontal'
                             canvas.before:
                                 Color:
@@ -4126,18 +4147,53 @@
                             Widget:
                                 size_hint_x: 0.2
                     Widget:
-                        size_hint_y: 0.2
+                        size_hint_y: None if app.android_touch else 0.2
+                        height: 0 if app.android_touch else dp(100)
 
             FilePage:
                 name: 'File'
                 BoxLayout:
                     orientation: 'vertical'
                     spacing: '5dp'
+                    TouchActionRow:
+                        size_hint_y: None
+                        height: self.minimum_height if app.android_touch and not app.android_keyboard_height else 0
+                        opacity: 1 if app.android_touch and not app.android_keyboard_height else 0
+                        disabled: not app.android_touch or bool(app.android_keyboard_height)
+                        spacing: dp(6)
+                        ToggleButton:
+                            text: tr._('Preview')
+                            state: 'down' if app.show_preview else 'normal'
+                            on_release: app.show_preview = self.state == 'down' or not app.show_lines
+                        ToggleButton:
+                            text: tr._('Lines')
+                            state: 'down' if app.show_lines and cmd_manager.current == 'gcode_cmd_page' else 'normal'
+                            on_release:
+                                app.show_lines = self.state == 'down' or not app.show_preview
+                                cmd_manager.current = 'gcode_cmd_page'
+                        ToggleButton:
+                            text: tr._('Console')
+                            state: 'down' if app.show_lines and cmd_manager.current == 'manual_cmd_page' else 'normal'
+                            on_release:
+                                app.show_lines = True
+                                cmd_manager.current = 'manual_cmd_page'
+                        ToggleButton:
+                            text: tr._('Legend')
+                            state: 'down' if app.show_legend else 'normal'
+                            on_release: app.show_legend = self.state == 'down'
+                        Button:
+                            text: tr._('Camera')
+                            disabled: not app.supports_camera
+                            on_release: root.ids.camera_splitter.toggle_collapsed()
                     BoxLayout:
                         orientation: 'horizontal'
                         Splitter:
-                            size_hint_x: 0.5
-                            strip_size: '5dp'
+                            size_hint_x: (0.5 if app.show_lines else None) if app.android_touch else 0.5
+                            width: 0 if app.android_touch and not app.show_lines else dp(400)
+                            size_hint_min_x: 0
+                            opacity: 0 if app.android_touch and not app.show_lines else 1
+                            disabled: app.android_touch and not app.show_lines
+                            strip_size: app.touch_target if app.android_touch and app.show_lines and app.show_preview else dp(5) if not app.android_touch else 0
                             sizable_from: 'right'
                             canvas.before:
                                 Color:
@@ -4183,7 +4239,7 @@
                                                 height: app.touch_target if app.android_touch else dp(33)
                                                 ToolTipButton:
                                                     id: toggle_mdi
-                                                    width: '40dp'
+                                                    width: dp(80) if app.android_touch else dp(40)
                                                     size_hint_x: None
                                                     tooltip_txt: tr._('Press to switch to MDI console to see console messages and send individual gcodes')
                                                     text: 'MDI'
@@ -4253,32 +4309,43 @@
                                             BoxLayout:
                                                 orientation: 'horizontal'
                                                 size_hint_y: None
-                                                height: '66dp'
+                                                height: max(dp(96), self.parent.height * .45) if app.android_touch else dp(66)
                                                 ToolTipButton:
                                                     id: toggle_file
-                                                    width: '40dp'
+                                                    width: dp(80) if app.android_touch else dp(40)
                                                     size_hint_x: None
                                                     text: tr._('FILE')
                                                     tooltip_txt: tr._('Return to file view')
                                                     on_release:
                                                         cmd_manager.transition.direction = 'right'
                                                         cmd_manager.current = 'gcode_cmd_page'
+                                                Button:
+                                                    text: tr._('History')
+                                                    size_hint_x: None
+                                                    width: dp(88) if app.android_touch else 0
+                                                    opacity: 1 if app.android_touch else 0
+                                                    disabled: not app.android_touch
+                                                    on_release: manual_cmd.show_touch_history()
                                                 MDITextInput:
                                                     id: manual_cmd
-                                                    hint_text: tr._('Enter command... <control+enter to send>')
+                                                    hint_text: tr._('Enter commands, then tap Send') if app.android_touch else tr._('Enter command... <control+enter to send>')
                                                     multiline: True
                                                     on_text_validate:
                                                         if app.state == 'Idle' or app.state == 'Pause' or root.allow_mdi_while_machine_running == '1' : root.send_cmd()
                                                 ToolTipButton:
                                                     id: send_cmd
-                                                    width: '40dp'
+                                                    width: dp(80) if app.android_touch else dp(40)
                                                     size_hint_x: None
-                                                    text: tr._('send')
+                                                    text: tr._('Send')
                                                     tooltip_txt: tr._('The MDI is a console that allows you to send individual gcodes, and commands such as to change config values on the machine')
                                                     disabled: (app.state != 'Idle' and app.state != 'Pause' and root.allow_mdi_while_machine_running in ['0', 'false', False])
                                                     on_release:
                                                         root.send_cmd()
                         FloatBox:
+                            size_hint_x: (1 if app.show_preview and not app.android_keyboard_height else None) if app.android_touch else 1
+                            width: 0 if app.android_touch and (not app.show_preview or app.android_keyboard_height) else dp(400)
+                            opacity: 0 if app.android_touch and (not app.show_preview or app.android_keyboard_height) else 1
+                            disabled: app.android_touch and (not app.show_preview or app.android_keyboard_height)
                             id: float_layout
                             color_scheme_panel: color_scheme_panel
                             camera_controls: camera_controls
@@ -4613,7 +4680,10 @@
         size_hint: None, None
         size: '40dp', '100dp'
         pos: root.width - self.width - app.safe_area_padding[2], (root.height - self.height) / 2 + (app.safe_area_padding[3] - app.safe_area_padding[1]) / 2
-        text: '<' if root.content.current == 'File' else '>'
+        text: tr._('Control') if root.content.current == 'File' else tr._('Files')
+        opacity: 0 if app.android_touch and app.compact_layout else 1
+        disabled: app.android_touch and app.compact_layout
+        font_size: '14sp'
         background_color: 80/255, 80/255, 80/255, 1
         on_release:
             if app.root.content.current == 'File':\

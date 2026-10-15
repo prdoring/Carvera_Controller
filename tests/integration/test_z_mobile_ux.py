@@ -122,3 +122,25 @@ def test_wcs_reflow_preserves_existing_editors_and_drafts(mobile):
         assert popup.ids.g54_x is field
         assert field.text == "-17.125"
         assert field.parent is not None
+
+
+def test_main_reflow_and_disclosures_keep_views_and_send_no_commands(mobile):
+    from carveracontroller.ui.mobile_main import MobileMainLayout
+
+    app, _ = mobile
+    main = MobileMainLayout(app)
+    app.root.manual_cmd.text = "G0 X-12.5"
+    viewer = app.root.gcode_viewer
+    before = len(app.simulation.commands)
+    try:
+        for compact in (True, False, True):
+            app.compact_layout = compact
+            app.show_lines = not app.show_lines
+            app.show_preview = True
+            pump_frames(5)
+            assert app.root.gcode_viewer is viewer
+            assert app.root.manual_cmd.text == "G0 X-12.5"
+        assert app.simulation.commands[before:] == []
+    finally:
+        app.compact_layout = False
+        main.stop()
