@@ -8,11 +8,12 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
+from kivy.uix.spinner import Spinner
 
 from carveracontroller import Utils
 from carveracontroller.translation import tr
 
-from .android_layout import DialogLabel, DialogSurface, TouchActionRow
+from .android_layout import DialogActions, DialogLabel, DialogSurface, TouchActionRow, control_height, style_action
 
 
 def prepare_file_browser(popup):
@@ -27,13 +28,35 @@ def prepare_file_browser(popup):
     connection_state(app, app.state)
     remote = popup.btn_rename.parent
     local = popup.btn_view.parent
-    for header, title in ((remote, tr._("On the mill")), (local, tr._("On this device"))):
+    sources = []
+    for header, title in ((remote, tr._("On the mill")), (popup.ids.local_file_header, tr._("On this device"))):
         for child in header.children:
             if isinstance(child, Label) and not isinstance(child, ButtonBehavior) and child.text:
-                child.text = title
-                child.size_hint_x = 1
+                index = header.children.index(child)
+                header.remove_widget(child)
+                source = Spinner(text=title, values=(tr._("On this device"), tr._("On the mill")), size_hint_x=.45)
+                header.add_widget(source, index=index)
+                sources.append(source)
+                def choose(_widget, text):
+                    target = "local_page" if text == tr._("On this device") else "remote_page"
+                    if popup.popup_manager.current != target:
+                        if target == "local_page":
+                            app.root.open_upload_local_file_popup()
+                        else:
+                            popup.load_remote_page()
+                source.bind(text=choose)
                 break
-    actions = [child for child in reversed(remote.children) if isinstance(child, Button)]
+        for child in list(header.children):
+            if type(child) is Label and not child.text:
+                header.remove_widget(child)
+            elif isinstance(child, BoxLayout) and any(hasattr(item, "data_text") for item in child.children):
+                child.size_hint_x = .28
+        header.height = control_height()
+    def sync_source(_manager, page):
+        for source in sources:
+            source.text = tr._("On this device") if page == "local_page" else tr._("On the mill")
+    popup.popup_manager.bind(current=sync_source)
+    actions = [child for child in reversed(remote.children) if isinstance(child, Button) and not isinstance(child, Spinner)]
     for child in actions:
         remote.remove_widget(child)
         child.size_hint = (1, None)
@@ -49,7 +72,7 @@ def prepare_file_browser(popup):
             if child.parent is not None:
                 child.parent.remove_widget(child)
             surface.add_widget(child)
-        footer = TouchActionRow()
+        footer = DialogActions()
         close = Button(text=tr._("Close"))
         footer.add_widget(close)
         surface.add_widget(footer)
@@ -66,6 +89,7 @@ def prepare_file_browser(popup):
         row.add_widget(child)
     popup.btn_view.text = tr._("Preview")
     popup.ids.btn_upload_and_select.text = tr._("Upload and Select")
+    style_action(popup.btn_view, "primary")
     local.parent.add_widget(row, index=0)
 
     for rv in (popup.remote_rv, popup.local_rv):
@@ -81,11 +105,32 @@ def prepare_file_browser(popup):
 
     for rv, search in ((popup.remote_rv, popup.ti_remote_search), (popup.local_rv, popup.ti_local_search)):
         row = search.parent.parent
-        crumbs = [w for w in row.children if w.__class__.__name__ == "LinkButton"]
+        crumbs = [w for w in row.children if w.__class__.__name__ in ("LinkButton", "ButtonLabel")]
         if not crumbs:
             continue
         for crumb in crumbs:
             row.remove_widget(crumb)
+        for placeholder in list(row.children):
+            if type(placeholder) is Label and not placeholder.text:
+                row.remove_widget(placeholder)
+        old_search = search.parent
+        old_search.remove_widget(search)
+        row.remove_widget(old_search)
+        search.size_hint = (1, 1)
+        search.pos_hint = {}
+        search.foreground_color = (.95, .95, .95, 1)
+        search.background_normal = ""
+        search.background_active = ""
+        search.background_color = (.2, .2, .2, 1)
+        search.hint_text_color = (.72, .72, .72, 1)
+        search.cursor_color = (.95, .95, .95, 1)
+        row.height = control_height()
+        search_bar = BoxLayout(spacing=dp(6), size_hint_x=.5)
+        search_bar.add_widget(search)
+        clear = Button(text=tr._("Clear"), size_hint_x=None, width=max(dp(72), sp(16)*3.5))
+        clear.bind(on_release=lambda _button, field=search: setattr(field, "text", ""))
+        search_bar.add_widget(clear)
+        row.add_widget(search_bar)
         path = Button(text=rv.curr_dir, shorten=True)
         path.bind(size=lambda item, size: setattr(item, "text_size", (max(1, size[0] - dp(16)), None)))
         rv.bind(curr_path_list=lambda _rv, _paths, item=path, view=rv: setattr(item, "text", view.curr_dir))
@@ -93,7 +138,7 @@ def prepare_file_browser(popup):
         def show_path(_button, view=rv):
             surface = DialogSurface(orientation="vertical", padding=dp(12))
             surface.add_widget(DialogLabel(text=view.curr_dir))
-            actions = TouchActionRow()
+            actions = DialogActions()
             up, close = Button(text=tr._("Parent folder")), Button(text=tr._("Close"))
             actions.add_widget(up)
             retry = Button(text=tr._("Retry folder"))

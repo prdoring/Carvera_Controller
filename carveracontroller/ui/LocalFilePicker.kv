@@ -51,7 +51,7 @@
             width: dp(144)
             on_release: root.open_dir_dropdown(self)
         Button:
-            text: root.ids.fc.path
+            text: tr._('Folder details') if app.android_touch else root.ids.fc.path
             shorten: True
             text_size: self.width - dp(16), None
             on_release: root.show_folder_path()
@@ -64,6 +64,11 @@
             on_release: root.show_storage_access()
     TouchFileChooserListView:
         id: fc
+    DialogLabel:
+        text: tr._('Filename') if app.android_touch else ''
+        text_role: 'secondary'
+        size_hint_y: None
+        height: self.texture_size[1] + dp(8) if app.android_touch else 0
     EditingTextInput:
         id: ti_filename
         hint_text: tr._('File name')
@@ -71,7 +76,7 @@
         multiline: False
         size_hint_y: None
         height: app.touch_target if app.android_touch else dp(40)
-    TouchActionRow:
+    DialogActions:
         spacing: dp(8)
         Button:
             id: btn_cancel

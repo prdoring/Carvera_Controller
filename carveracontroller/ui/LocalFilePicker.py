@@ -21,7 +21,7 @@ from kivy.utils import platform
 from carveracontroller import Utils
 from carveracontroller.translation import tr
 
-from .android_layout import DialogLabel, DialogSurface, TouchActionRow
+from .android_layout import DialogActions, DialogLabel, DialogSurface, TouchActionRow, style_action
 from .touch import Gesture
 
 
@@ -80,7 +80,7 @@ class LocalFilePickerSheet(BoxLayout):
     def show_folder_path(self):
         surface = DialogSurface(orientation="vertical", padding="12dp", spacing="8dp")
         surface.add_widget(DialogLabel(text=self.ids.fc.path))
-        actions = TouchActionRow()
+        actions = DialogActions()
         up, close = Button(text=tr._("Parent folder")), Button(text=tr._("Close"))
         actions.add_widget(up)
         actions.add_widget(close)
@@ -96,13 +96,14 @@ class LocalFilePickerSheet(BoxLayout):
         label = DialogLabel(text=self.storage_status)
         self.bind(storage_status=lambda _widget, text: setattr(label, "text", text))
         surface.add_widget(label)
-        actions = TouchActionRow()
+        actions = DialogActions()
         grant, retry, close = (Button(text=tr._(text)) for text in ("Grant access", "Retry folder", "Close"))
         for button in (grant, retry, close):
             actions.add_widget(button)
         surface.add_widget(actions)
         popup = Popup(title=tr._("Storage access"), content=surface, size_hint=(.9, .75))
         grant.bind(on_release=lambda *_: self.request_storage())
+        style_action(grant, "primary")
         retry.bind(on_release=lambda *_: self.retry_storage())
         close.bind(on_release=lambda *_: popup.dismiss())
         popup.open()
@@ -135,7 +136,7 @@ class LocalFilePickerSheet(BoxLayout):
         full_paths, path_labels = Utils.directory_breadcrumb_paths(directory)
         self.curr_full_path_list = full_paths
         self.curr_path_list = path_labels
-        self.curr_dir_name = path_labels[-1] if path_labels else ""
+        self.curr_dir_name = tr._("Controller files") if platform == "android" and directory == home_directory() else path_labels[-1] if path_labels else ""
 
     def goto_path(self, index: int) -> None:
         if index < len(self.curr_full_path_list):
@@ -218,6 +219,8 @@ def open_local_file_picker(
 
     fc.bind(selection=sync_filename_from_selection)
     popup = Popup(title=title, content=content, size_hint=size_hint, auto_dismiss=False)
+    if platform == "android":
+        style_action(content.ids.btn_confirm, "primary")
     if confirm_label:
         content.ids.btn_confirm.text = confirm_label
 
