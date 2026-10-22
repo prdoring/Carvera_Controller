@@ -339,7 +339,7 @@ class MDITextInput(TextInput):
             Window.unbind(on_key_down=self.on_keyboard_down)
 
     def show_touch_history(self):
-        from .ui.android_layout import DialogLabel, DialogSurface, TouchActionRow
+        from .ui.android_layout import DialogActions, DialogLabel, DialogSurface
 
         surface = DialogSurface(orientation="vertical", padding=dp(12), spacing=dp(8))
         popup = Popup(title=tr._("Command history — tap to edit"), content=surface, size_hint=(.9, .85))
@@ -355,7 +355,7 @@ class MDITextInput(TextInput):
                 self.focus = True
             button.bind(on_release=choose)
             surface.add_widget(button)
-        footer = TouchActionRow()
+        footer = DialogActions()
         close = Button(text=tr._("Close"))
         close.bind(on_release=lambda *_: popup.dismiss())
         footer.add_widget(close)
@@ -1967,6 +1967,7 @@ class MachineButton(ToolTipButton):
 
 class IconButton(BoxLayout, ToolTipButton):
     icon = StringProperty("fresk.png")
+    android_label = StringProperty("")
 
 
 class TransparentButton(BoxLayout, ToolTipButton):

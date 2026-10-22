@@ -91,7 +91,7 @@
     disabled_image: self.background_disabled_normal if self.state == 'normal' else self.background_disabled_down
     canvas:
         Color:
-            rgba: 0, 1, 0, 1
+            rgba: (0.3, 0.3, 0.3, 1) if app.android_touch else (0, 1, 0, 1)
         BorderImage:
             border: self.border
             pos: self.pos
@@ -101,5 +101,13 @@
         id: image
         source: root.image_source
         fit_mode: 'scale-down'
-        size_hint: 0.3,0.3
+        size_hint: (0.3, None) if app.android_touch else (0.3, 0.3)
+        height: 0 if app.android_touch else dp(48)
+        opacity: 0 if app.android_touch else 1
         pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+    Label:
+        text: tr._('Help') if app.android_touch else ''
+        size_hint_y: 1 if app.android_touch else None
+        height: 0
+        opacity: 1 if app.android_touch else 0
+        font_size: '16sp'

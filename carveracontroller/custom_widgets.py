@@ -18,7 +18,7 @@ from kivy.uix.settings import SettingItem
 from kivy.uix.widget import Widget
 
 from carveracontroller.translation import tr
-from carveracontroller.ui.android_layout import DialogSurface, TouchActionRow
+from carveracontroller.ui.android_layout import DialogActions, DialogSurface, TouchActionRow
 from carveracontroller.ui.editing import EditingTextInput as TextInput
 
 
@@ -254,7 +254,7 @@ class SettingColorPicker(SettingItem):
         content.add_widget(self.picker)
 
         # Buttons
-        btns = TouchActionRow(spacing=dp(10))
+        btns = DialogActions(spacing=dp(10))
 
         popup = Popup(
             title=self.title or tr._("Select Color"), content=content, size_hint=(0.8, 0.9), auto_dismiss=False
@@ -369,7 +369,7 @@ class SettingGCodeSnippet(SettingItem):
         content.add_widget(Label(text=tr._("G-code:"), size_hint_y=None, height=dp(20)))
         content.add_widget(self.gcode_input)
 
-        btns = TouchActionRow(spacing=dp(10))
+        btns = DialogActions(spacing=dp(10))
         popup = Popup(
             title=self.title or tr._("Edit command"), content=content, size_hint=(0.8, 0.8), auto_dismiss=False
         )

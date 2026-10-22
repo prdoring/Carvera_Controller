@@ -8,6 +8,7 @@
 #:import _ carveracontroller.ui.CollapsibleSplitter
 #:import play_progress_bar carveracontroller.ui.PlayProgressBar
 #:import TouchActionRow carveracontroller.ui.android_layout.TouchActionRow
+#:import DialogActions carveracontroller.ui.android_layout.DialogActions
 #:import DialogSurface carveracontroller.ui.android_layout.DialogSurface
 #:import DialogLabel carveracontroller.ui.android_layout.DialogLabel
 #:import GcodeColorSchemePanel carveracontroller.ui.GcodeColorSchemePanel.GcodeColorSchemePanel
@@ -101,8 +102,8 @@
         text: root.text if root.text else ''
         color: (.45, .45, .45, 1) if root.disabled else (1, 1, 1, 1)
         text_size: self.width, None
-        halign: 'left'
-        padding_x: dp(48) if root.text else 0
+        halign: 'center' if app.android_touch and not root.icon else 'left'
+        padding_x: dp(48) if root.text and root.icon else 0
         canvas.before:
             Color:
                 rgba: (110/255, 110/255, 110/255, 1) if root.disabled else (250/255, 250/255, 250/255, 1)
@@ -334,8 +335,8 @@
 
 <GridBoxLayout@BoxLayout>:
     orientation: 'vertical'
-    padding: '5dp'
-    size_hint_min_y: app.touch_target + dp(10) if app.android_touch else 0
+    padding: 0 if app.android_touch else dp(5)
+    size_hint_min_y: app.touch_target if app.android_touch else 0
 
 <RoundButton@Button>:
     background_color: 0,0,0,0  # the last zero is the critical on, make invisible
@@ -1419,10 +1420,10 @@
     size_hint: 0.5, 0.4
     pos_hint: {"right": 0.75, "top": 0.7}
     auto_dismiss: False
-    BoxLayout:
+    DialogSurface:
         padding: '15dp'
         orientation: 'vertical'
-        Label:
+        DialogLabel:
             size_hint_y: 0.4
             id: lb_title
             text: tr._('Input Box')
@@ -1440,8 +1441,7 @@
                 multiline: False
                 text: ''
             Label:
-        BoxLayout:
-            size_hint_y: 0.4
+        DialogActions:
             Button:
                 text: tr._('Cancel')
                 on_release: root.dismiss()
@@ -1459,10 +1459,10 @@
     size_hint: 0.5, 0.4
     pos_hint: {"right": 0.75, "top": 0.7}
     auto_dismiss: False
-    BoxLayout:
+    DialogSurface:
         padding: '15dp'
         orientation: 'vertical'
-        Label:
+        DialogLabel:
             size_hint_y: 0.4
             id: lb_title1
             text: tr._('Input Box')
@@ -1480,8 +1480,7 @@
                 multiline: False
                 text: ''
             Label:
-        Label:
-            size_hint_y: 0.4
+        DialogLabel:
             id: lb_title2
             text: tr._('Input Box')
             bold: True
@@ -1498,8 +1497,7 @@
                 multiline: False
                 text: ''
             Label:
-        BoxLayout:
-            size_hint_y: 0.4
+        DialogActions:
             Button:
                 text: tr._('Cancel')
                 on_release: root.dismiss()
@@ -1544,9 +1542,8 @@
                 halign: 'center'
                 valign: 'middle'
                 text_size: self.width, None
-        BoxLayout:
-            size_hint_y: None
-            height: '48dp'
+        DialogActions:
+            id: confirm_actions
             Button:
                 text: tr._('Cancel')
                 on_release:
@@ -1587,7 +1584,7 @@
                 on_release:
                     root.dismiss()
                     if root.unlock_safe_z: root.unlock_safe_z()
-        TouchActionRow:
+        DialogActions:
             spacing: dp(8)
             Button:
                 text: tr._('Cancel')
@@ -1620,7 +1617,7 @@
                 on_release:
                     root.dismiss()
                     app.root.controller.change_tool_command(ZPROBE_TOOL_NUMBER)
-        TouchActionRow:
+        DialogActions:
             Button:
                 text: tr._('Cancel')
                 on_release: root.dismiss()
@@ -1636,7 +1633,7 @@
         DialogLabel:
             id: lb_content
             text: tr._('Confirm to continue?')
-        TouchActionRow:
+        DialogActions:
             id: btn_ok
             Button:
                 text: tr._('Ok')
@@ -1652,7 +1649,7 @@
         DialogLabel:
             id: lb_content
             text: tr._('Connection lost. Attempting to reconnect...')
-        TouchActionRow:
+        DialogActions:
             spacing: dp(8)
             Button:
                 id: btn_reconnect
@@ -1679,7 +1676,7 @@
             height: dp(32)
             max: 100
             value: root.progress_value
-        TouchActionRow:
+        DialogActions:
             Button:
                 id: btn_cancel
                 text: tr._('Cancel')
@@ -1798,7 +1795,7 @@
                         text: tr._('Note: Work origin will be set immediately when clicking OK.')
                         color: 52/255, 152/255, 219/255, 1
 
-                TouchActionRow:
+                DialogActions:
                     spacing: '5dp'
                     size_hint_y: None
                     height: app.touch_target if app.android_touch else dp(40)
@@ -1858,7 +1855,7 @@
                         valign: "middle"
                         text_size: self.size
                         color: 52/255, 152/255, 219/255, 1
-                TouchActionRow:
+                DialogActions:
                     spacing: '5dp'
                     size_hint_y: None
                     height: app.touch_target if app.android_touch else dp(40)
@@ -1943,7 +1940,7 @@
                 input_filter: 'float'
         BoxLayout:
             id: empty
-        TouchActionRow:
+        DialogActions:
             spacing: '5dp'
             size_hint_y: None
             height: app.touch_target if app.android_touch else dp(40)
@@ -2021,7 +2018,7 @@
                 valign: "middle"
                 text_size: self.size
                 color: 52/255, 152/255, 219/255, 1
-        TouchActionRow:
+        DialogActions:
             spacing: '5dp'
             size_hint_y: None
             height: app.touch_target if app.android_touch else dp(40)
@@ -2267,7 +2264,7 @@
 
         BoxLayout:
             id: empty
-        TouchActionRow:
+        DialogActions:
             spacing: '5dp'
             size_hint_y: None
             height: app.touch_target if app.android_touch else dp(40)
@@ -2636,7 +2633,7 @@
                             background_color: 80/255, 80/255, 80/255, 1
                             size_hint_x: None
                             width: '175dp'
-                            pos: dp(25), self.y
+                            pos: dp(25), 0
                             on_text:
                                 root.remote_rv.delay_search(self.text)
                         TransparentButton:
@@ -2742,6 +2739,7 @@
             BoxLayout:
                 orientation: 'vertical'
                 BoxLayout:
+                    id: local_file_header
                     size_hint_y: None
                     height: app.touch_target if app.android_touch else dp(40)
                     TransparentButton:
@@ -2893,7 +2891,7 @@
                             background_color: 80/255, 80/255, 80/255, 1
                             size_hint_x: None
                             width: '175dp'
-                            pos: dp(25), self.y
+                            pos: dp(25), 0
                             on_text:
                                 root.local_rv.delay_search(self.text)
                         TransparentButton:
@@ -3333,6 +3331,7 @@
                     root.dismiss()
             Button:
                 text: tr._('Run') if root.mode == 'Run' else tr._('Do ') + root.mode
+                disabled: app.android_touch and (app.state != 'Idle' or app.playing or (root.mode == 'Run' and not app.selected_remote_filename))
                 on_release: 
                     root.dismiss()
                     if root.mode == 'Run': app.root.play(app.selected_remote_filename, txt_startline.text if cbx_startline.active else None)
@@ -3644,7 +3643,7 @@
     gcode_play_slider: gcode_play_slider
 
     BoxLayout:
-        padding: [app.safe_area_padding[0] + dp(5), app.safe_area_padding[1] + dp(5), app.safe_area_padding[2] + dp(5), app.safe_area_padding[3] + dp(5)]
+        padding: [dp(5)] * 4 if app.android_touch else [app.safe_area_padding[0] + dp(5), app.safe_area_padding[1] + dp(5), app.safe_area_padding[2] + dp(5), app.safe_area_padding[3] + dp(5)]
         spacing: dp(5)
         orientation: 'vertical'
 
@@ -3792,7 +3791,7 @@
                         height: 0 if app.android_touch else dp(100)
                     BoxLayout:
                         orientation: 'horizontal'
-                        padding: '10dp'
+                        padding: 0 if app.android_touch else dp(10)
                         canvas.before:
                             Color:
                                 rgba: 40/255, 40/255, 40/255, 1
@@ -3802,7 +3801,7 @@
                                 radius: [self.height / 2,]
                         BoxLayout:
                             disabled: not app.jog_controls_enabled
-                            padding: dp(8) if app.android_touch else dp(25)
+                            padding: 0 if app.android_touch else dp(25)
                             canvas.before:
                                 Color:
                                     rgba: 50/255, 50/255, 50/255, 1
@@ -4082,7 +4081,7 @@
 
                         BoxLayout:
                             disabled: not app.jog_controls_enabled
-                            padding: dp(8) if app.android_touch else dp(25)
+                            padding: 0 if app.android_touch else dp(25)
                             orientation: 'horizontal'
                             canvas.before:
                                 Color:
@@ -4314,7 +4313,9 @@
                                                 height: max(dp(96), self.parent.height * .45) if app.android_touch else dp(66)
                                                 ToolTipButton:
                                                     id: toggle_file
-                                                    width: dp(80) if app.android_touch else dp(40)
+                                                    width: 0 if app.android_touch else dp(40)
+                                                    opacity: 0 if app.android_touch else 1
+                                                    disabled: app.android_touch
                                                     size_hint_x: None
                                                     text: tr._('FILE')
                                                     tooltip_txt: tr._('Return to file view')
@@ -4324,7 +4325,7 @@
                                                 Button:
                                                     text: tr._('History')
                                                     size_hint_x: None
-                                                    width: dp(88) if app.android_touch else 0
+                                                    width: max(dp(88), sp(16) * 4.5) if app.android_touch else 0
                                                     opacity: 1 if app.android_touch else 0
                                                     disabled: not app.android_touch
                                                     on_release: manual_cmd.show_touch_history()
@@ -4336,7 +4337,7 @@
                                                         if app.state == 'Idle' or app.state == 'Pause' or root.allow_mdi_while_machine_running == '1' : root.send_cmd()
                                                 ToolTipButton:
                                                     id: send_cmd
-                                                    width: dp(80) if app.android_touch else dp(40)
+                                                    width: max(dp(80), sp(16) * 3) if app.android_touch else dp(40)
                                                     size_hint_x: None
                                                     text: tr._('Send')
                                                     tooltip_txt: tr._('The MDI is a console that allows you to send individual gcodes, and commands such as to change config values on the machine')
@@ -4581,6 +4582,7 @@
                         size: self.size
                 IconButton:
                     icon: 'data/file.png'
+                    android_label: tr._('Files')
                     tooltip_txt: tr._('Select File')
                     icon_size: 21
                     disabled: app.state != 'Idle' and app.state != 'N/A' and not app.playing
@@ -4596,6 +4598,7 @@
                     width: '3dp'
                 IconButton:
                     icon: 'data/start.png' if app.state == 'Pause' else 'data/config_start.png'
+                    android_label: tr._('Resume') if app.state == 'Pause' else tr._('Job')
                     icon_size: 25
                     tooltip_txt: tr._('Start File')
                     disabled: (app.state != 'Idle' or app.selected_remote_filename == '' or app.playing) and app.state != 'Pause'
@@ -4608,12 +4611,14 @@
                         root.coord_popup.open()
                 IconButton:
                     icon: 'data/suspend.png'
+                    android_label: tr._('Pause')
                     disabled: app.state != 'Run' or not app.playing
                     tooltip_txt: tr._('Pause File at Next Safe Opportunity and Enable MDI Control')
                     on_release:
                         app.root.controller.suspendCommand()
                 IconButton:
                     icon: 'data/abort.png'
+                    android_label: tr._('Abort')
                     icon_size: 24
                     tooltip_txt: tr._('Abort File Now')
                     disabled: (app.state != 'Run' and app.state != 'Pause') or not app.playing
@@ -4624,6 +4629,7 @@
                     width: '3dp'
                 IconButton:
                     icon: 'data/feedhold2.png' if app.state == 'Hold' else 'data/feedhold1.png'
+                    android_label: tr._('Hold')
                     icon_size: 24
                     tooltip_txt: tr._('Pause File Without MDI')
                     disabled: app.state != 'Run' and app.state != 'Idle' and app.state != 'Hold'
@@ -4672,6 +4678,7 @@
                     on_release: app._touch_layout.show_help() if app._touch_layout else None
                 IconButton:
                     icon: 'data/stop.png'
+                    android_label: tr._('Stop')
                     tooltip_txt: tr._('E-Stop')
                     icon_size: 40
                     disabled: app.state == 'N/A'
@@ -5642,7 +5649,7 @@
         BoxLayout:
             id: empty
         
-        TouchActionRow:
+        DialogActions:
             spacing: '5dp'
             size_hint_y: None
             height: app.touch_target if app.android_touch else dp(40)

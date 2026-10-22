@@ -11,7 +11,7 @@ from kivy.uix.widget import Widget
 
 from carveracontroller.translation import tr
 
-from .android_layout import DialogSurface, TouchActionRow
+from .android_layout import DialogActions, DialogSurface, TouchActionRow
 from .editing import EditingTextInput, is_complete_number
 from .widget_helpers import bind_auto_select_to_text_input
 
@@ -32,11 +32,13 @@ class EditingSettingString(SettingString):
             self.textinput.input_filter = "int" if policy == "integer" else "float"
         bind_auto_select_to_text_input(self.textinput)
         self.textinput.bind(on_text_validate=self._validate)
-        content.add_widget(Widget())
+        if not App.get_running_app().android_touch:
+            content.add_widget(Widget())
         content.add_widget(self.textinput)
-        content.add_widget(Widget())
-        actions = TouchActionRow(spacing=dp(8))
-        for title, callback in ((tr._("Cancel"), self._dismiss), (tr._("Ok"), self._validate)):
+        if not App.get_running_app().android_touch:
+            content.add_widget(Widget())
+        actions = DialogActions(spacing=dp(8))
+        for title, callback in ((tr._("Cancel"), self._dismiss), (tr._("Use value"), self._validate)):
             button = Button(text=title)
             button.bind(on_release=callback)
             actions.add_widget(button)
@@ -76,7 +78,7 @@ class EditingSettingOptions(SettingOptions):
             button.bind(on_release=choose)
             options.add_widget(button)
         surface.add_widget(options)
-        actions = TouchActionRow()
+        actions = DialogActions()
         cancel = Button(text=tr._("Cancel"))
         cancel.bind(on_release=lambda *_: self.popup.dismiss())
         actions.add_widget(cancel)
