@@ -2,14 +2,17 @@
 
 from kivy.metrics import dp, sp
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
+from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.switch import Switch
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelItem
 
 from carveracontroller.translation import tr
 
-from .android_layout import DialogLabel
+from .android_layout import DialogActions, DialogLabel, DialogSurface, control_height
 from .mobile_tools import operation_selector
 
 
@@ -27,7 +30,19 @@ def prepare_diagnostics(modal):
     tabs = TabbedPanel(do_default_tab=False)
     outputs = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(8), padding=dp(8))
     outputs.bind(minimum_height=outputs.setter("height"))
-    outputs.add_widget(DialogLabel(text=tr._("Unavailable controls follow the detected machine and installed capabilities. Values are applied after two seconds.")))
+    help_button = Button(text=tr._("About diagnostic controls"), size_hint_y=None, height=control_height())
+    def show_help(*_args):
+        surface = DialogSurface(orientation="vertical", padding=dp(12))
+        surface.add_widget(DialogLabel(text=tr._("Unavailable controls follow the detected machine and installed capabilities. Values are applied after two seconds.")))
+        actions = DialogActions()
+        close = Button(text=tr._("Close"))
+        actions.add_widget(close)
+        surface.add_widget(actions)
+        sheet = Popup(title=tr._("Diagnostic controls"), content=surface)
+        close.bind(on_release=lambda *_: sheet.dismiss())
+        sheet.open()
+    help_button.bind(on_release=show_help)
+    outputs.add_widget(help_button)
     groups = [list(reversed(column.children)) for column in columns[:2]]
     for position in range(max(map(len, groups))):
         for column, widgets in zip(columns[:2], groups):
@@ -41,7 +56,15 @@ def prepare_diagnostics(modal):
             if not widget.children:
                 continue
             widget.size_hint_y = None
-            widget.height = max(dp(144), sp(16) * 3 + dp(16)) if hasattr(widget, "slider") else max(dp(64), sp(16) * 3 + dp(16))
+            widget.height = control_height() * 2 if hasattr(widget, "slider") else control_height()
+            if hasattr(widget, "slider"):
+                for spacer in list(widget.children):
+                    if type(spacer).__name__ == "Widget":
+                        widget.remove_widget(spacer)
+            for child in widget.children:
+                if isinstance(child, Switch):
+                    child.size_hint_x = None
+                    child.width = dp(96)
             outputs.add_widget(widget)
             if isinstance(getattr(widget, "label", None), str):
                 label = widget.label
@@ -60,7 +83,7 @@ def prepare_diagnostics(modal):
             if not hasattr(widget, "state"):
                 continue
             widget.size_hint_y = None
-            widget.height = max(dp(64), sp(16) * 2 + dp(16))
+            widget.height = control_height()
             inputs.add_widget(widget)
     for title, content in ((tr._("Outputs"), outputs), (tr._("Inputs / sensors"), inputs)):
         tab = TabbedPanelItem(text=title)

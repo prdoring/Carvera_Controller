@@ -11,7 +11,7 @@ from kivy.utils import escape_markup
 
 from carveracontroller.translation import tr
 
-from .android_layout import DialogLabel
+from .android_layout import DialogLabel, _text_width, control_height
 from .editing import EditingTextInput
 
 
@@ -29,11 +29,16 @@ class MobileSettings:
         self.categories = Spinner(font_size=sp(16))
         self.categories.bind(text=self.choose_category)
         self.navigation.add_widget(self.categories)
+        self.search_button = Button(text=tr._("Search"), size_hint_x=None)
+        self.search_button.bind(on_release=self.toggle_search)
+        self.navigation.add_widget(self.search_button)
         close = Button(text=tr._("Close"), size_hint_x=None, width=dp(96))
         close.bind(on_release=lambda *_: popup.dismiss())
+        self.close_button = close
         self.navigation.add_widget(close)
         self.search = EditingTextInput(hint_text=tr._("Search settings"), multiline=False,
-                                       size_hint_y=None, height=max(dp(48), sp(16) * 2 + dp(16)))
+                                       size_hint_y=None, height=control_height())
+        self.search_open = False
         self.search.bind(text=self._filter)
         self.popup.ids.mobile_settings_search = self.search
         column.add_widget(self.navigation)
@@ -91,18 +96,31 @@ class MobileSettings:
         self.interface.menu.width = 0 if compact else dp(200)
         self.interface.menu.opacity = 0 if compact else 1
         self.interface.menu.disabled = compact
-        self.navigation.height = max(dp(48), sp(16) * 2 + dp(16)) if compact else 0
+        self.navigation.height = control_height() if compact else 0
         self.navigation.opacity = 1 if compact else 0
         self.navigation.disabled = not compact
+        for button in (self.search_button, self.close_button):
+            button.width = max(self.app.touch_target, _text_width(button.text, button.font_name, sp(16)) + dp(24))
+        visible = not compact or self.search_open or bool(self.search.text)
+        self.search.height = control_height() if visible else 0
+        self.search.opacity = int(visible)
+        self.search.disabled = not visible
         for item in self._rows:
-            if isinstance(item, SettingItem):
-                item.content.height = max(dp(56), sp(16) * 2 + dp(16))
+            if isinstance(item, SettingItem) and hasattr(item, "_mobile_fit"):
+                item._mobile_fit()
+
+    def toggle_search(self, *_args):
+        self.search_open = not self.search_open
+        if not self.search_open:
+            self.search.focus = False
+        self.reflow()
+        if self.search_open:
+            self.search.focus = True
 
     def _stack_value(self, item):
         label = item.ids.get("labellayout")
         if label is None:
             return
-        label.parent.orientation = "vertical"
         label.parent.spacing = dp(8)
         label.size_hint = (1, None)
         label.font_size = sp(16)
@@ -113,18 +131,24 @@ class MobileSettings:
         item.bind(title=wording, desc=wording)
         wording()
         label.bind(width=lambda widget, width: setattr(widget, "text_size", (max(1, width - dp(24)), None)))
-        item.content.size_hint = (1, None)
-        item.content.height = max(dp(56), sp(16) * 2 + dp(16))
+        item.content.size_hint = (None, None)
         def fit(*_args):
+            stacked = item.width < dp(260) * max(1, Metrics.fontscale)
+            label.parent.orientation = "vertical" if stacked else "horizontal"
+            label.size_hint_x = 1
+            item.content.size_hint_x = 1 if stacked else None
+            item.content.width = max(dp(100), sp(16) * 5)
+            item.content.height = control_height()
             label.height = label.texture_size[1] + dp(12)
-            desired = label.height + item.content.height + dp(20)
+            desired = (label.height + item.content.height if stacked else max(label.height, item.content.height)) + dp(12)
             if item._search_hidden:
                 self._rows[item] = (desired, self._rows[item][1])
                 item.height = 0
             else:
                 item.height = desired
         label.bind(texture_size=fit)
-        item.content.bind(height=fit)
+        item.bind(width=fit)
+        item._mobile_fit = fit
         fit()
 
     def _keep_hidden(self, item, height):
