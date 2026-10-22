@@ -105,35 +105,36 @@
                                     markup: True
                                     halign: 'left'
                                     color: 0.88, 0.88, 0.92, 1
-                                    text: tr._("[b]Manual (no motion)[/b]\n[color=78797f]Live position is shown below. Load it into the fields or type your own, then add a point or circle.[/color]")
+                                    text: tr._('Manual capture — no motion') if app.android_touch else tr._("[b]Manual (no motion)[/b]\n[color=78797f]Live position is shown below. Load it into the fields or type your own, then add a point or circle.[/color]")
                                 BoxLayout:
                                     orientation: 'horizontal'
                                     size_hint_y: None
-                                    height: dp(72)
+                                    height: max(app.touch_target, sp(16) * 1.25 + dp(12)) if app.android_touch else dp(72)
                                     spacing: dp(8)
                                     Widget:
-                                        size_hint_x: 1
+                                        size_hint_x: None if app.android_touch else 1
+                                        width: 0 if app.android_touch else dp(100)
                                     Label:
                                         id: lbl_wcs_live
-                                        size_hint_x: .65 if app.android_touch else None
+                                        size_hint_x: 1 if app.android_touch else None
                                         size_hint_y: 1
                                         width: dp(292)
                                         font_size: '16sp' if app.android_touch else dp(13)
                                         halign: 'right'
                                         valign: 'middle'
-                                        text_size: self.width, self.height
+                                        text_size: self.width, None
                                         markup: True
                                         color: 0.65, 0.92, 0.98, 1
                                         text: ''
                                     AnchorLayout:
-                                        size_hint_x: .35 if app.android_touch else None
-                                        width: dp(136)
+                                        size_hint_x: None
+                                        width: max(dp(136), sp(16) * 6.5) if app.android_touch else dp(136)
                                         anchor_y: 'center'
                                         Button:
                                             size_hint: None, None
                                             width: self.parent.width if app.android_touch else dp(136)
                                             height: dp(48)
-                                            text: tr._('Load coordinates')
+                                            text: tr._('Use position') if app.android_touch else tr._('Load coordinates')
                                             font_size: '16sp' if app.android_touch else dp(12)
                                             on_release: root.on_manual_sync_from_machine()
 
@@ -897,9 +898,9 @@
 
                         Label:
                             id: lbl_sketch_placeholder
-                            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                            pos_hint: {'center_x': 0.5, 'center_y': 0.68 if app.android_touch else 0.5}
                             size_hint: 0.86, None
-                            text: tr._('No features captured yet.\nUse the left-hand tabs to probe or add coordinates from Manual.')
+                            text: tr._('No features yet. Add a point from Capture.') if app.android_touch else tr._('No features captured yet.\nUse the left-hand tabs to probe or add coordinates from Manual.')
                             color: 0.45, 0.46, 0.52, 0.95
                             disabled_color: 0.45, 0.46, 0.52, 0.95
                             disabled: True
@@ -907,6 +908,7 @@
                             halign: 'center'
                             valign: 'middle'
                             text_size: self.width, None
+                            height: self.texture_size[1]
 
                     Label:
                         text: tr._('Features')
@@ -967,6 +969,7 @@
 
             DialogLabel:
                 text: root.session_status
+                text_role: 'secondary'
             TouchActionRow:
                 id: cmm_actions
                 size_hint_y: None

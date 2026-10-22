@@ -7,7 +7,7 @@ from kivy.uix.gridlayout import GridLayout
 
 from carveracontroller.translation import tr
 
-from .android_layout import DialogLabel
+from .android_layout import DialogLabel, style_action
 
 
 class WorkspaceLayout:
@@ -16,6 +16,7 @@ class WorkspaceLayout:
         self.grid = popup.ids.wcs_grid
         self.original = list(reversed(self.grid.children))
         self.geometry = {w: (w.size_hint, w.width, w.height) for w in self.original}
+        self.activation_names = {self.original[index]: self.original[index].text for index in range(8, len(self.original), 8)}
         self.cards = None
         self.compact = None
 
@@ -25,7 +26,12 @@ class WorkspaceLayout:
         if compact == self.compact:
             return
         self.compact = compact
+        if app.android_touch:
+            self.popup.ids.btn_ok.text = tr._("Apply offsets")
+            style_action(self.popup.ids.btn_ok, "primary")
         self.grid.clear_widgets()
+        for button, name in self.activation_names.items():
+            button.text = tr._("Activate immediately") + " · " + name if compact else name
         if compact:
             self.grid.cols = 1
             if self.cards is None:
@@ -40,11 +46,11 @@ class WorkspaceLayout:
                     for widget in items:
                         widget.size_hint = (1, None)
                         widget.height = max(app.touch_target, dp(56))
-                    card.add_widget(DialogLabel(text=activate.text + " — " + tr._("Activate immediately"), bold=True))
+                    card.add_widget(DialogLabel(text=self.activation_names[activate] + " — " + tr._("Numeric offsets apply together"), bold=True))
                     card.add_widget(activate)
                     values = GridLayout(cols=2, size_hint_y=None, spacing=dp(8))
                     values.bind(minimum_height=values.setter("height"))
-                    for name, field in zip(("X offset", "Y offset", "Z offset", "A (degrees)", "Rotation (degrees)"), fields):
+                    for name, field in zip((f"X ({app.machine_units})", f"Y ({app.machine_units})", f"Z ({app.machine_units})", "A (degrees)", "Rotation (degrees)"), fields):
                         values.add_widget(DialogLabel(text=tr._(name)))
                         values.add_widget(field)
                     card.add_widget(values)

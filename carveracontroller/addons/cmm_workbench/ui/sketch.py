@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable
 
+from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.text import Label as CoreLabel
 from kivy.graphics import Canvas, Color, Line, PopMatrix, PushMatrix, Rectangle, Translate
@@ -554,7 +555,9 @@ class CMMWorkbenchPreviewSketch(StencilView):
         return min(xs), min(ys), max(xs), max(ys)
 
     def _redraw(self, *args):
-        self._zoom_controls.pos = (self.right - self._zoom_controls.width, self.top - self._zoom_controls.height)
+        app = App.get_running_app()
+        self._zoom_controls.pos = (self.right - self._zoom_controls.width,
+                                   self.y if app and app.android_touch else self.top - self._zoom_controls.height)
         self._drawing.clear()
         iw = max(self.width, 1.0)
         ih = max(self.height, 1.0)

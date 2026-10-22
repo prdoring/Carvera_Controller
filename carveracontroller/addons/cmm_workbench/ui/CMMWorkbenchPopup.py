@@ -509,7 +509,8 @@ class CMMWorkbenchPopup(ModalView):
             wx = float(CNC.vars.get("wx", 0.0))
             wy = float(CNC.vars.get("wy", 0.0))
             wz = float(CNC.vars.get("wz", 0.0))
-            lbl.text = f"[b]{tr._('Current position')}[/b]\nX  {wx:+.4f}   Y  {wy:+.4f}   Z  {wz:+.4f}"
+            position = f"X {wx:+.4f}  Y {wy:+.4f}  Z {wz:+.4f}"
+            lbl.text = position if App.get_running_app().android_touch else f"[b]{tr._('Current position')}[/b]\nX  {wx:+.4f}   Y  {wy:+.4f}   Z  {wz:+.4f}"
         except Exception:
             logger.debug("Could not refresh live position label", exc_info=True)
 

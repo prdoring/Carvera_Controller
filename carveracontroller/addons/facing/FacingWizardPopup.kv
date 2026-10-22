@@ -59,6 +59,7 @@
         spacing: dp(8)
 
         TouchActionRow:
+            id: optional_panes
             height: self.minimum_height if app.android_touch else 0
             opacity: 1 if app.android_touch else 0
             disabled: not app.android_touch
@@ -74,6 +75,7 @@
                 on_release: root.show_gcode_preview = self.state == 'down'
         DialogLabel:
             text: root.program_state
+            text_role: 'secondary'
             height: self.texture_size[1] + dp(8)
         BoxLayout:
             orientation: 'horizontal'
