@@ -2,15 +2,18 @@
 
 from kivy.app import App
 from kivy.core.window import Window
-from kivy.metrics import dp
+from kivy.metrics import dp, sp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.label import Label
 from kivy.uix.popup import Popup
-from kivy.uix.settings import SettingOptions, SettingString
+from kivy.uix.settings import SettingOptions, SettingPath, SettingString
+from kivy.uix.treeview import TreeView, TreeViewNode
 from kivy.uix.widget import Widget
 
 from carveracontroller.translation import tr
 
+from . import theme
 from .android_layout import DialogActions, DialogSurface, TouchActionRow
 from .editing import EditingTextInput, is_complete_number
 from .widget_helpers import bind_auto_select_to_text_input
@@ -65,13 +68,21 @@ class EditingSettingNumeric(EditingSettingString):
 
 class EditingSettingOptions(SettingOptions):
     def _create_popup(self, _instance):
-        if not App.get_running_app().android_touch:
-            return super()._create_popup(_instance)
         surface = DialogSurface(orientation="vertical", padding=dp(12), spacing=dp(8))
         self.popup = Popup(title=self.title, content=surface, size_hint=(.9, .85))
         options = TouchActionRow(stacked=True, spacing=dp(8))
+        keyboard_labels = {
+            "": tr._("Automatic"),
+            "system": tr._("System keyboard"),
+            "dock": tr._("Docked virtual keyboard"),
+            "multi": tr._("Virtual keyboard for each field"),
+            "systemanddock": tr._("System and docked virtual keyboard"),
+            "systemandmulti": tr._("System and per-field virtual keyboard"),
+        }
         for value in self.options:
-            button = Button(text=value)
+            caption = keyboard_labels.get(value, value) if self.section == "kivy" and self.key == "keyboard_mode" else value
+            button = Button(text=caption)
+            button.background_color = theme.SELECTED if value == self.value else theme.CONTROL
             def choose(_button, selected=value):
                 self.value = selected
                 self.popup.dismiss()
@@ -84,3 +95,28 @@ class EditingSettingOptions(SettingOptions):
         actions.add_widget(cancel)
         surface.add_widget(actions)
         self.popup.open()
+
+
+class EditingSettingPath(SettingPath):
+    def _create_popup(self, instance):
+        super()._create_popup(instance)
+        app = App.get_running_app()
+        if not app.android_touch:
+            return
+        chooser = self.textinput
+        row_height = max(app.touch_target, sp(16) * 1.5 + dp(16))
+        def style_entry(_chooser, entry, *_args):
+            entry.height = row_height
+            for label in entry.walk(restrict=True):
+                if isinstance(label, Label):
+                    label.font_size = sp(16)
+                    label.font_name = theme.font_for(label.text)
+                    if label == entry.ids.get("filename"):
+                        label.padding_x = dp(8)
+        chooser.bind(on_entry_added=style_entry, on_subentry_to_entry=style_entry)
+        for widget in chooser.walk(restrict=True):
+            if isinstance(widget, TreeView):
+                widget.indent_start = max(dp(32), app.touch_target)
+                widget.indent_level = dp(32)
+            elif isinstance(widget, TreeViewNode) and hasattr(widget, "path"):
+                style_entry(chooser, widget)

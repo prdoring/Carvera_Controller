@@ -9,11 +9,10 @@ from functools import partial
 
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.metrics import dp
+from kivy.metrics import dp, sp
 from kivy.properties import BooleanProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.dropdown import DropDown
 from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
 from kivy.uix.popup import Popup
@@ -28,6 +27,8 @@ from carveracontroller.CNC import (
     is_probe_tools_range,
 )
 from carveracontroller.translation import tr
+from carveracontroller.ui.android_layout import DialogActions, DialogSurface
+from carveracontroller.ui.dropdown_layout import ThemedDropDown as DropDown
 
 # Loads facing_preview_sketch so Factory registers widget name "FacingSketch" for KV before Builder applies rules.
 from . import facing_preview_sketch as _facing_preview_sketch
@@ -134,7 +135,7 @@ def _stock_corner_pairs():
     ]
 
 
-class FacingSavePresetContent(BoxLayout):
+class FacingSavePresetContent(DialogSurface):
     pass
 
 
@@ -218,7 +219,7 @@ class FacingWizardPopup(ModalView):
             (tr._("Delete preset…"), "delete"),
         ]
         for label, action in items:
-            btn = Button(text=label, size_hint_y=None, height=dp(44), font_size=dp(12))
+            btn = Button(text=label, size_hint_y=None, height=dp(44), font_size=sp(16))
             btn.bind(on_release=partial(self._on_presets_dropdown_choice, dd, action))
             dd.add_widget(btn)
         dd.open(anchor_widget)
@@ -239,7 +240,7 @@ class FacingWizardPopup(ModalView):
             (tr._("Upload & select"), self.upload_to_machine),
         ]
         for label, fn in entries:
-            btn = Button(text=label, size_hint_y=None, height=dp(44), font_size=dp(12))
+            btn = Button(text=label, size_hint_y=None, height=dp(44), font_size=sp(16))
             btn.bind(on_release=partial(self._on_gcode_dropdown_choice, dd, fn))
             dd.add_widget(btn)
         dd.open(anchor_widget)
@@ -255,17 +256,16 @@ class FacingWizardPopup(ModalView):
             root.show_message_popup(tr._("No saved presets yet."), False)
             return
         list_h = min(dp(280), max(dp(120), len(names) * dp(46)))
-        outer = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(8))
+        outer = DialogSurface(orientation="vertical", padding=dp(12), spacing=dp(8))
         lbl = Label(
             text=tr._("Tap a preset to load."),
             size_hint_y=None,
             height=dp(32),
-            font_size=dp(12),
+            font_size=sp(16),
             color=(0.75, 0.76, 0.8, 1),
             halign="left",
             valign="top",
         )
-        lbl.bind(size=lambda inst, val: setattr(inst, "text_size", val))
         outer.add_widget(lbl)
         scroll = ScrollView(
             size_hint_y=None,
@@ -285,7 +285,7 @@ class FacingWizardPopup(ModalView):
         )
 
         for name in names:
-            b = Button(text=name, size_hint_y=None, height=dp(44), font_size=dp(12))
+            b = Button(text=name, size_hint_y=None, height=dp(44), font_size=sp(16))
 
             def make_pick(p, n):
                 def _on_pick(*_a):
@@ -298,18 +298,13 @@ class FacingWizardPopup(ModalView):
             inner.add_widget(b)
         scroll.add_widget(inner)
         outer.add_widget(scroll)
-        cancel_btn = Button(text=tr._("Cancel"), size_hint_y=None, height=dp(42), font_size=dp(12))
+        cancel_btn = Button(text=tr._("Cancel"), size_hint_y=None, height=dp(42), font_size=sp(16))
         cancel_btn.bind(on_release=lambda *_a: popup.dismiss())
-        outer.add_widget(cancel_btn)
-
-        def _fit_list_popup_height(*_a):
-            popup.height = min(
-                root.height * 0.72,
-                outer.minimum_height + dp(56),
-            )
-
+        actions = DialogActions()
+        actions.add_widget(cancel_btn)
+        outer.add_widget(actions)
+        outer.prepare()
         popup.open()
-        Clock.schedule_once(_fit_list_popup_height, 0.05)
 
     def _open_preset_list_for_delete(self):
         names = sorted_preset_names(load_store())
@@ -318,17 +313,16 @@ class FacingWizardPopup(ModalView):
             root.show_message_popup(tr._("No saved presets yet."), False)
             return
         list_h = min(dp(280), max(dp(120), len(names) * dp(46)))
-        outer = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(8))
+        outer = DialogSurface(orientation="vertical", padding=dp(12), spacing=dp(8))
         lbl = Label(
             text=tr._("Tap a preset to delete."),
             size_hint_y=None,
             height=dp(32),
-            font_size=dp(12),
+            font_size=sp(16),
             color=(0.75, 0.76, 0.8, 1),
             halign="left",
             valign="top",
         )
-        lbl.bind(size=lambda inst, val: setattr(inst, "text_size", val))
         outer.add_widget(lbl)
         scroll = ScrollView(
             size_hint_y=None,
@@ -348,7 +342,7 @@ class FacingWizardPopup(ModalView):
         )
 
         for name in names:
-            b = Button(text=name, size_hint_y=None, height=dp(44), font_size=dp(12))
+            b = Button(text=name, size_hint_y=None, height=dp(44), font_size=sp(16))
 
             def make_pick(p, n):
                 def _on_pick(*_a):
@@ -361,18 +355,13 @@ class FacingWizardPopup(ModalView):
             inner.add_widget(b)
         scroll.add_widget(inner)
         outer.add_widget(scroll)
-        cancel_btn = Button(text=tr._("Cancel"), size_hint_y=None, height=dp(42), font_size=dp(12))
+        cancel_btn = Button(text=tr._("Cancel"), size_hint_y=None, height=dp(42), font_size=sp(16))
         cancel_btn.bind(on_release=lambda *_a: popup.dismiss())
-        outer.add_widget(cancel_btn)
-
-        def _fit_list_popup_height(*_a):
-            popup.height = min(
-                root.height * 0.72,
-                outer.minimum_height + dp(56),
-            )
-
+        actions = DialogActions()
+        actions.add_widget(cancel_btn)
+        outer.add_widget(actions)
+        outer.prepare()
         popup.open()
-        Clock.schedule_once(_fit_list_popup_height, 0.05)
 
     def _load_preset_by_name(self, name: str):
         root = App.get_running_app().root
@@ -421,16 +410,9 @@ class FacingWizardPopup(ModalView):
             separator_height=dp(1),
         )
 
-        def _fit_popup_height(*_a):
-            save_popup.height = min(
-                App.get_running_app().root.height * 0.42,
-                content.minimum_height + dp(56),
-            )
-
         content.ids.btn_cancel.bind(on_release=lambda *_: save_popup.dismiss())
         content.ids.btn_save.bind(on_release=lambda *_: self._try_save_preset(save_popup, content))
         save_popup.open()
-        Clock.schedule_once(_fit_popup_height, 0.05)
 
     def _try_save_preset(self, save_popup: Popup, content: FacingSavePresetContent):
         root = App.get_running_app().root

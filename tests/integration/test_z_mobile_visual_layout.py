@@ -401,6 +401,41 @@ def test_enlarged_small_screen_keeps_focused_field_inside_its_keyboard_viewport(
     assert y + field.height <= Window.height
 
 
+def test_cmm_focused_field_stays_visible_after_late_form_reflow(mobile):
+    app, layout = mobile
+    set_window_size((800, 480))
+    Metrics.density, Metrics.fontscale = 1.5, 2
+    app.touch_target = 72
+    layout.update()
+    modal = app.root._ensure_cmm_workbench_popup()
+    modal.open(animation=False)
+    pump_frames(12)
+    field = modal.ids.t_manual_wx
+    viewport = field.parent
+    while not isinstance(viewport, ScrollView):
+        viewport = viewport.parent
+    field.focus = True
+    app.android_keyboard_height = 240
+    pump_frames(24, sleep=.02)
+    body = viewport.children[0]
+    original = list(body.padding)
+    before = list(app.simulation.commands)
+    try:
+        body.padding = [original[0], original[1] + dp(160), original[2], original[3]]
+        pump_frames(8)
+        _, bottom = viewport.to_window(*viewport.pos)
+        _, y = field.to_window(*field.pos)
+        assert viewport.height >= field.height
+        assert bottom - 1 <= y
+        assert y + field.height <= bottom + viewport.height + 1
+        assert y >= app.android_keyboard_height
+        assert y + field.height <= Window.height
+        assert app.simulation.commands == before
+    finally:
+        body.padding = original
+
+
+
 @pytest.mark.parametrize('scene', ['wcs', 'filename', 'mdi', 'settings'])
 def test_remaining_editors_fit_above_enlarged_keyboard(mobile, scene):
     from carveracontroller.ui.mobile_main import MobileMainLayout
@@ -492,7 +527,12 @@ def test_landscape_size_matrix_keeps_motion_targets_in_their_panel(mobile, size,
             assert x >= -1 and x + button.width <= Window.width + 1
             assert y >= app.root.ids.control_center.parent.y - 1
             assert y + button.height <= app.root.ids.main_top_bar.y + 1
-        assert not any(isinstance(widget, ScrollView) for widget in app.root.ids.control_center.walk())
+        assert not any(isinstance(widget, ScrollView) for widget in app.root.ids.control_center.walk(restrict=True))
+        for button in (widget for widget in app.root.walk() if isinstance(widget, JogTouchButton)):
+            parent = button.parent
+            while parent is not None and parent is not Window:
+                assert parent is not getattr(app.root, "_mobile_control_scroll", None)
+                parent = parent.parent
         if app.compact_layout:
             assert all(button.texture_size[1] <= button.height for button in main._context_row.children)
     finally:

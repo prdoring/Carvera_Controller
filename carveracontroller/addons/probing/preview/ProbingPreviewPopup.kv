@@ -1,56 +1,46 @@
+#:import theme carveracontroller.ui.theme
+#:import tr carveracontroller.__main__.tr
+#:import DialogSurface carveracontroller.ui.android_layout.DialogSurface
+#:import DialogLabel carveracontroller.ui.android_layout.DialogLabel
+#:import DialogActions carveracontroller.ui.android_layout.DialogActions
+
 <ProbingPreviewPopup>:
-    size_hint: 0.5, 0.4
-    pos_hint: {"right": 0.75, "top": 0.7}
+    size_hint: (0.9, 0.86) if app.android_touch else (0.5, 0.4)
+    pos_hint: {"center_x": 0.5, "center_y": 0.5} if app.android_touch else {"right": 0.75, "top": 0.7}
     auto_dismiss: False
-    overlay_color: 0,0,0,0.3
-    GridLayout:
-        cols:1
-        rows:3
-        GridLayout:
-            cols:2
-            rows:1
-
-            BoxLayout:
-                padding: '15dp'
+    overlay_color: 0, 0, 0, 0.3
+    DialogSurface:
+        orientation: 'vertical'
+        padding: dp(12)
+        DialogLabel:
+            id: lb_title
+            text: root.title
+            bold: True
+            font_size: '18sp'
+            halign: 'center'
+        DialogLabel:
+            id: lb_preview
+            text: root.probe_preview_label
+            halign: 'center'
+        PopupMDI:
+            id: manual_rvPopup
+            size_hint_y: None
+            height: max(dp(120), app.touch_target * 3) if app.android_touch else dp(100)
+            scroll_type: ['bars', 'content']
+            scroll_wheel_distance: dp(114)
+            data: app.mdi_data
+            bar_width: dp(20)
+            viewclass: 'ProbingRow'
+            SelectableRecycleBoxLayout:
+                default_size: None, (app.touch_target if app.android_touch else dp(20))
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
                 orientation: 'vertical'
-                Label:
-                    size_hint_y: 0.4
-                    id: lb_title
-                    text: root.title
-                    bold: True
-                    halign: 'center'
-                    valign: 'middle'
-                    text_size: self.size
-                Label:
-                    id: lb_preview
-                    text: root.probe_preview_label
-                    halign: 'center'
-                    valign: 'middle'
-                    text_size: self.width, None
-                    size_hint_y: None
-                    height: self.texture_size[1]
-        BoxLayout:
-            orientation: 'vertical'
-            spacing: '5dp'
-            PopupMDI:
-                id: manual_rvPopup
-                scroll_type: ['bars', 'content']
-                scroll_wheel_distance: dp(114)
-                data: app.mdi_data
-                bar_width: dp(20)
-                viewclass: 'ProbingRow'
-                SelectableRecycleBoxLayout:
-                    default_size: None, (app.touch_target if app.android_touch else dp(20))
-                    default_size_hint: 1, None
-                    size_hint_y: None
-                    height: self.minimum_height
-                    orientation: 'vertical'
-                    spacing: dp(0.5)
-                    multiselect: False
-                    touch_multiselect: False
-
-        BoxLayout:
-            size_hint_y: 0.4
+                spacing: dp(0.5)
+                multiselect: False
+                touch_multiselect: False
+        DialogActions:
             Button:
                 text: tr._('Halt') if app.state == 'Run' else tr._('Close')
                 on_release: app.root.controller.estopCommand() if app.state == 'Run' else root.dismiss()
@@ -58,19 +48,16 @@
                 text: tr._('Start')
                 disabled: (not root.gcode) or (app.state != 'Idle')
                 on_release: root.start_probing()
-#                    root.dismiss()
             HelpButton:
                 helpPath: "https://carvera-community.gitbook.io/docs/firmware/features/3d-probe-support"
 
 
-
-
 <ProbingRow@SelectableLabel>:
     text: ''
-    color: 1, 1, 1, 1  # Add default
+    color: theme.TEXT  # Add default
     canvas.before:
         Color:
-            rgba: (80/255, 80/255, 80/255, 1) if self.selected else (50/255, 50/255, 50/255, 1)
+            rgba: theme.CONTROL if self.selected else theme.PANEL
         Rectangle:
             pos: self.pos
             size: self.size

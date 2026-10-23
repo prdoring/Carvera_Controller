@@ -1,6 +1,8 @@
+#:import theme carveracontroller.ui.theme
 #:import tr carveracontroller.__main__.tr
 #:import digitize_v carveracontroller.Utils.digitize_v
 #:import Window kivy.core.window.Window
+#:import hex_color kivy.utils.get_hex_from_color
 
 
 <CMMWorkbenchSketchVisibilityToggle>:
@@ -8,7 +10,7 @@
     group: None
     canvas.before:
         Color:
-            rgba: (88/255, 88/255, 88/255, 1) if self.state == 'normal' else (50/255, 164/255, 206/255, 1)
+            rgba: theme.CONTROL if self.state == 'normal' else theme.SELECTED
         RoundedRectangle:
             pos: self.pos
             size: self.size
@@ -25,7 +27,7 @@
     group: ''
     canvas.before:
         Color:
-            rgba: (88/255, 88/255, 88/255, 1) if self.state == 'normal' else (50/255, 164/255, 206/255, 1)
+            rgba: theme.CONTROL if self.state == 'normal' else theme.SELECTED
         RoundedRectangle:
             pos: self.pos
             size: self.size
@@ -39,7 +41,7 @@
 
 <CMMWorkbenchFieldLabel@Label>:
     font_size: '16sp' if app.android_touch else dp(15)
-    color: 0.88, 0.88, 0.92, 1
+    color: theme.TEXT
     halign: 'center'
     valign: 'middle'
     text_size: self.size
@@ -81,7 +83,7 @@
                     do_default_tab: False
                     tab_width: dp(118)
                     bar_width: dp(8)
-                    bar_color: 0.52, 0.68, 0.85, 1
+                    bar_color: theme.MUTED
                     padding: [dp(4)] * 4 if app.android_touch else [dp(6), dp(8), dp(6), dp(10)]
                     disabled: root.is_probing
 
@@ -104,8 +106,8 @@
                                     height: self.texture_size[1]
                                     markup: True
                                     halign: 'left'
-                                    color: 0.88, 0.88, 0.92, 1
-                                    text: tr._('Manual capture — no motion') if app.android_touch else tr._("[b]Manual (no motion)[/b]\n[color=78797f]Live position is shown below. Load it into the fields or type your own, then add a point or circle.[/color]")
+                                    color: theme.TEXT
+                                    text: tr._('Manual capture — no motion') if app.android_touch else tr._("[b]Manual (no motion)[/b]\n[color={}]Live position is shown below. Load it into the fields or type your own, then add a point or circle.[/color]").format(hex_color(theme.SECONDARY))
                                 BoxLayout:
                                     id: manual_position_row
                                     orientation: 'horizontal'
@@ -126,7 +128,7 @@
                                             valign: 'middle'
                                             text_size: self.width, None
                                             markup: True
-                                            color: 0.65, 0.92, 0.98, 1
+                                            color: theme.ACCENT
                                             text: ''
                                             opacity: 0 if app.android_touch and self.texture_size[1] > self.height else 1
                                         Button:
@@ -204,8 +206,8 @@
                                     height: self.texture_size[1]
                                     markup: True
                                     halign: 'left'
-                                    color: 0.88, 0.88, 0.92, 1
-                                    text: tr._("[b]Single-axis probe[/b]\n[color=78797f][b]M466[/b][/color]")
+                                    color: theme.TEXT
+                                    text: tr._("[b]Single-axis probe[/b]\n[color={}][b]M466[/b][/color]").format(hex_color(theme.SECONDARY))
 
                                 GridLayout:
                                     cols: 2
@@ -313,10 +315,10 @@
                                     text_size: self.width, None
                                     markup: True
                                     halign: 'left'
-                                    color: 0.88, 0.88, 0.92, 1
+                                    color: theme.TEXT
                                     size_hint_y: None
                                     height: self.texture_size[1]
-                                    text: tr._("[b]Circular pocket / bore center[/b]\n[color=78797f][b]M461[/b][/color]")
+                                    text: tr._("[b]Circular pocket / bore center[/b]\n[color={}][b]M461[/b][/color]").format(hex_color(theme.SECONDARY))
 
                                 GridLayout:
                                     cols: 2
@@ -434,10 +436,10 @@
                                     text_size: self.width, None
                                     markup: True
                                     halign: 'left'
-                                    color: 0.88, 0.88, 0.92, 1
+                                    color: theme.TEXT
                                     size_hint_y: None
                                     height: self.texture_size[1]
-                                    text: tr._("[b]Outside boss / block center[/b]\n[color=78797f][b]M462[/b][/color]")
+                                    text: tr._("[b]Outside boss / block center[/b]\n[color={}][b]M462[/b][/color]").format(hex_color(theme.SECONDARY))
 
                                 GridLayout:
                                     cols: 2
@@ -560,10 +562,10 @@
                                     text_size: self.width, None
                                     markup: True
                                     halign: 'left'
-                                    color: 0.88, 0.88, 0.92, 1
+                                    color: theme.TEXT
                                     size_hint_y: None
                                     height: self.texture_size[1]
-                                    text: tr._("[b]Inside corner[/b]\n[color=78797f][b]M463[/b][/color]")
+                                    text: tr._("[b]Inside corner[/b]\n[color={}][b]M463[/b][/color]").format(hex_color(theme.SECONDARY))
 
                                 GridLayout:
                                     cols: 2
@@ -676,10 +678,10 @@
                                     text_size: self.width, None
                                     markup: True
                                     halign: 'left'
-                                    color: 0.88, 0.88, 0.92, 1
+                                    color: theme.TEXT
                                     size_hint_y: None
                                     height: self.texture_size[1]
-                                    text: tr._("[b]Outside corner[/b]\n[color=78797f][b]M464[/b][/color]")
+                                    text: tr._("[b]Outside corner[/b]\n[color={}][b]M464[/b][/color]").format(hex_color(theme.SECONDARY))
 
                                 GridLayout:
                                     cols: 2
@@ -792,10 +794,10 @@
                                     text_size: self.width, None
                                     markup: True
                                     halign: 'left'
-                                    color: 0.88, 0.88, 0.92, 1
+                                    color: theme.TEXT
                                     size_hint_y: None
                                     height: self.texture_size[1]
-                                    text: tr._("[b]Axis angle[/b]\n[color=78797f][b]M465[/b][/color]")
+                                    text: tr._("[b]Axis angle[/b]\n[color={}][b]M465[/b][/color]").format(hex_color(theme.SECONDARY))
 
                                 GridLayout:
                                     cols: 2
@@ -911,8 +913,8 @@
                             pos_hint: {'center_x': 0.5, 'center_y': 0.68 if app.android_touch else 0.5}
                             size_hint: 0.86, None
                             text: tr._('No features yet. Add a point from Capture.') if app.android_touch else tr._('No features captured yet.\nUse the left-hand tabs to probe or add coordinates from Manual.')
-                            color: 0.45, 0.46, 0.52, 0.95
-                            disabled_color: 0.45, 0.46, 0.52, 0.95
+                            color: theme.SECONDARY
+                            disabled_color: theme.SECONDARY
                             disabled: True
                             font_size: '16sp' if app.android_touch else dp(13)
                             halign: 'center'
@@ -980,6 +982,10 @@
             DialogLabel:
                 text: '' if app.android_touch and app.compact_layout else root.session_status
                 text_role: 'secondary'
+                size_hint_y: 1 if app.android_touch else None
+                text_size: self.width - dp(16), None
+                height: self.texture_size[1] + dp(8) if self.text else 0
+                halign: 'left'
             TouchActionRow:
                 id: cmm_actions
                 size_hint_y: None
@@ -1067,7 +1073,7 @@
 
     canvas.before:
         Color:
-            rgba: (38 / 255, 39 / 255, 42 / 255, 1)
+            rgba: theme.PANEL
         RoundedRectangle:
             pos: self.pos
             size: self.size
@@ -1091,7 +1097,7 @@
                 size_hint_y: None
                 height: app.touch_target if app.android_touch else dp(24)
                 font_size: dp(17)
-                color: 0.95, 0.96, 0.97, 1
+                color: theme.TEXT
                 bold: True
                 halign: 'left'
                 valign: 'middle'
@@ -1102,7 +1108,7 @@
                 height: dp(3)
                 canvas:
                     Color:
-                        rgba: (50 / 255, 167 / 255, 212 / 255, 0.92)
+                        rgba: (*theme.ACCENT[:3], 0.92)
                     Rectangle:
                         pos: self.pos
                         size: self.size
@@ -1122,7 +1128,7 @@
                     size_hint_x: 1
                     canvas.before:
                         Color:
-                            rgba: (40 / 255, 40 / 255, 40 / 255, 1)
+                            rgba: theme.BACKGROUND
                         RoundedRectangle:
                             pos: self.pos
                             size: self.size
@@ -1132,7 +1138,7 @@
                         padding: dp(0)
                         canvas.before:
                             Color:
-                                rgba: (50 / 255, 50 / 255, 50 / 255, 1)
+                                rgba: theme.CONTROL
                             Ellipse:
                                 pos: self.pos
                                 size: self.size
@@ -1185,7 +1191,7 @@
                     size_hint_x: 1
                     canvas.before:
                         Color:
-                            rgba: (50 / 255, 50 / 255, 50 / 255, 1)
+                            rgba: theme.CONTROL
                         RoundedRectangle:
                             pos: self.pos
                             size: self.size
@@ -1203,6 +1209,7 @@
                         GridBoxLayout:
                             JogTouchButton:
                                 text: 'Z+'
+                                tooltip_image: "data/AxisMotion/AxisMotion_ZPos.png"
                                 height: 46
                                 jog_command: "Z{}".format(scan_jog_step_z.text)
 
@@ -1237,6 +1244,7 @@
                         GridBoxLayout:
                             JogTouchButton:
                                 text: 'Z-'
+                                tooltip_image: "data/AxisMotion/AxisMotion_ZNeg.png"
                                 height: 46
                                 jog_command: "Z-{}".format(scan_jog_step_z.text)
 
@@ -1249,7 +1257,7 @@
                     padding: dp(4)
                     canvas.before:
                         Color:
-                            rgba: (50 / 255, 50 / 255, 50 / 255, 1)
+                            rgba: theme.CONTROL
                         RoundedRectangle:
                             pos: self.pos
                             size: self.size

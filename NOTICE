@@ -56,19 +56,17 @@ of these libraries apply to their respective source code.
 - kivy.ddd is distributed under the terms of the MIT License.
 
 ===============================================================================
-This product includes the following third-party icons:
+This product includes icons from Lucide.
+- Authors: Lucide contributors
+- License: ISC
+- URL: https://lucide.dev/
+- License text: carveracontroller/data/theme/LUCIDE-LICENSE.txt
 
-1. axis-arrow.png
-   - Author: Austin Andrews
-   - License: Apache 2.0 License
-   - URL: https://pictogrammers.com/library/mdi/icon/axis-arrow/
-   - Used in: carveracontroller/data/axis-arrow.png
-
-2. camera.png
-   - Author: Austin Andrews
-   - License: Apache 2.0 License
-   - URL: https://pictogrammers.com/library/mdi/icon/camera/
-   - Used in: carveracontroller/data/camera.png
+This product includes the IBM Plex Sans and IBM Plex Mono fonts.
+- Copyright: IBM Corp.
+- License: SIL Open Font License, Version 1.1
+- URL: https://github.com/IBM/plex
+- License text: carveracontroller/data/fonts/OFL.txt
 
 ===============================================================================
 Please see the respective license files for detailed information.

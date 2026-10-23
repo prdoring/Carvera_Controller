@@ -1,3 +1,4 @@
+#:import theme carveracontroller.ui.theme
 #:import tr carveracontroller.__main__.tr
 #:import default_values carveracontroller.addons.facing.facing_wizard_defaults
 
@@ -12,15 +13,13 @@
     padding_y: dp(2)
     halign: 'left'
     valign: 'middle'
-    color: 200/255, 200/255, 200/255, 1
+    color: theme.SECONDARY
 
 <FacingSavePresetContent>:
     orientation: 'vertical'
-    size_hint: 1, None
-    height: self.minimum_height
     padding: dp(14)
     spacing: dp(8)
-    Label:
+    DialogLabel:
         text: tr._('Preset name')
         size_hint_y: None
         height: self.texture_size[1] + dp(2)
@@ -28,16 +27,14 @@
         text_size: self.width, None
         halign: 'left'
         valign: 'bottom'
-        color: 0.78, 0.79, 0.82, 1
+        color: theme.SECONDARY
     EditingTextInput:
         id: ti_name
         input_policy: 'filename'
         size_hint_y: None
         height: app.touch_target if app.android_touch else dp(40)
         multiline: False
-    BoxLayout:
-        size_hint_y: None
-        height: app.touch_target if app.android_touch else dp(44)
+    DialogActions:
         spacing: dp(8)
         Button:
             id: btn_cancel
@@ -77,6 +74,9 @@
             id: facing_program_status
             text: root.program_state
             text_role: 'secondary'
+            size_hint_y: 1 if app.android_touch else None
+            text_size: self.width - dp(16), None
+            halign: 'left'
             height: self.texture_size[1] + dp(8)
         BoxLayout:
             orientation: 'horizontal'
@@ -93,7 +93,7 @@
                     do_default_tab: False
                     tab_width: dp(120)
                     bar_width: dp(8)
-                    bar_color: 0.85, 0.25, 0.2, 1
+                    bar_color: theme.MUTED
                     padding: dp(8), dp(8), dp(8), dp(10)
 
                     TouchTabbedPanelItem:
@@ -115,7 +115,7 @@
                                     size_hint_x: 1
                                     font_size: '16sp' if app.android_touch else dp(14)
                                     line_spacing: dp(5)
-                                    color: 0.72, 0.73, 0.76, 1
+                                    color: theme.SECONDARY
                                     text_size: self.width, None
                                     halign: 'left'
                                     valign: 'top'
@@ -207,7 +207,7 @@
                                     size_hint_x: 1
                                     font_size: '16sp' if app.android_touch else dp(14)
                                     line_spacing: dp(5)
-                                    color: 0.72, 0.73, 0.76, 1
+                                    color: theme.SECONDARY
                                     text_size: self.width, None
                                     halign: 'left'
                                     valign: 'top'
@@ -355,7 +355,7 @@
                                     size_hint_x: 1
                                     font_size: '16sp' if app.android_touch else dp(14)
                                     line_spacing: dp(5)
-                                    color: 0.72, 0.73, 0.76, 1
+                                    color: theme.SECONDARY
                                     text_size: self.width, None
                                     halign: 'left'
                                     valign: 'top'
@@ -455,7 +455,7 @@
                                     size_hint_x: 1
                                     font_size: '16sp' if app.android_touch else dp(14)
                                     line_spacing: dp(5)
-                                    color: 0.72, 0.73, 0.76, 1
+                                    color: theme.SECONDARY
                                     text_size: self.width, None
                                     halign: 'left'
                                     valign: 'top'
@@ -545,9 +545,10 @@
                                         input_filter: 'int'
 
                 BoxLayout:
+                    id: facing_sketch_pane
                     orientation: 'vertical'
                     size_hint_y: None if app.android_touch else 0.43
-                    height: dp(220) if root.show_sketch or not app.android_touch else 0
+                    height: max(dp(220), self.minimum_height) if app.android_touch and root.show_sketch else dp(220) if not app.android_touch else 0
                     opacity: 1 if root.show_sketch or not app.android_touch else 0
                     disabled: app.android_touch and not root.show_sketch
                     spacing: dp(4)
@@ -561,7 +562,7 @@
                     Label:
                         id: lbl_preview_error
                         size_hint_y: None
-                        height: app.touch_target if app.android_touch else dp(22)
+                        height: max(app.touch_target, self.texture_size[1] + dp(8)) if self.text and app.android_touch else dp(22) if self.text else 0
                         font_size: '16sp' if app.android_touch else dp(10)
                         text_size: self.width, None
                         halign: 'center'
@@ -573,13 +574,14 @@
                         color: 0.92, 0.42, 0.35, 1
 
                     Label:
+                        id: facing_sketch_legend
                         size_hint_y: None
                         height: self.texture_size[1] + dp(6)
-                        font_size: '16sp' if app.android_touch else dp(9)
+                        font_size: '14sp' if app.android_touch else dp(9)
                         text_size: self.width - dp(8), None
-                        halign: 'center'
+                        halign: 'left'
                         valign: 'top'
-                        color: 0.65, 0.66, 0.7, 1
+                        color: theme.SECONDARY
                         text: tr._('Gray solid: stock outline · Dashed ring: margin · Red: facing path · Blue: probe grid (inset from stock edge) · Bright marker: X Y zero')
 
             BoxLayout:
@@ -605,7 +607,7 @@
                     size_hint_y: 1
                     canvas.before:
                         Color:
-                            rgba: 35/255, 35/255, 35/255, 1
+                            rgba: theme.BACKGROUND
                         Rectangle:
                             pos: self.pos
                             size: self.size

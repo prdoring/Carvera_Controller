@@ -1,3 +1,4 @@
+#:import theme carveracontroller.ui.theme
 <DirectoryView>:
     orientation: 'horizontal'
     selected: False
@@ -6,14 +7,14 @@
     full_path: ''
     canvas.before:
         Color:
-            rgba: 80/255, 80/255, 80/255, 1
+            rgba: theme.CONTROL
         Rectangle:
             pos: self.pos
             size: self.size
     Label:
         canvas.before:
             Color:
-                rgba: 225/255, 225/255, 225/255, 1
+                rgba: theme.TEXT
             Rectangle:
                 source: 'data/connected.png'
                 pos: self.center_x - dp(10), self.center_y - dp(10)
@@ -32,7 +33,7 @@
         size_hint_x: 0.2
     Label:
         text: root.data_text
-        color: 225/255, 225/255, 225/255, 1
+        color: theme.TEXT
         text_size: self.size
         valign: 'middle'
         multiline: False

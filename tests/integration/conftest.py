@@ -210,6 +210,7 @@ def kivy_app():
     from kivy.lang import Builder
 
     builder_files = set(Builder.files)
+    clock_events = set(Clock.get_events())
     import carveracontroller.main as main_module
     from carveracontroller import translation
     from carveracontroller.main import (
@@ -265,6 +266,9 @@ def kivy_app():
             app.root.stop.set()
             app.stop()
         EventLoop.close()
+        for event in Clock.get_events():
+            if event not in clock_events:
+                event.cancel()
         simulation.close()
         for filename in set(Builder.files) - builder_files:
             Builder.unload_file(filename)

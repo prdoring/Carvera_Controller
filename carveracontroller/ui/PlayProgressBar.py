@@ -7,9 +7,10 @@ from kivy.uix.boxlayout import BoxLayout
 
 from carveracontroller.CNC import LASER_TOOL_NUMBER, PROBE_3D_TOOL_NUMBER, ZPROBE_TOOL_NUMBER
 from carveracontroller.GcodeViewer import tool_marker_palette_rgb
+from carveracontroller.ui import theme
 
-DEFAULT_MARKER_LABEL_BG_COLOR = (210 / 255, 210 / 255, 210 / 255, 1)
-MARKER_LABEL_TEXT_COLOR = (30 / 255, 30 / 255, 30 / 255, 1)
+DEFAULT_MARKER_LABEL_BG_COLOR = theme.SECONDARY
+MARKER_LABEL_TEXT_COLOR = theme.FIELD
 
 
 def play_percent_from_line(line_no, line_count):
@@ -116,7 +117,7 @@ def _layout_tool_marker_labels(items, track_w, gap=None):
 
 class PlayProgressBar(BoxLayout):
     value = NumericProperty(0)
-    color = ListProperty([52 / 255, 166 / 255, 208 / 255, 1])
+    color = ListProperty(theme.ACCENT)
     tool_markers = ListProperty([])
 
     LABEL_ROW_H = dp(12)
@@ -124,7 +125,7 @@ class PlayProgressBar(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         with self.canvas.before:
-            Color(50 / 255, 50 / 255, 50 / 255, 1)
+            Color(*theme.FIELD)
             self._bg_rect = Rectangle(pos=self.pos, size=(0, 0))
             self._fill_color = Color(*self.color)
             self._fill_rect = Rectangle(pos=self.pos, size=(0, 0))
@@ -168,7 +169,7 @@ class PlayProgressBar(BoxLayout):
                 text=label,
                 font_size=dp(9),
                 color=MARKER_LABEL_TEXT_COLOR,
-                font_name="ARIALUNI",
+                font_name=theme.font_for(label, mono=True),
             )
             core.refresh()
             label_w, label_h = core.texture.size
@@ -205,7 +206,7 @@ class PlayProgressBar(BoxLayout):
         with self.canvas.after:
             for item in draw_items:
                 x = ox + item["local_x"]
-                Color(200 / 255, 200 / 255, 200 / 255, 0.6)
+                Color(*theme.SECONDARY[:3], .6)
                 Line(points=[x, oy, x, oy + bar_h], width=1)
             for item in draw_items:
                 if not item.get("show_label", True):

@@ -3,6 +3,7 @@
 import re
 
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.metrics import Metrics, dp, sp
@@ -19,6 +20,7 @@ from kivy.uix.togglebutton import ToggleButton
 
 from carveracontroller.translation import tr
 
+from . import theme
 from .android_layout import (
     DialogActions,
     DialogLabel,
@@ -66,7 +68,6 @@ def operation_selector(panel):
         selector.disabled = not compact
         panel.tab_height = 0 if compact else control_height()
         panel._tab_layout.opacity = int(not compact)
-        panel._tab_layout.disabled = compact
         if not compact:
             panel.tab_width = max(dp(96), max(tab.texture_size[0] for tab in tabs) + dp(24))
     app.bind(compact_layout=reflow)
@@ -118,12 +119,20 @@ def adapt_probe_settings(settings):
                 fields = [child for child in row.children if child != widget]
                 original = {child: tuple(child.size_hint) for child in row.children}
                 def fit_parameter(*_args, row=row, label_box=label_box, label=label, fields=fields, original=original):
-                    needed = _text_width(label.text, label.font_name, sp(16)) + dp(40) + max(dp(120), sp(16) * 6)
+                    field_widths = {field: max(dp(144), _text_width(
+                        getattr(field, "hint_text", ""), getattr(field, "font_name", theme.SANS), sp(16)
+                    ) + dp(24)) for field in fields}
+                    needed = _text_width(label.text, label.font_name, sp(16)) + dp(40) + sum(field_widths.values())
                     stacked = row.width < needed
                     row._mobile_stacked_form = stacked
                     row.orientation = "vertical" if stacked else "horizontal"
                     for child in row.children:
                         child.size_hint = (1, None) if stacked else original[child]
+                    if not stacked:
+                        label_box.size_hint_x = 1
+                        for field in fields:
+                            field.size_hint_x = None
+                            field.width = field_widths[field]
                     if stacked:
                         label_box.height = max(control_height(), label.texture_size[1] + dp(12))
                         row.height = label_box.height + sum(field.height for field in fields) + row.spacing * len(fields) + sum(row.padding[1::2])
@@ -230,6 +239,9 @@ def prepare_tool_dialog(modal, app):
         for key, title in (("btn_origin", "Set work origin"), ("btn_zprobe", "Configure Z probing"), ("btn_leveling", "Configure leveling")):
             if key in modal.ids:
                 modal.ids[key].text = tr._(title)
+        from .mobile_forms import prepare_job_options
+
+        prepare_job_options(modal)
         for widget in modal.walk(restrict=True):
             if isinstance(widget, Button) and widget.text in (tr._("Run"), tr._("Do ") + modal.mode):
                 style_action(widget, "primary")
@@ -237,11 +249,15 @@ def prepare_tool_dialog(modal, app):
     if name == "JogCMMWorkbenchPopup":
         prepare_jog_overlay(modal, app)
         return
+    if name == "UpgradePopup":
+        prepare_updates(modal)
+        return
     if name not in ("ProbingPopup", "CMMWorkbenchPopup", "FacingWizardPopup"):
         return
     for panel in panels:
         operation_selector(panel)
     if name == "ProbingPopup":
+        prepare_probing_jog(modal, app)
         outer = modal.ids.btn_close.parent.parent
         primary = modal.ids.tabbedpanelid
         while primary.parent != outer:
@@ -268,7 +284,8 @@ def prepare_tool_dialog(modal, app):
                     close.bind(on_release=lambda *_, target=sheet: target.dismiss())
                     info = Button(text=tr._("Probe info"))
                     info._mobile_keyboard_secondary = True
-                    info.bind(on_release=lambda *_, target=sheet: target.open())
+                    info.bind(on_release=lambda *_, text=wording, docs=help_button: app._touch_layout.show_help(
+                        modal.ids.tabbedpanelid.current_tab.content, introduction=text, documentation=docs))
                     modal.ids.btn_close.parent.add_widget(info, index=1)
                     modal._mobile_requirements = sheet
                     modal.bind(on_dismiss=lambda *_, target=sheet: target.dismiss())
@@ -333,6 +350,7 @@ def prepare_tool_dialog(modal, app):
                         widget.row_force_default = True
                         widget.row_default_height = max(app.touch_target, sp(16) * 2 + dp(16))
                         fit_form_grid(widget)
+        prepare_facing_preview(modal, panels[0])
         # Put each existing field grid above its supporting help paragraph.
         for panel in panels:
             for tab in panel.tab_list:
@@ -344,6 +362,110 @@ def prepare_tool_dialog(modal, app):
                             column.add_widget(second, index=len(column.children))
 
 
+def prepare_updates(modal):
+    outer = modal.children[0]
+    header, introduction, tabs_row, footer = reversed(outer.children)
+    panel = next(widget for widget in tabs_row.children if isinstance(widget, TabbedPanel))
+    tabs_row.remove_widget(panel)
+    outer.clear_widgets()
+    modal.remove_widget(outer)
+    surface = DialogSurface(presentation="workspace", orientation="vertical", padding=dp(12))
+    surface.add_widget(header)
+    surface.add_widget(introduction)
+    actions = DialogActions(spacing=dp(8))
+    for button in list(reversed(footer.children)):
+        footer.remove_widget(button)
+        actions.add_widget(button)
+    surface.add_widget(actions)
+    surface.prepare()
+    holder = BoxLayout(orientation="vertical")
+    holder.add_widget(panel)
+    selector_column = operation_selector(panel)
+    holder.remove_widget(selector_column)
+    selector_column.size_hint_y = None
+    panel.size_hint_y = None
+    surface.body.add_widget(selector_column)
+    modal.add_widget(surface)
+    modal._mobile_workspace = True
+
+    for tab in panel.tab_list:
+        content = tab.content
+        toolbar, log = reversed(content.children)
+        widgets = list(reversed(toolbar.children))
+        toolbar.clear_widgets()
+        content.clear_widgets()
+        content.spacing = dp(8)
+        content.padding = dp(4)
+        content.size_hint_y = None
+        content.bind(minimum_height=content.setter("height"))
+        title = next(widget for widget in widgets if isinstance(widget, Label) and widget.text.strip())
+        version = next(widget for widget in widgets if widget in (modal.fw_version_txt, modal.ctl_version_txt))
+        for label in (version, title):
+            Builder.unbind_property(label, "text_size")
+            Builder.unbind_property(label, "height")
+            label.size_hint = (1, None)
+            label.text_size = (max(1, content.width - dp(16)), None)
+            label.halign = "left"
+            label.bind(width=lambda item, width: setattr(item, "text_size", (max(1, width - dp(16)), None)))
+            label.bind(texture_size=lambda item, size: setattr(item, "height", size[1] + dp(8) if item.text else 0))
+            label.height = label.texture_size[1] + dp(8) if label.text else 0
+        content.add_widget(version)
+        buttons = TouchActionRow(spacing=dp(8))
+        for widget in widgets:
+            if isinstance(widget, Button):
+                widget.size_hint_x = 1
+                buttons.add_widget(widget)
+        content.add_widget(buttons)
+        content.add_widget(title)
+        log.size_hint_y = None
+        log.height = max(dp(200), control_height() * 4)
+        content.add_widget(log)
+        content.bind(height=lambda *_: fit())
+
+    def fit(*_args):
+        current = panel.current_tab.content
+        panel.height = current.height + panel.tab_height + sum(panel.padding[1::2])
+        selector_column.height = panel.height + panel.mobile_selector.height + selector_column.spacing
+        header.height = max([control_height()] + [child.texture_size[1] + dp(8)
+                            for child in header.children if isinstance(child, Label)])
+
+    panel.bind(current_tab=fit, tab_height=fit)
+    panel.mobile_selector.bind(height=fit)
+    header.bind(width=fit)
+    Metrics.bind(density=fit, fontscale=fit)
+    fit()
+
+
+def prepare_facing_preview(modal, panel):
+    form = panel.parent
+    column = form.parent
+    parent = column.parent
+    index = parent.children.index(column)
+    viewport = ScrollView(do_scroll_x=False, bar_width=dp(6), size_hint=column.size_hint)
+    parent.remove_widget(column)
+    column.size_hint = (1, None)
+    viewport.add_widget(column)
+    parent.add_widget(viewport, index=index)
+    form.size_hint_y = None
+    sketch = modal.ids.facing_sketch_pane
+
+    def fit(*_args):
+        form.height = max(control_height() * 4, viewport.height - sketch.height - column.spacing)
+        column.height = max(viewport.height, column.minimum_height)
+        viewport.do_scroll_y = column.height > viewport.height + 1
+
+    def reveal(*_args):
+        Clock.schedule_once(lambda _dt: setattr(viewport, "scroll_y", 0 if modal.show_sketch else 1), 0)
+
+    viewport.bind(height=fit)
+    column.bind(minimum_height=fit)
+    sketch.bind(height=fit)
+    Metrics.bind(density=fit, fontscale=fit)
+    modal.bind(show_sketch=reveal)
+    modal._mobile_facing_preview = viewport
+    fit()
+
+
 def compact_features(modal, column, app):
     original = list(reversed(column.children))
     sketch = next(w for w in original if isinstance(w, FloatLayout))
@@ -352,6 +474,20 @@ def compact_features(modal, column, app):
     construct.row_default_height = max(app.touch_target, sp(16) * 2 + dp(16))
     construct.bind(minimum_height=construct.setter("height"))
     construct.height = construct.minimum_height
+    construct.rows = None
+
+    def fit_construct(*_args):
+        gap = construct.spacing[0]
+        needed = max(_text_width(button.text, button.font_name, sp(16), button.bold) + dp(24)
+                     for button in construct.children if isinstance(button, Button))
+        available = max(1, construct.width - sum(construct.padding[::2]))
+        construct.cols = min(4, max(1, int((available + gap) / (needed + gap))))
+        construct._content_row_height = max(control_height(), sp(16) * 1.25 + dp(16))
+        construct.row_default_height = construct._content_row_height
+
+    construct.bind(width=fit_construct)
+    Metrics.bind(density=fit_construct, fontscale=fit_construct)
+    fit_construct()
     listing = next(w for w in original if isinstance(w, ScrollView))
     sheets = []
     toolbar = TouchActionRow(spacing=dp(6))
@@ -400,6 +536,81 @@ def compact_features(modal, column, app):
     app.bind(compact_layout=reflow)
     modal.bind(on_dismiss=lambda *_: [sheet.dismiss() for sheet in sheets])
     reflow()
+
+
+def prepare_probing_jog(modal, app):
+    panel = modal.ids.jog_panel
+    buttons = {
+        widget.text: widget for widget in panel.walk(restrict=True)
+        if isinstance(widget, JogTouchButton)
+    }
+    steps = [modal.ids[name].__self__ for name in ("step_xy", "step_a", "step_z")]
+    settings = [modal.ids[name].__self__ for name in (
+        "jog_speed_btn_probing", "jog_mode_btn_probing",
+        "kb_jog_btn_probing", "pendant_jogging_en_btn_probing",
+    )]
+    for widget in list(buttons.values()) + steps + settings:
+        widget.parent.remove_widget(widget)
+        widget.size_hint = (1, 1)
+    panel.clear_widgets()
+    panel.padding = dp(8)
+    panel.spacing = dp(12)
+    panel.size_hint_min_y = 0
+    axes = GridLayout(cols=5, rows=3, spacing=dp(4))
+    axes.disabled = not app.jog_controls_enabled
+    app.bind(jog_controls_enabled=lambda _app, enabled: setattr(axes, "disabled", not enabled))
+    top = "Y+" if app.invert_y_axis_jogging else "Y-"
+    bottom = "Y-" if app.invert_y_axis_jogging else "Y+"
+    entries = [None, buttons[top], None, buttons["A+"], buttons["Z+"],
+               buttons["X-"], steps[0], buttons["X+"], steps[1], steps[2],
+               None, buttons[bottom], None, buttons["A-"], buttons["Z-"]]
+    for widget in entries:
+        axes.add_widget(widget if widget is not None else BoxLayout())
+    panel.add_widget(axes)
+    viewport = ScrollView(do_scroll_x=False, size_hint_x=None, bar_width=dp(4))
+    viewport.always_overscroll = False
+    column = BoxLayout(orientation="vertical", spacing=dp(8), size_hint_y=None)
+    column._mobile_form_fitted = True
+    column.bind(minimum_height=column.setter("height"))
+    for widget in settings:
+        Builder.unbind_property(widget, "height")
+        widget.size_hint_y = None
+        widget.halign = "center"
+        widget.valign = "middle"
+        column.add_widget(widget)
+    viewport.add_widget(column)
+    panel.add_widget(viewport)
+    Builder.unbind_property(panel, "height")
+
+    def fit(*_args):
+        needed = max(_text_width(button.text, button.font_name, sp(16), button.bold)
+                     + dp(28) for button in settings)
+        viewport.width = min(max(dp(200), needed), max(dp(160), panel.width * .42))
+        for button in settings:
+            button.text_size = (max(1, viewport.width - dp(16)), None)
+            button.height = max(control_height(), button.texture_size[1] + dp(16))
+        visible = not app.android_keyboard_height and (not app.compact_layout or modal.jog_expanded)
+        if not visible:
+            panel.height = 0
+        elif app.compact_layout:
+            outer = panel.parent
+            panel.height = max(0, modal.height - 2 * control_height() - sum(outer.padding[1::2]))
+        else:
+            panel.height = min(modal.height * .45, max(
+                control_height() * 3 + dp(24), column.minimum_height + dp(16)))
+        viewport.do_scroll_y = column.height > viewport.height + 1
+
+    panel.bind(width=fit)
+    viewport.bind(height=fit)
+    modal.bind(height=fit, jog_expanded=fit)
+    app.bind(compact_layout=fit, android_keyboard_height=fit)
+    Metrics.bind(density=fit, fontscale=fit)
+    column.bind(minimum_height=fit)
+    for button in settings:
+        button.bind(text=fit, texture_size=fit)
+    modal._mobile_jog_axes = axes
+    modal._mobile_jog_settings = viewport
+    fit()
 
 
 def prepare_jog_overlay(modal, app):

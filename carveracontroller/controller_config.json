@@ -45,7 +45,7 @@
         "desc": "The color used to highlight active UI elements like buttons and indicators.",
         "section": "carvera",
         "key": "active_color",
-        "default": "0,255,255,255"
+        "default": "214,153,99,255"
     },
     {
         "type": "bool",

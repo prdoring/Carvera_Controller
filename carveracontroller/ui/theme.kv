@@ -1,0 +1,272 @@
+#:import theme carveracontroller.ui.theme
+#:import ThemedDropDown carveracontroller.ui.dropdown_layout.ThemedDropDown
+
+<Label>:
+    font_name: theme.font_for(self.text)
+    color: theme.TEXT
+    font_size: '16sp'
+
+<TextInput>:
+    font_name: theme.font_for(self.text or self.hint_text, self.input_filter in ('int', 'float') or getattr(self, 'input_policy', '') in ('integer', 'decimal'))
+    padding: (dp(12), max(dp(4), (self.height - self.line_height) / 2), dp(12), max(dp(4), (self.height - self.line_height) / 2)) if not self.multiline else (dp(12), dp(10), dp(12), dp(10))
+    background_normal: 'data/theme/field.png'
+    background_active: 'data/theme/field-focus.png'
+    background_disabled_normal: 'data/theme/field.png'
+    background_color: theme.FIELD
+    foreground_color: theme.TEXT
+    disabled_foreground_color: theme.MUTED
+    hint_text_color: theme.MUTED
+    cursor_color: theme.ACCENT
+    selection_color: (*theme.ACCENT[:3], .28)
+    border: (8, 8, 8, 8)
+    canvas.after:
+        Color:
+            rgba: theme.ERROR if getattr(self, 'validation_error', False) else theme.ACCENT if self.focus else theme.BORDER
+        Line:
+            rounded_rectangle: self.x + .5, self.y + .5, max(0, self.width - 1), max(0, self.height - 1), dp(6)
+            width: 1
+
+<Button>:
+    font_name: theme.font_for(self.text)
+    font_size: '16sp'
+    bold: True
+    background_normal: 'data/theme/button.png'
+    background_down: 'data/theme/button-down.png'
+    background_disabled_normal: 'data/theme/button-disabled.png'
+    background_disabled_down: 'data/theme/button-disabled.png'
+    background_color: theme.CONTROL
+    color: theme.TEXT
+    disabled_color: theme.MUTED
+    border: (8, 8, 8, 8)
+    canvas.before:
+        Color:
+            rgba: (0, 0, 0, (.08 if self.disabled else .22) if self.background_color[3] else 0)
+        RoundedRectangle:
+            pos: self.x, self.y - dp(2)
+            size: self.size
+            radius: [dp(6)]
+    canvas.after:
+        Color:
+            rgba: (0, 0, 0, 0) if not self.background_color[3] else (*(theme.ACCENT if tuple(self.background_color[:3]) == theme.SELECTED[:3] or self.state == 'down' else theme.BORDER)[:3], .4 if self.disabled else .95)
+        Line:
+            rounded_rectangle: self.x + .5, self.y + .5, max(0, self.width - 1), max(0, self.height - 1), dp(6)
+            width: 1
+        Color:
+            rgba: (0, 0, 0, 0) if not self.background_color[3] or self.disabled else (.72, .79, .78, .32)
+        Line:
+            points: [self.x + dp(7), self.top - dp(1), self.right - dp(7), self.top - dp(1)]
+            width: .7
+
+<ToggleButton>:
+    background_color: theme.SELECTED if self.state == 'down' else theme.CONTROL
+
+<Popup>:
+    background: 'data/theme/panel.png'
+    background_color: theme.PANEL
+    border: (12, 12, 12, 12)
+    separator_color: theme.BORDER
+    separator_height: dp(1)
+    title_color: theme.TEXT
+    title_font: theme.font_for(self.title)
+    title_size: '18sp'
+    _anim_duration: .12
+
+<ModalView>:
+    canvas.after:
+        Color:
+            rgba: (*theme.BORDER[:3], .8)
+        Line:
+            rounded_rectangle: self.x + .5, self.y + .5, max(0, self.width - 1), max(0, self.height - 1), dp(8)
+            width: 1
+    background: 'data/theme/panel.png'
+    background_color: theme.PANEL
+    _anim_duration: .12
+
+<CheckBox>:
+    color: theme.TEXT
+    background_checkbox_normal: 'data/theme/check-off.png'
+    background_checkbox_down: 'data/theme/check-on.png'
+    background_checkbox_disabled_normal: 'data/theme/check-disabled.png'
+    background_checkbox_disabled_down: 'data/theme/check-on-disabled.png'
+    background_radio_normal: 'data/theme/radio-off.png'
+    background_radio_down: 'data/theme/radio-on.png'
+    background_radio_disabled_normal: 'data/theme/radio-disabled.png'
+    background_radio_disabled_down: 'data/theme/radio-on-disabled.png'
+
+<Switch>:
+    canvas.after:
+        Clear:
+    canvas:
+        Clear:
+        Color:
+            rgba: theme.SELECTED if self.active else theme.FIELD
+        RoundedRectangle:
+            pos: self.center_x - dp(23), self.center_y - dp(13)
+            size: dp(46), dp(26)
+            radius: [dp(13)]
+        Color:
+            rgba: theme.BORDER
+        Line:
+            rounded_rectangle: self.center_x - dp(23), self.center_y - dp(13), dp(46), dp(26), dp(13)
+            width: 1
+        Color:
+            rgba: theme.MUTED if self.disabled else theme.ACCENT if self.active else theme.SECONDARY
+        Ellipse:
+            pos: self.center_x - dp(20) + dp(20) * self.active_norm_pos, self.center_y - dp(10)
+            size: dp(20), dp(20)
+
+<Slider>:
+    cursor_image: 'data/theme/slider-thumb.png'
+    cursor_disabled_image: 'data/theme/slider-thumb.png'
+    cursor_size: (dp(22), dp(22))
+    background_horizontal: 'data/theme/slider-track.png'
+    background_disabled_horizontal: 'data/theme/slider-track.png'
+    background_vertical: 'data/theme/slider-track-vertical.png'
+    background_disabled_vertical: 'data/theme/slider-track-vertical.png'
+    background_width: dp(3)
+    value_track: True
+    value_track_color: theme.ACCENT
+    value_track_width: dp(1.5)
+
+<ScrollView>:
+    bar_color: theme.MUTED
+    bar_inactive_color: (*theme.MUTED[:3], .35)
+    _handle_y_pos: ((self.right - min(dp(3), self.bar_width) - self.bar_margin) if self.bar_pos_y == 'right' else (self.x + self.bar_margin)), self.y + self.height * self.vbar[0]
+    _handle_y_size: min(dp(3), self.bar_width), self.height * self.vbar[1]
+    _handle_x_pos: self.x + self.width * self.hbar[0], ((self.y + self.bar_margin) if self.bar_pos_x == 'bottom' else (self.top - min(dp(3), self.bar_width) - self.bar_margin))
+    _handle_x_size: self.width * self.hbar[1], min(dp(3), self.bar_width)
+
+<TabbedPanelHeader>:
+    font_name: theme.font_for(self.text)
+    background_normal: 'data/theme/button.png'
+    background_down: 'data/theme/button-down.png'
+    background_color: theme.SELECTED if self.state == 'down' else theme.PANEL
+    color: theme.TEXT if self.state == 'down' else theme.SECONDARY
+    border: (8, 8, 8, 8)
+
+<TabbedPanelContent>:
+    background_color: theme.PANEL
+
+<ContentPanel>:
+    canvas.before:
+        Color:
+            rgba: theme.PANEL
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<SettingItem>:
+    canvas.before:
+        Color:
+            rgba: theme.PANEL
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: (*theme.ACCENT[:3], self.selected_alpha * .22)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: (*theme.BORDER[:3], .5)
+        Line:
+            points: [self.x + dp(12), self.y, self.right - dp(12), self.y]
+            width: .5
+
+<SettingTitle>:
+    color: theme.SECONDARY
+    bold: True
+    canvas:
+        Clear:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            texture: self.texture
+            size: self.texture_size
+            pos: self.center_x - self.texture_size[0] / 2, self.center_y - self.texture_size[1] / 2
+    canvas.before:
+        Color:
+            rgba: theme.BACKGROUND
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<Settings>:
+    canvas.before:
+        Clear:
+        Color:
+            rgba: theme.PANEL
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<TabbedPanel>:
+    background_image: 'data/theme/panel.png'
+    background_color: theme.PANEL
+    border: (8, 8, 8, 8)
+
+<ColorPicker_Input>:
+    font_name: theme.MONO
+    padding: (dp(6), max(dp(6), (self.height - self.line_height) / 2))
+
+<ColorPicker_Label>:
+    color: theme.TEXT
+
+<SettingSidebarLabel>:
+    color: theme.TEXT if self.selected else theme.SECONDARY
+    bold: self.selected
+    canvas.before:
+        Clear:
+        Color:
+            rgba: theme.SELECTED if self.selected else theme.PANEL
+        RoundedRectangle:
+            pos: self.x + dp(4), self.y + dp(2)
+            size: max(0, self.width - dp(8)), max(0, self.height - dp(4))
+            radius: [dp(6)]
+
+<Spinner>:
+    dropdown_cls: ThemedDropDown
+
+<ThemedDropDown>:
+    canvas.before:
+        Color:
+            rgba: theme.PANEL
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(8)]
+    canvas.after:
+        Color:
+            rgba: theme.BORDER
+        Line:
+            rounded_rectangle: self.x + .5, self.y + .5, max(0, self.width - 1), max(0, self.height - 1), dp(8)
+            width: 1
+
+<ProgressBar>:
+    canvas:
+        Clear:
+        Color:
+            rgba: theme.FIELD
+        RoundedRectangle:
+            pos: self.x, self.center_y - dp(5)
+            size: self.width, dp(10)
+            radius: [dp(5)]
+        Color:
+            rgba: theme.MUTED if self.disabled else theme.ACCENT
+        RoundedRectangle:
+            pos: self.x, self.center_y - dp(5)
+            size: self.width * self.value_normalized, dp(10)
+            radius: [dp(5)]
+
+<SplitterStrip>:
+    background_normal: ''
+    background_down: ''
+    background_disabled_normal: ''
+    background_color: 0, 0, 0, 0
+    on_kv_post: [setattr(child, 'opacity', 0) for child in self.children]
+    canvas.before:
+        Color:
+            rgba: theme.ACCENT if self.state == 'down' else theme.MUTED
+        Line:
+            points: [self.x + dp(8), self.center_y, self.right - dp(8), self.center_y] if self.parent and self.parent.sizable_from in ('top', 'bottom') else [self.center_x, self.y + dp(8), self.center_x, self.top - dp(8)]
+            width: dp(1)

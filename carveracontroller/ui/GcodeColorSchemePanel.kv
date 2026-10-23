@@ -1,3 +1,4 @@
+#:import theme carveracontroller.ui.theme
 #:import tr carveracontroller.__main__.tr
 #:import HEADER_HEIGHT carveracontroller.ui.GcodeColorSchemePanel.HEADER_HEIGHT
 #:import PANEL_BOTTOM_PADDING carveracontroller.ui.GcodeColorSchemePanel.PANEL_BOTTOM_PADDING
@@ -6,7 +7,7 @@
     orientation: 'vertical'
     size_hint: None, None
     width: dp(270)
-    height: 0 if not app.show_gcode_ctl_bar or (app.android_touch and not app.show_legend) else (HEADER_HEIGHT + PANEL_BOTTOM_PADDING + legend_scroll.height)
+    height: 0 if not app.show_gcode_ctl_bar or (app.android_touch and not app.show_legend) else (legend_header.height + PANEL_BOTTOM_PADDING + legend_scroll.height)
     opacity: 1 if app.show_gcode_ctl_bar and (not app.android_touch or app.show_legend) else 0
     disabled: not app.show_gcode_ctl_bar or (app.android_touch and not app.show_legend) or (app.selected_remote_filename == '' and app.selected_local_filename == '')
     pos_hint: {'right': 1.0, 'top': 1.0}
@@ -14,18 +15,19 @@
     spacing: 0
     canvas.before:
         Color:
-            rgba: 10/255, 10/255, 10/255, 0.5
+            rgba: (*theme.FIELD[:3], 0.5)
         Rectangle:
             pos: self.pos
             size: self.size
     BoxLayout:
+        id: legend_header
         size_hint_y: None
         height: app.touch_target if app.android_touch else dp(36)
         spacing: dp(6)
         padding: dp(6), dp(4)
         canvas.before:
             Color:
-                rgba: 88/255, 88/255, 88/255, 1
+                rgba: theme.CONTROL
             Rectangle:
                 pos: self.pos
                 size: self.size
@@ -52,8 +54,8 @@
         size_hint_y: None
         do_scroll_x: False
         bar_width: dp(5)
-        bar_color: 0.45, 0.45, 0.45, 0.8
-        bar_inactive_color: 0.35, 0.35, 0.35, 0.5
+        bar_color: (*theme.BORDER[:3], 0.8)
+        bar_inactive_color: (*theme.CONTROL[:3], 0.5)
         BoxLayout:
             id: legend_box
             orientation: 'vertical'

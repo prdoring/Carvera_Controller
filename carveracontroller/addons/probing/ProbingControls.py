@@ -5,6 +5,8 @@ from ...addons.tooltips.Tooltips import ToolTipButton
 
 
 class ProbeButton(ToolTipButton):
+    overview_image = StringProperty("")
+
     def __init__(self, image="", halign="center", valign="middle", **kwargs):
         super().__init__(**kwargs)
         self.halign = halign

@@ -126,6 +126,7 @@ from carveracontroller.addons.pendant import (
 )
 from carveracontroller.addons.probing.ProbingPopup import ProbingPopup
 from carveracontroller.serial_listeners import dispatch_serial_line
+from carveracontroller.ui import theme
 from carveracontroller.ui.editing import EditingTextInput as TextInput
 from carveracontroller.ui.editing import is_complete_number
 
@@ -313,6 +314,10 @@ def register_fonts(base_path):
     """
     arialuni_location = os.path.abspath(os.path.join(os.path.dirname(__file__), "ARIALUNI.ttf"))
     LabelBase.register(name="ARIALUNI", fn_regular=arialuni_location)
+    font_dir = os.path.join(base_path, "data", "fonts")
+    LabelBase.register(name="PlexSans", fn_regular=os.path.join(font_dir, "IBMPlexSans-Regular.ttf"),
+                       fn_bold=os.path.join(font_dir, "IBMPlexSans-SemiBold.ttf"))
+    LabelBase.register(name="PlexMono", fn_regular=os.path.join(font_dir, "IBMPlexMono-Regular.ttf"))
 
 
 def register_images(base_path):
@@ -1832,12 +1837,18 @@ class SetRotationPopup(ModalView):
 
 class MakeraConfigPanel(SettingsWithSidebar):
     def __init__(self, *args, **kwargs):
-        from .ui.settings_fields import EditingSettingNumeric, EditingSettingOptions, EditingSettingString
+        from .ui.settings_fields import (
+            EditingSettingNumeric,
+            EditingSettingOptions,
+            EditingSettingPath,
+            EditingSettingString,
+        )
 
         super().__init__(*args, **kwargs)
         self.register_type("string", EditingSettingString)
         self.register_type("numeric", EditingSettingNumeric)
         self.register_type("options", EditingSettingOptions)
+        self.register_type("path", EditingSettingPath)
         self.register_type("pendant", SettingPendantSelector)
         self.register_type("gcodesnippet", custom_widgets.SettingGCodeSnippet)
         self.register_type("colorpicker", custom_widgets.SettingColorPicker)
@@ -1942,14 +1953,13 @@ class CoordinateSystemDropDown(ToolTipDropDown):
 
 class FuncDropDown(ToolTipDropDown):
     def open(self, widget, *args, **kwargs):
-        if App.get_running_app().android_touch:
-            self.auto_width = False
-            self.width = min(Window.width - dp(16), dp(340))
-            self.max_height = Window.height * .85
-            for item in self.container.children:
-                if hasattr(item, "tooltip_txt"):
-                    item.text = item.tooltip_txt
-                    item.size_hint_x = 1
+        self.auto_width = False
+        self.width = min(Window.width - dp(16), dp(340))
+        self.max_height = Window.height * .85
+        for item in self.container.children:
+            if hasattr(item, "tooltip_txt"):
+                item.text = item.tooltip_txt or tr._("Probing")
+                item.size_hint_x = 1
         return super().open(widget, *args, **kwargs)
 
 
@@ -2028,22 +2038,22 @@ class CNCWorkspace(Widget):
         zoom = self.width / CNC.vars["worksize_x"]
         with self.canvas:
             # background
-            Color(50 / 255, 50 / 255, 50 / 255, 1)
+            Color(*theme.PANEL)
             if self.bg_image == "" or self.bg_image == "None":
-                Color(50 / 255, 50 / 255, 50 / 255, 1)
+                Color(*theme.PANEL)
             else:
                 Color(1, 1, 1, 1)
             self.bg_rect = Rectangle(pos=self.pos, size=self.size, source=self.bg_image)
 
             app = App.get_running_app()
             if self.bg_image == "" or self.bg_image == "None":
-                Color(50 / 255, 50 / 255, 50 / 255, 1)
+                Color(*theme.PANEL)
                 if not app.has_4axis:
                     # anchor1
                     if self.config["origin"]["anchor"] == 1:
-                        Color(75 / 255, 75 / 255, 75 / 255, 1)
+                        Color(*theme.CONTROL)
                     else:
-                        Color(55 / 255, 55 / 255, 55 / 255, 1)
+                        Color(*theme.PANEL)
                     Rectangle(
                         pos=(self.x, self.y), size=(CNC.vars["anchor_length"] * zoom, CNC.vars["anchor_width"] * zoom)
                     )
@@ -2053,9 +2063,9 @@ class CNCWorkspace(Widget):
 
                     # anchor2
                     if self.config["origin"]["anchor"] == 2:
-                        Color(75 / 255, 75 / 255, 75 / 255, 1)
+                        Color(*theme.CONTROL)
                     else:
-                        Color(55 / 255, 55 / 255, 55 / 255, 1)
+                        Color(*theme.PANEL)
                     Rectangle(
                         pos=(
                             self.x + CNC.vars["anchor2_offset_x"] * zoom,
@@ -2074,20 +2084,20 @@ class CNCWorkspace(Widget):
                 else:
                     rotation_base_y_center = (CNC.vars["anchor_width"] + CNC.vars["rotation_offset_y"]) * zoom
                     # draw rotation base
-                    Color(60 / 255, 60 / 255, 60 / 255, 1)
+                    Color(*theme.CONTROL)
                     Rectangle(
                         pos=(self.x, self.y + rotation_base_y_center - CNC.vars["rotation_base_height"] * zoom / 2),
                         size=(CNC.vars["rotation_base_width"] * zoom, CNC.vars["rotation_base_height"] * zoom),
                     )
                     # draw rotation head
-                    Color(75 / 255, 75 / 255, 75 / 255, 1)
+                    Color(*theme.CONTROL)
                     Rectangle(
                         pos=(self.x, self.y + rotation_base_y_center - CNC.vars["rotation_head_height"] * zoom / 2),
                         size=(CNC.vars["rotation_head_width"] * zoom, CNC.vars["rotation_head_height"] * zoom),
                     )
 
                     # draw rotation chuck
-                    Color(75 / 255, 75 / 255, 75 / 255, 1)
+                    Color(*theme.CONTROL)
                     Rectangle(
                         pos=(
                             self.x + (CNC.vars["rotation_head_width"] + CNC.vars["rotation_chuck_interval"]) * zoom,
@@ -2097,7 +2107,7 @@ class CNCWorkspace(Widget):
                     )
 
                     # draw rotation tail
-                    Color(75 / 255, 75 / 255, 75 / 255, 1)
+                    Color(*theme.CONTROL)
                     Rectangle(
                         pos=(
                             self.x + (CNC.vars["rotation_base_width"] - CNC.vars["rotation_tail_width"]) * zoom,
@@ -8349,6 +8359,7 @@ class MakeraApp(App):
     has_atc = BooleanProperty(False)
     lasering = BooleanProperty(False)
     show_gcode_ctl_bar = BooleanProperty(False)
+    viewer_panes_expanded = BooleanProperty(False)
     fw_has_update = BooleanProperty(False)
     ctl_has_update = BooleanProperty(False)
     selected_local_filename = StringProperty("")
@@ -8374,7 +8385,7 @@ class MakeraApp(App):
     jog_step_xy = StringProperty("10")
     jog_step_z = StringProperty("1")
     jog_step_a = StringProperty("90")
-    active_color = ListProperty([0, 1, 1, 1])  # Default cyan (0, 255, 255) in 0-1 range
+    active_color = ListProperty([214 / 255, 153 / 255, 99 / 255, 1])
     jog_mode_text = StringProperty(tr._("Jog Mode:Step"))
     jog_speed_text = StringProperty(tr._("Jog Speed:Max"))
     jog_keyboard_enable = StringProperty("normal")
@@ -8404,6 +8415,8 @@ class MakeraApp(App):
         if getattr(self.root, "_settings_sender", None) is not None:
             self.root._settings_sender.cancel(notify=False)
 
+        if getattr(self, "_desktop_dialogs", None) is not None:
+            self._desktop_dialogs.stop()
         if getattr(self, "_mobile_main", None) is not None:
             self._mobile_main.stop()
         if self._touch_layout is not None:
@@ -8458,6 +8471,9 @@ class MakeraApp(App):
 
             self._android_input = AndroidInput(self)
             EventLoop.add_postproc_module(self._android_input)
+        from .ui.desktop_dialogs import DesktopDialogLayout
+
+        self._desktop_dialogs = DesktopDialogLayout(self)
         if self.android_touch:
             from .ui.android_layout import AndroidTouchLayout
 
@@ -8592,7 +8608,7 @@ def set_config_defaults(default_lang):
     if not Config.has_option("carvera", "tooltip_delay"):
         Config.set("carvera", "tooltip_delay", "1.5")
     if not Config.has_option("carvera", "active_color"):
-        Config.set("carvera", "active_color", "0,255,255,255")
+        Config.set("carvera", "active_color", "214,153,99,255")
     if not Config.has_option("carvera", "language"):
         Config.set("carvera", "language", default_lang)
     if not Config.has_option("carvera", "local_folder_1"):
@@ -8669,32 +8685,33 @@ def set_config_defaults(default_lang):
     if not Config.has_option("carvera", "gcode_highlight_enabled"):
         Config.set("carvera", "gcode_highlight_enabled", "1")
     if not Config.has_option("carvera", "gcode_color_comment"):
-        Config.set("carvera", "gcode_color_comment", "106,153,85,255")
+        Config.set("carvera", "gcode_color_comment", "136,165,144,255")
     if not Config.has_option("carvera", "gcode_color_g_command"):
-        Config.set("carvera", "gcode_color_g_command", "86,156,214,255")
+        Config.set("carvera", "gcode_color_g_command", "139,186,200,255")
     if not Config.has_option("carvera", "gcode_color_m_command"):
-        Config.set("carvera", "gcode_color_m_command", "197,134,192,255")
+        Config.set("carvera", "gcode_color_m_command", "191,165,191,255")
     if not Config.has_option("carvera", "gcode_color_coordinate"):
-        Config.set("carvera", "gcode_color_coordinate", "206,145,120,255")
+        Config.set("carvera", "gcode_color_coordinate", "223,188,153,255")
     if not Config.has_option("carvera", "gcode_color_feedrate"):
-        Config.set("carvera", "gcode_color_feedrate", "78,201,176,255")
+        Config.set("carvera", "gcode_color_feedrate", "147,192,174,255")
     if not Config.has_option("carvera", "gcode_color_spindle"):
-        Config.set("carvera", "gcode_color_spindle", "209,105,105,255")
+        Config.set("carvera", "gcode_color_spindle", "225,157,145,255")
     if not Config.has_option("carvera", "gcode_color_tool"):
-        Config.set("carvera", "gcode_color_tool", "181,206,168,255")
+        Config.set("carvera", "gcode_color_tool", "203,192,146,255")
     if not Config.has_option("carvera", "gcode_color_line_number"):
-        Config.set("carvera", "gcode_color_line_number", "133,133,133,255")
+        Config.set("carvera", "gcode_color_line_number", "130,146,144,255")
     if not Config.has_option("carvera", "gcode_color_parameter"):
-        Config.set("carvera", "gcode_color_parameter", "156,220,254,255")
+        Config.set("carvera", "gcode_color_parameter", "174,202,207,255")
     if not Config.has_option("carvera", "gcode_color_o_label"):
-        Config.set("carvera", "gcode_color_o_label", "86,156,214,255")
+        Config.set("carvera", "gcode_color_o_label", "139,186,200,255")
     if not Config.has_option("carvera", "gcode_color_o_keyword"):
-        Config.set("carvera", "gcode_color_o_keyword", "220,220,170,255")
+        Config.set("carvera", "gcode_color_o_keyword", "216,203,151,255")
     if not Config.has_option("carvera", "gcode_color_param_ref"):
-        Config.set("carvera", "gcode_color_param_ref", "181,206,168,255")
+        Config.set("carvera", "gcode_color_param_ref", "178,195,151,255")
     if not Config.has_option("carvera", "gcode_color_math_keyword"):
-        Config.set("carvera", "gcode_color_math_keyword", "215,186,125,255")
+        Config.set("carvera", "gcode_color_math_keyword", "214,153,99,255")
 
+    theme.migrate_colors(Config)
     Config.write()
 
 
@@ -8772,6 +8789,8 @@ def main():
     global global_app
     global_app = MakeraApp()
     global_app.simulation = simulation
+    if simulation is not None:
+        global_app._user_data_dir = os.environ["KIVY_HOME"]
     global_app.run()
 
 

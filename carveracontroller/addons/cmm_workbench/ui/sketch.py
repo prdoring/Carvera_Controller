@@ -17,6 +17,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.stencilview import StencilView
 
 from carveracontroller.translation import tr
+from carveracontroller.ui import theme
 from carveracontroller.ui.touch import TOUCH_CANCELLED, Gesture, PointerTransform, gesture_owners
 
 from ..core.features import (
@@ -127,6 +128,7 @@ class CMMWorkbenchPreviewSketch(StencilView):
         try:
             label = CoreLabel(
                 text=text,
+                font_name=theme.font_for(text),
                 font_size=font_size,
                 bold=True,
                 color=color[:4],
@@ -136,6 +138,7 @@ class CMMWorkbenchPreviewSketch(StencilView):
         except TypeError:
             label = CoreLabel(
                 text=text,
+                font_name=theme.font_for(text),
                 font_size=font_size,
                 bold=True,
                 color=color[:4],
@@ -565,7 +568,7 @@ class CMMWorkbenchPreviewSketch(StencilView):
         with self._drawing:
             PushMatrix()
             Translate(self.x, self.y)
-            Color(0.12, 0.12, 0.13, 1)
+            Color(*theme.FIELD)
             Rectangle(pos=(0, 0), size=(iw, ih))
 
             bb = self._bbox()
@@ -610,7 +613,7 @@ class CMMWorkbenchPreviewSketch(StencilView):
             inside_y = edge_m <= ly <= ih - edge_m
             half_h = min(arm, max(lx - edge_m, 0), max(iw - lx - edge_m, 0))
             half_v = min(arm, max(ly - edge_m, 0), max(ih - ly - edge_m, 0))
-            Color(0.28, 0.29, 0.32, 1)
+            Color(*theme.BORDER)
             if inside_y and half_h >= 2.0:
                 Line(points=[lx - half_h, ly, lx + half_h, ly], width=1.0)
             if inside_x and half_v >= 2.0:

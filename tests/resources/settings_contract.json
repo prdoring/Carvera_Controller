@@ -1,0 +1,1987 @@
+[
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "ui_density_override",
+    "default": "false"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "numeric",
+    "section": "carvera",
+    "key": "ui_density",
+    "default": "2.0"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "numeric",
+    "section": "carvera",
+    "key": "android_ui_scale",
+    "default": "1.0"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "show_tooltips",
+    "default": "1"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "numeric",
+    "section": "carvera",
+    "key": "tooltip_delay",
+    "default": "1.5"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "active_color",
+    "default": "0,255,255,255"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "graphics",
+    "key": "allow_screensaver",
+    "default": "false"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "graphics",
+    "key": "always_on_top",
+    "default": "false"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "numeric",
+    "section": "graphics",
+    "key": "maxfps",
+    "default": "60"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "show_update",
+    "default": "true"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "show_firmware_check",
+    "default": "true"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "instantFSoverride",
+    "default": "true"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "path",
+    "section": "carvera",
+    "key": "custom_bkg_img_dir",
+    "default": ""
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "string",
+    "section": "carvera",
+    "key": "address",
+    "default": ""
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "allow_mdi_while_machine_running",
+    "default": "false"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "allow_jogging_while_machine_running",
+    "default": "true"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "allow_jogging_while_spindle_on",
+    "default": "false"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "invert_y_axis_jogging",
+    "default": "false"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "options",
+    "section": "kivy",
+    "key": "keyboard_mode",
+    "default": "",
+    "options": [
+      "",
+      "system",
+      "dock",
+      "multi",
+      "systemanddock",
+      "systemandmulti"
+    ]
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "touch_macro_1",
+    "default": {}
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "touch_macro_2",
+    "default": {}
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "touch_macro_3",
+    "default": {}
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "string",
+    "section": "carvera",
+    "key": "g54_description",
+    "default": "G54"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "string",
+    "section": "carvera",
+    "key": "g55_description",
+    "default": "G55"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "string",
+    "section": "carvera",
+    "key": "g56_description",
+    "default": "G56"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "string",
+    "section": "carvera",
+    "key": "g57_description",
+    "default": "G57"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "string",
+    "section": "carvera",
+    "key": "g58_description",
+    "default": "G58"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "string",
+    "section": "carvera",
+    "key": "g59_description",
+    "default": "G59"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "auto_reconnect_enabled",
+    "default": "true"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "options",
+    "section": "carvera",
+    "key": "reconnect_method",
+    "default": "wifi",
+    "options": [
+      "wifi",
+      "usb"
+    ]
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "string",
+    "section": "carvera",
+    "key": "usb_serial",
+    "default": ""
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "numeric",
+    "section": "carvera",
+    "key": "reconnect_wait_time",
+    "default": "10"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "numeric",
+    "section": "carvera",
+    "key": "reconnect_attempts",
+    "default": "3"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "options",
+    "section": "kivy",
+    "key": "log_level",
+    "default": "info",
+    "options": [
+      "debug",
+      "info",
+      "warning",
+      "error"
+    ]
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "kivy",
+    "key": "log_enable",
+    "default": "true"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "log_sent_receive",
+    "default": "false"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "allow_manual_usb_device",
+    "default": "false"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "use_higher_baud",
+    "default": "false"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "options",
+    "section": "carvera",
+    "key": "usb_baud_rate",
+    "default": "1500000",
+    "options": [
+      "115200",
+      "230400",
+      "460800",
+      "921600",
+      "1500000",
+      "2000000",
+      "2500000",
+      "3000000"
+    ]
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "high_precision_reamining_time_estimate",
+    "default": "true"
+  },
+  {
+    "schema": "controller_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "show_playbar_tool_change_markers",
+    "default": "true"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "gcode_highlight_enabled",
+    "default": "true"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_comment",
+    "default": "106,153,85,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_g_command",
+    "default": "86,156,214,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_m_command",
+    "default": "197,134,192,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_coordinate",
+    "default": "206,145,120,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_feedrate",
+    "default": "78,201,176,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_spindle",
+    "default": "209,105,105,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_tool",
+    "default": "181,206,168,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_line_number",
+    "default": "133,133,133,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_parameter",
+    "default": "156,220,254,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_o_label",
+    "default": "86,156,214,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_o_keyword",
+    "default": "220,220,170,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_param_ref",
+    "default": "181,206,168,255"
+  },
+  {
+    "schema": "gcode_viewer_config.json",
+    "type": "colorpicker",
+    "section": "carvera",
+    "key": "gcode_color_math_keyword",
+    "default": "215,186,125,255"
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "pendant",
+    "section": "carvera",
+    "key": "pendant_type",
+    "default": "None"
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "pendant_jogging_default",
+    "default": "true",
+    "pendant_types": [
+      "WHB04",
+      "Gamepad"
+    ]
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "pendant_probe_z_alt_cmd",
+    "default": "false",
+    "pendant_types": [
+      "WHB04",
+      "Gamepad"
+    ]
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "options",
+    "section": "carvera",
+    "key": "pendant_primary_button_action",
+    "default": "Macro",
+    "options": [
+      "Macro",
+      "Key-specific Action"
+    ],
+    "pendant_types": [
+      "WHB04"
+    ]
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "pendant_macro_1",
+    "default": {}
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "pendant_macro_2",
+    "default": {}
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "pendant_macro_3",
+    "default": {}
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "pendant_macro_4",
+    "default": {}
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "pendant_macro_5",
+    "default": {}
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "pendant_macro_6",
+    "default": {}
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "pendant_macro_7",
+    "default": {}
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "pendant_macro_8",
+    "default": {}
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "pendant_macro_9",
+    "default": {}
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gcodesnippet",
+    "section": "carvera",
+    "key": "pendant_macro_10",
+    "default": {}
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "numeric",
+    "section": "carvera",
+    "key": "gamepad_deadzone",
+    "default": "0.15",
+    "pendant_types": [
+      "Gamepad"
+    ]
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "numeric",
+    "section": "carvera",
+    "key": "gamepad_max_jog_speed",
+    "default": "3000",
+    "pendant_types": [
+      "Gamepad"
+    ]
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "gamepad_invert_x",
+    "default": "false",
+    "pendant_types": [
+      "Gamepad"
+    ]
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "gamepad_invert_y",
+    "default": "false",
+    "pendant_types": [
+      "Gamepad"
+    ]
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "gamepad_invert_z",
+    "default": "false",
+    "pendant_types": [
+      "Gamepad"
+    ]
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "bool",
+    "section": "carvera",
+    "key": "gamepad_invert_a",
+    "default": "false",
+    "pendant_types": [
+      "Gamepad"
+    ]
+  },
+  {
+    "schema": "pendant_config.json",
+    "type": "gamepad_bindings",
+    "section": "carvera",
+    "key": "gamepad_bindings",
+    "default": "",
+    "pendant_types": [
+      "Gamepad"
+    ]
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Basic",
+    "key": "switch.vacuum.default_on_value",
+    "default": "80"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "bool",
+    "section": "Basic",
+    "key": "switch.light.startup_state",
+    "default": "true"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Basic",
+    "key": "light.turn_off_min",
+    "default": "0.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "bool",
+    "section": "Basic",
+    "key": "stop_on_cover_open",
+    "default": "false"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "bool",
+    "section": "Basic",
+    "key": "power.auto_sleep",
+    "default": "false"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Basic",
+    "key": "power.auto_sleep_min",
+    "default": "5"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "options",
+    "section": "Basic",
+    "key": "main_button_long_press_enable",
+    "options": [
+      "None",
+      "Sleep",
+      "Repeat",
+      "ToolChange"
+    ],
+    "default": "None"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor1_x",
+    "default": "-360.158"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor1_y",
+    "default": "-234.568"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor2_offset_x",
+    "default": "90.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor2_offset_y",
+    "default": "45.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.toolrack_offset_x",
+    "default": "356"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.toolrack_offset_y",
+    "default": "0.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.toolrack_z",
+    "default": "-112.5"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.rotation_offset_x",
+    "default": "3.5"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.rotation_offset_y",
+    "default": "37.5"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.rotation_offset_z",
+    "default": "23"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor_width",
+    "default": "15.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor_length",
+    "default": "100.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.worksize_x",
+    "default": "340.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.worksize_y",
+    "default": "240.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.clearance_x",
+    "default": "-75.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.clearance_y",
+    "default": "-3.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.clearance_z",
+    "default": "-3.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "bool",
+    "section": "Advanced",
+    "key": "soft_endstop.enable",
+    "default": "True"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "soft_endstop.x_min",
+    "default": "-371.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "soft_endstop.y_min",
+    "default": "-250.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "soft_endstop.z_min",
+    "default": "-135.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "delta_steps_per_mm",
+    "default": "26.666667"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "default_feed_rate",
+    "default": "1000"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "default_seek_rate",
+    "default": "3000"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "alpha_max_rate",
+    "default": "3000.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "beta_max_rate",
+    "default": "3000.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "gamma_max_rate",
+    "default": "2000.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "delta_max_rate",
+    "default": "1800.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "epsilon_max_rate",
+    "default": "100.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "acceleration",
+    "default": "150"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "delta_acceleration",
+    "default": "360.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "epsilon_acceleration",
+    "default": "10.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "bool",
+    "section": "Advanced",
+    "key": "atc.skip_path_origin",
+    "default": "false"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "string",
+    "section": "Advanced",
+    "key": "wifi.machine_name",
+    "default": "CARVERA_01001"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.homing_retract_mm",
+    "default": "0.4"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.action_mm",
+    "default": "1.6"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.detector.detect_rate_mm_s",
+    "default": "20"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.detector.detect_travel_mm",
+    "default": "5"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.reference_tool_mz",
+    "default": "-115.34"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.safe_z_mm",
+    "default": "-20.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.safe_z_empty_mm",
+    "default": "-50.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.safe_z_offset_mm",
+    "default": "15.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.fast_z_rate_mm_m",
+    "default": "1000"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.slow_z_rate_mm_m",
+    "default": "200"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.margin_rate_mm_m",
+    "default": "1000.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.probe.fast_rate_mm_m",
+    "default": "500"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.probe.slow_rate_mm_m",
+    "default": "100"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "atc.probe.retract_mm",
+    "default": "2"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_test_power",
+    "default": "0.01"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_maximum_power",
+    "default": "1.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_minimum_power",
+    "default": "0.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_offset_x",
+    "default": "-37.3"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_offset_y",
+    "default": "4.8"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_offset_z",
+    "default": "-45.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_power_laser",
+    "default": "80.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "bool",
+    "section": "Advanced",
+    "key": "laser_module_clustering",
+    "default": "false"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.slow_feedrate",
+    "default": "0.8"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.fast_feedrate",
+    "default": "5"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.return_feedrate",
+    "default": "20"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.probe_height",
+    "default": "2"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.max_z",
+    "default": "100"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "spindle.default_rpm",
+    "default": "10000"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "spindle.max_rpm",
+    "default": "15000"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.threshold_temp",
+    "default": "35.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_power_init",
+    "default": "50.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_power_step",
+    "default": "10.0"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_delay",
+    "default": "180"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperature_control.spindle.max_temp",
+    "default": "60"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "wp.min_voltage",
+    "default": "3.6"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "wp.max_voltage",
+    "default": "4.1"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "string",
+    "section": "Restore",
+    "key": "restore"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "string",
+    "section": "Restore",
+    "key": "default"
+  },
+  {
+    "schema": "config_c1.json",
+    "type": "options",
+    "section": "Backup",
+    "key": "backup",
+    "options": [
+      "Back up files now"
+    ]
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "bool",
+    "section": "Basic",
+    "key": "switch.light.startup_state",
+    "default": "true"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Basic",
+    "key": "light.turn_off_min",
+    "default": "0.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "bool",
+    "section": "Basic",
+    "key": "stop_on_cover_open",
+    "default": "false"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "bool",
+    "section": "Basic",
+    "key": "power.auto_sleep",
+    "default": "false"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Basic",
+    "key": "power.auto_sleep_min",
+    "default": "5"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "options",
+    "section": "Basic",
+    "key": "main_button_long_press_enable",
+    "options": [
+      "None",
+      "Sleep",
+      "Repeat",
+      "ToolChange"
+    ],
+    "default": "None"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "bool",
+    "section": "Basic",
+    "key": "switch.beep.enable",
+    "default": "true"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor1_x",
+    "default": "-291.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor1_y",
+    "default": "-203.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor2_offset_x",
+    "default": "88.5"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor2_offset_y",
+    "default": "45.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.reference_tool_mz",
+    "default": "-115.34"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.rotation_offset_x",
+    "default": "41.5"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.rotation_offset_y",
+    "default": "82.5"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.rotation_offset_z",
+    "default": "23.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor_width",
+    "default": "15.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor_length",
+    "default": "100.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.worksize_x",
+    "default": "300.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.worksize_y",
+    "default": "200.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.clearance_x",
+    "default": "-5.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.clearance_y",
+    "default": "-21.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.clearance_z",
+    "default": "-3.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "bool",
+    "section": "Advanced",
+    "key": "soft_endstop.enable",
+    "default": "false"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "soft_endstop.x_min",
+    "default": "-302.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "soft_endstop.y_min",
+    "default": "-212.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "soft_endstop.z_min",
+    "default": "-121.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "delta_steps_per_mm",
+    "default": "888.888889"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "default_feed_rate",
+    "default": "1000"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "default_seek_rate",
+    "default": "3000"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "alpha_max_rate",
+    "default": "3000.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "beta_max_rate",
+    "default": "3000.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "gamma_max_rate",
+    "default": "2000.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "delta_max_rate",
+    "default": "1800.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "acceleration",
+    "default": "150"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "delta_acceleration",
+    "default": "360.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "bool",
+    "section": "Advanced",
+    "key": "atc.skip_path_origin",
+    "default": "false"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "string",
+    "section": "Advanced",
+    "key": "wifi.machine_name",
+    "default": "CARVERA_AIR_01001"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_test_power",
+    "default": "0.01"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_maximum_power",
+    "default": "1.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_minimum_power",
+    "default": "0.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_offset_x",
+    "default": "0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_offset_y",
+    "default": "0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_offset_z",
+    "default": "-7.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_power_laser",
+    "default": "30.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "bool",
+    "section": "Advanced",
+    "key": "laser_module_clustering",
+    "default": "false"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.slow_feedrate",
+    "default": "0.8"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.fast_feedrate",
+    "default": "5"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.return_feedrate",
+    "default": "20"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.probe_height",
+    "default": "2"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.max_z",
+    "default": "100"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "spindle.default_rpm",
+    "default": "10000"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "spindle.max_rpm",
+    "default": "13000"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.threshold_temp",
+    "default": "35.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_power_init",
+    "default": "50.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_power_step",
+    "default": "10.0"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_delay",
+    "default": "180"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperature_control.spindle.max_temp",
+    "default": "70"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "string",
+    "section": "Restore",
+    "key": "restore"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "string",
+    "section": "Restore",
+    "key": "default"
+  },
+  {
+    "schema": "config_ca1.json",
+    "type": "options",
+    "section": "Backup",
+    "key": "backup",
+    "options": [
+      "Back up files now"
+    ]
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "bool",
+    "section": "Basic",
+    "key": "switch.light.startup_state",
+    "default": "true"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Basic",
+    "key": "light.turn_off_min",
+    "default": "0.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "bool",
+    "section": "Basic",
+    "key": "stop_on_cover_open",
+    "default": "false"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "bool",
+    "section": "Basic",
+    "key": "power.auto_sleep",
+    "default": "false"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Basic",
+    "key": "power.auto_sleep_min",
+    "default": "5"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "options",
+    "section": "Basic",
+    "key": "main_button_long_press_enable",
+    "options": [
+      "None",
+      "Sleep",
+      "Repeat"
+    ],
+    "default": "None"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor1_x",
+    "default": "-190.56"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor1_y",
+    "default": "-194.72"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor2_offset_x",
+    "default": "20.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor2_offset_y",
+    "default": "20.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.rotation_offset_x",
+    "default": "-7.5"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.rotation_offset_y",
+    "default": "69.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.rotation_offset_z",
+    "default": "17.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor_width",
+    "default": "15.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.anchor_length",
+    "default": "100.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.worksize_x",
+    "default": "200.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.worksize_y",
+    "default": "200.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.clearance_x",
+    "default": "-11.6"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.clearance_y",
+    "default": "-14.6"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "coordinate.clearance_z",
+    "default": "-3.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "bool",
+    "section": "Advanced",
+    "key": "soft_endstop.enable",
+    "default": "true"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "soft_endstop.x_min",
+    "default": "-207.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "soft_endstop.y_min",
+    "default": "-206.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "soft_endstop.z_min",
+    "default": "-102.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "default_feed_rate",
+    "default": "1000"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "default_seek_rate",
+    "default": "2000"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "alpha_max_rate",
+    "default": "1200.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "beta_max_rate",
+    "default": "1200.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "gamma_max_rate",
+    "default": "600.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "delta_max_rate",
+    "default": "3600.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "acceleration",
+    "default": "150"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "delta_acceleration",
+    "default": "360.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "string",
+    "section": "Advanced",
+    "key": "wifi.machine_name",
+    "default": "MAKERA_Z1_01001"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_test_power",
+    "default": "0.01"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_maximum_power",
+    "default": "1.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_minimum_power",
+    "default": "0.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_offset_x",
+    "default": "0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_offset_y",
+    "default": "0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "laser_module_offset_z",
+    "default": "-7.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_power_laser",
+    "default": "30.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "bool",
+    "section": "Advanced",
+    "key": "laser_module_clustering",
+    "default": "false"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.slow_feedrate",
+    "default": "1.5"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.fast_feedrate",
+    "default": "5"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.return_feedrate",
+    "default": "20"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.probe_height",
+    "default": "2"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "zprobe.max_z",
+    "default": "100"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "spindle.default_rpm",
+    "default": "10000"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "spindle.max_rpm",
+    "default": "13000"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.threshold_temp",
+    "default": "60.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_power_init",
+    "default": "50.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_power_step",
+    "default": "2.0"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperatureswitch.spindle.cooldown_delay",
+    "default": "180"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "numeric",
+    "section": "Advanced",
+    "key": "temperature_control.spindle.max_temp",
+    "default": "70"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "string",
+    "section": "Restore",
+    "key": "restore"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "string",
+    "section": "Restore",
+    "key": "default"
+  },
+  {
+    "schema": "config_z1.json",
+    "type": "options",
+    "section": "Backup",
+    "key": "backup",
+    "options": [
+      "Back up files now"
+    ]
+  }
+]

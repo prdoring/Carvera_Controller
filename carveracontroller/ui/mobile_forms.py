@@ -2,13 +2,21 @@
 
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.metrics import dp
+from kivy.lang import Builder
+from kivy.metrics import Metrics, dp, sp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.label import Label
 
 from carveracontroller.translation import tr
 
-from .android_layout import DialogLabel, TouchActionRow, style_action
+from .android_layout import (
+    DialogLabel,
+    TouchActionRow,
+    _text_width,
+    control_height,
+    style_action,
+)
 
 
 class WorkspaceLayout:
@@ -51,12 +59,12 @@ class WorkspaceLayout:
                 initialize_scroll()
             footer = self.popup.ids.btn_ok.parent
             parent, index = footer.parent, footer.parent.children.index(footer)
-            buttons = list(reversed(footer.children))
             help_button = next(widget for widget in self.popup.walk(restrict=True) if type(widget).__name__ == 'HelpButton')
             help_row = help_button.parent
             help_row.remove_widget(help_button)
             help_row.parent.remove_widget(help_row)
             index = parent.children.index(footer)
+            buttons = list(reversed(footer.children))
             footer.clear_widgets()
             parent.remove_widget(footer)
             actions = TouchActionRow(spacing=dp(8))
@@ -128,3 +136,79 @@ class WorkspaceLayout:
             for widget in self.original:
                 widget.size_hint, widget.width, widget.height = self.geometry[widget]
                 self.grid.add_widget(widget)
+
+
+def prepare_job_options(popup):
+    """Keep each job summary beside its existing configuration action."""
+    if getattr(popup, "_mobile_job_options", False):
+        return
+    popup._mobile_job_options = True
+    popup.ids.txt_startline._mobile_width_text = popup.ids.txt_startline.hint_text
+    origin = popup.ids.lb_origin
+    options = origin.parent
+    ordered = list(reversed(options.children))
+    heading = ordered[ordered.index(origin) - 1]
+    groups = []
+    for label_name, button_name in (("lb_origin", "btn_origin"),
+                                    ("lb_zprobe", "btn_zprobe"),
+                                    ("lb_leveling", "btn_leveling")):
+        label, button = popup.ids[label_name], popup.ids[button_name]
+        row = button.parent
+        for prop in ("height", "padding"):
+            Builder.unbind_property(row, prop)
+        row.padding = 0
+        row.spacing = dp(12)
+        row._mobile_form_fitted = True
+        for filler in row.children:
+            if filler is not button:
+                filler.size_hint_x = None
+                filler.width = 0
+        options.remove_widget(label)
+        for prop in ("height", "text_size", "font_size"):
+            Builder.unbind_property(label, prop)
+        label.size_hint = (1, None)
+        label.font_size = sp(16)
+        label.text_size = (max(1, label.width - dp(8)), None)
+        label.bind(width=lambda item, width: setattr(
+            item, "text_size", (max(1, width - dp(8)), None)))
+        if label is origin:
+            options.remove_widget(heading)
+            Builder.unbind_property(heading, "height")
+            heading._mobile_form_fitted = True
+            for title in heading.children:
+                if type(title) is Label:
+                    Builder.unbind_property(title, "font_size")
+                    title.font_size = sp(16)
+                    title.bold = True
+            summary = BoxLayout(orientation="vertical", size_hint_y=None)
+            summary.bind(minimum_height=summary.setter("height"))
+            summary.add_widget(heading)
+            summary.add_widget(label)
+            row.add_widget(summary, index=len(row.children))
+        else:
+            summary = label
+            row.add_widget(label, index=len(row.children))
+        button.size_hint = (None, None)
+        button.pos_hint = {"center_y": .5}
+        groups.append((row, summary, label, button))
+    for item in options.children:
+        if type(item) is Label and not item.text:
+            Builder.unbind_property(item, "height")
+            item.size_hint_y = None
+            item.height = 0
+    def fit(*_args):
+        heading.height = max(dp(24), sp(16) * 1.3)
+        for row, summary, label, button in groups:
+            label.height = label.texture_size[1] + dp(8)
+            button.width = min(max(dp(160), row.width * .43),
+                               _text_width(button.text, button.font_name,
+                                           button.font_size, button.bold) + dp(28))
+            button.height = max(control_height(), button.texture_size[1] + dp(16))
+            row.height = max(button.height, summary.height) + dp(8)
+    for row, _summary, label, button in groups:
+        row.bind(width=fit)
+        _summary.bind(height=fit)
+        label.bind(texture_size=fit)
+        button.bind(texture_size=fit, font_size=fit)
+    Metrics.bind(density=fit, fontscale=fit)
+    fit()

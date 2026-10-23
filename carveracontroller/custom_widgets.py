@@ -5,6 +5,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.factory import Factory
 from kivy.graphics import Color, Rectangle
+from kivy.lang import Builder
 from kivy.metrics import dp
 from kivy.properties import ListProperty, StringProperty
 from kivy.uix.anchorlayout import AnchorLayout
@@ -15,10 +16,12 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.settings import SettingItem
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.widget import Widget
 
 from carveracontroller.translation import tr
-from carveracontroller.ui.android_layout import DialogActions, DialogSurface, TouchActionRow
+from carveracontroller.ui import theme
+from carveracontroller.ui.android_layout import DialogActions, DialogSurface, TouchActionRow, control_height
 from carveracontroller.ui.editing import EditingTextInput as TextInput
 
 
@@ -209,12 +212,28 @@ class SettingColorPicker(SettingItem):
         inner.add_widget(btn)
         wrapper.add_widget(inner)
         self.add_widget(wrapper)
+        self.color_label.text_size = (self.color_label.width, None)
+        self.color_label.bind(width=lambda label, width: setattr(label, "text_size", (max(1, width), None)))
+
+        def fit_value_column(*_args):
+            if getattr(App.get_running_app(), "android_touch", False) or hasattr(self, "_mobile_value_row"):
+                self.content.size_hint_x = 1
+                return
+            self.content.size_hint_x = None
+            self.content.width = min(dp(420), max(dp(300), self.width * .45))
+            self.color_preview.width = dp(32)
+
+        self.bind(width=fit_value_column)
+        app = App.get_running_app()
+        if app is not None:
+            app.bind(android_touch=fit_value_column)
+        fit_value_column()
 
     def _parse_color(self, value):
         """Parse a color string like '0,255,255,255' or '0,1,1,1' into an RGBA tuple (0-1 range)."""
         try:
             if not value:
-                return (0, 1, 1, 1)  # Default cyan
+                return theme.ACCENT
             parts = [float(x.strip()) for x in value.split(",")]
             if len(parts) == 3:
                 parts.append(1.0)  # Add alpha if missing
@@ -223,7 +242,7 @@ class SettingColorPicker(SettingItem):
                 return (parts[0] / 255, parts[1] / 255, parts[2] / 255, parts[3] if parts[3] <= 1 else parts[3] / 255)
             return tuple(parts)
         except Exception:
-            return (0, 1, 1, 1)  # Default cyan
+            return theme.ACCENT
 
     def _format_color(self, color):
         """Format color tuple as a readable string."""
@@ -241,9 +260,13 @@ class SettingColorPicker(SettingItem):
 
         # Color picker widget
         self.picker = ColorPicker(color=self._current_color)
+        self._theme_picker()
+        preview = ColorPreview(color=self._current_color, size_hint_y=None, height=dp(24))
+        self.picker.bind(color=lambda _picker, color: preview.set_color(color))
+        content.add_widget(preview)
         if App.get_running_app().android_touch:
             self.picker.size_hint_y = None
-            self.picker.height = dp(360)
+            self.picker.height = max(dp(360), control_height() * 8)
             palette = TouchActionRow(spacing=dp(8))
             for name, color in (("White", (1, 1, 1, 1)), ("Black", (0, 0, 0, 1)),
                                 ("Red", (1, 0, 0, 1)), ("Green", (0, 1, 0, 1)), ("Blue", (0, 0, 1, 1))):
@@ -278,10 +301,25 @@ class SettingColorPicker(SettingItem):
         popup.open()
         self._popup = popup
 
+    def _theme_picker(self):
+        Builder.unbind_property(self.picker, "foreground_color")
+        self.picker.foreground_color = theme.TEXT
+        channels = next(widget for widget in self.picker.walk() if isinstance(widget, StackLayout))
+        controls = list(reversed(channels.children))
+        channels.clear_widgets()
+        channels.canvas.clear()
+        with channels.canvas.before:
+            Color(*theme.PANEL)
+            background = Rectangle(pos=channels.pos, size=channels.size)
+        channels.bind(pos=lambda widget, pos: setattr(background, "pos", pos),
+                      size=lambda widget, size: setattr(background, "size", size))
+        for control in controls:
+            channels.add_widget(control)
+
     def _reset_to_default(self):
-        """Reset color to default cyan."""
-        default_color = (0, 1, 1, 1)
-        self.picker.color = default_color
+        """Reset this color category to its themed stock value."""
+        stock = theme.STOCK_COLORS.get(self.key)
+        self.picker.color = self._parse_color(stock[1]) if stock else theme.ACCENT
 
     def _save_and_close(self, popup):
         """Save the selected color and close the popup."""
@@ -327,7 +365,10 @@ class SettingGCodeSnippet(SettingItem):
             valign="middle",
             size_hint=(1, 1),
             text_size=(None, None),
+            shorten=True,
+            shorten_from="right",
         )
+        self.preview.bind(size=lambda label, size: setattr(label, "text_size", (max(1, size[0]), size[1])))
 
         btn = Button(text=tr._("Open editor…"), size_hint=(None, 1), width=dp(130))
         btn.bind(on_release=self.open_popup)

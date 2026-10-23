@@ -1,3 +1,4 @@
+#:import theme carveracontroller.ui.theme
 #:include addons/probing/preview/ProbingPreviewPopup.kv
 #:include addons/probing/ProbingControls.kv
 #:include addons/probing/operations/OutsideCorner/OutsideCornerSettings.kv
@@ -57,7 +58,7 @@
                         spacing:dp(10)
                         padding:dp(10)
                         GridLayout:
-                            size_hint_x: 0.3 if app.android_touch else 0.4
+                            size_hint_x: 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -66,30 +67,30 @@
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_outside_corner_probing_pressed("TopLeft")
                                 image: 'addons/probing/data/icons_1024x768/outside_corner/X+Y-.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_outside_corner_probing_pressed("TopRight")
                                 image: 'addons/probing/data/icons_1024x768/outside_corner/X-Y-.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_outside_corner_probing_pressed("BottomLeft")
                                 image: 'addons/probing/data/icons_1024x768/outside_corner/X+Y+.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_outside_corner_probing_pressed("BottomRight")
                                 image: 'addons/probing/data/icons_1024x768/outside_corner/X-Y+.png'
 
                         BoxLayout:
-                            size_hint_x: 0.7 if app.android_touch else 0.6
+                            size_hint_x: 0.6
                             halign: "right"
                             DeferredProbeSettings:
                                 settings_type: 'OutsideCornerSettings'
@@ -105,7 +106,7 @@
                         spacing:dp(10)
                         padding:dp(10)
                         GridLayout:
-                            size_hint_x: 0.3 if app.android_touch else 0.4
+                            size_hint_x: 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -114,30 +115,30 @@
                             ProbeButton:
                                 halign: 'right'
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_inside_corner_probing_pressed("TopLeft")
                                 image: 'addons/probing/data/icons_1024x768/inside_corner/inX+Y-.png'
                             ProbeButton:
                                 halign: 'left'
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_inside_corner_probing_pressed("TopRight")
                                 image: 'addons/probing/data/icons_1024x768/inside_corner/inX-Y-.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_inside_corner_probing_pressed("BottomLeft")
                                 image: 'addons/probing/data/icons_1024x768/inside_corner/inX+Y+.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_inside_corner_probing_pressed("BottomRight")
                                 image: 'addons/probing/data/icons_1024x768/inside_corner/inX-Y+.png'
 
                         BoxLayout:
-                            size_hint_x: 0.7 if app.android_touch else 0.6
+                            size_hint_x: 0.6
                             DeferredProbeSettings:
                                 settings_type: 'InsideCornerSettings'
                                 id: inside_corner_settings
@@ -152,7 +153,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.3 if app.android_touch else 0.4
+                            size_hint_x: 0.4
                             cols: 3
                             rows: 3
                             spacing: dp(8)
@@ -165,7 +166,7 @@
                             ProbeButton:
                                 size_hint: [.33,.33]
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_single_axis_probing_pressed("Top")
                                 image: 'addons/probing/data/icons_1024x768/single_axis/Y-.png'
 
@@ -176,21 +177,21 @@
                             ProbeButton:
                                 size_hint: [.33,.33]
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_single_axis_probing_pressed("Left")
                                 image: 'addons/probing/data/icons_1024x768/single_axis/X+.png'
 
                             ProbeButton:
                                 size_hint: [.33,.33]
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_single_axis_probing_pressed("WorkpieceTop")
                                 image: 'addons/probing/data/icons_1024x768/single_axis/Z-.png'
 
                             ProbeButton:
                                 size_hint: [.33,.33]
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_single_axis_probing_pressed("Right")
                                 image: 'addons/probing/data/icons_1024x768/single_axis/X-.png'
 
@@ -201,7 +202,7 @@
                             ProbeButton:
                                 size_hint: [.33,.33]
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_single_axis_probing_pressed("Bottom")
                                 image: 'addons/probing/data/icons_1024x768/single_axis/Y+.png'
 
@@ -210,7 +211,7 @@
                                 #nothing
 
                         BoxLayout:
-                            size_hint_x: 0.7 if app.android_touch else 0.6
+                            size_hint_x: 0.6
                             DeferredProbeSettings:
                                 settings_type: 'SingleAxisProbeSettings'
                                 id: single_axis_settings
@@ -225,7 +226,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.3 if app.android_touch else 0.4
+                            size_hint_x: 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -234,30 +235,34 @@
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
+                                tooltip_image: self.image
+                                overview_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
                                 on_release: root.on_bore_probing_pressed("CenterX")
                                 image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_rectangular_pocket_x.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
+                                tooltip_image: self.image
+                                overview_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
                                 on_release: root.on_bore_probing_pressed("CenterY")
                                 image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_rectangular_pocket_y.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
+                                tooltip_image: self.image
+                                overview_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
                                 on_release: root.on_bore_probing_pressed("CenterBore")
                                 image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_circular_bore.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
+                                tooltip_image: self.image
+                                overview_image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png'
                                 on_release: root.on_bore_probing_pressed("CenterPocket")
                                 image: 'addons/probing/data/icons_1024x768/inside_center/inside_center_rectangular_pocket.png'
 
                         BoxLayout:
-                            size_hint_x: 0.7 if app.android_touch else 0.6
+                            size_hint_x: 0.6
                             DeferredProbeSettings:
                                 settings_type: 'BoreSettings'
                                 id: bore_settings
@@ -272,7 +277,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.3 if app.android_touch else 0.4
+                            size_hint_x: 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -281,30 +286,34 @@
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
+                                tooltip_image: self.image
+                                overview_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
                                 on_release: root.on_boss_probing_pressed("CenterX")
                                 image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_rect_boss_x.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
+                                tooltip_image: self.image
+                                overview_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
                                 on_release: root.on_boss_probing_pressed("CenterY")
                                 image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_rect_boss_y.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
+                                tooltip_image: self.image
+                                overview_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
                                 on_release: root.on_boss_probing_pressed("CenterBoss")
                                 image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_circular_boss.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
+                                tooltip_image: self.image
+                                overview_image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png'
                                 on_release: root.on_boss_probing_pressed("CenterBlock")
                                 image: 'addons/probing/data/icons_1024x768/outside_center/outside_center_rect_boss.png'
 
                         BoxLayout:
-                            size_hint_x: 0.7 if app.android_touch else 0.6
+                            size_hint_x: 0.6
                             DeferredProbeSettings:
                                 settings_type: 'BossSettings'
                                 id: boss_settings
@@ -319,7 +328,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.3 if app.android_touch else 0.4
+                            size_hint_x: 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -328,31 +337,31 @@
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_angle_probing_pressed("XAbove")
                                 image: 'addons/probing/data/icons_1024x768/angle/probe_angle_x_above.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_angle_probing_pressed("YLeft")
                                 image: 'addons/probing/data/icons_1024x768/angle/probe_angle_y_left.png'
                             
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_angle_probing_pressed("XBelow")
                                 image: 'addons/probing/data/icons_1024x768/angle/probe_angle_x_below.png'
                             ProbeButton:
                                 
                                 tooltip_txt: ''
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_angle_probing_pressed("YRight")
                                 image: 'addons/probing/data/icons_1024x768/angle/probe_angle_y_right.png'
 
                         BoxLayout:
-                            size_hint_x: 0.7 if app.android_touch else 0.6
+                            size_hint_x: 0.6
                             DeferredProbeSettings:
                                 settings_type: 'AngleSettings'
                                 id: angle_settings
@@ -367,7 +376,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.3 if app.android_touch else 0.4
+                            size_hint_x: 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -376,29 +385,29 @@
                             ProbeButton:
                                 
                                 tooltip_txt: tr._('Calibrate probe tip using a known bore diameter')
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_probeTip_probing_pressed("Bore")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_BoreX.png'
                             ProbeButton:
                                 
                                 tooltip_txt: tr._('Calibrate probe tip using a known boss in the X direction')
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_probeTip_probing_pressed("BossX")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_BossX.png'
                             ProbeButton:
                                 tooltip_txt: tr._('Calibrate probe tip using anchor 2. This uses the config value Anchor Width and will move to position on its own')
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_probeTip_probing_pressed("Anchor2")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_On_Anchor_2.png'
                             ProbeButton:
                                 
                                 tooltip_txt: tr._('Calibrate probe tip using a known boss in the Y direction')
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_probeTip_probing_pressed("BossY")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_BossY.png'
 
                         BoxLayout:
-                            size_hint_x: 0.7 if app.android_touch else 0.6
+                            size_hint_x: 0.6
                             DeferredProbeSettings:
                                 settings_type: 'ProbeTipSettings'
                                 id: probeTipSettings
@@ -412,7 +421,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.3 if app.android_touch else 0.4
+                            size_hint_x: 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -421,31 +430,32 @@
                             ProbeButton:
                                 
                                 tooltip_txt: 'Calibrate 4th Axis Center (M469.6)'
-                                tooltip_image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_M469.6_Front.png'
+                                tooltip_image: self.image
+                                overview_image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_M469.6_Front.png'
                                 on_release: root.on_callibration_probing_pressed("FourthY")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_M469.6_Top.png'
                             ProbeButton:
                                 
                                 tooltip_txt: 'Calibrate 4th Axis Z offset'
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_callibration_probing_pressed("FourthZ")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_Z.png'
                             
                             ProbeButton:
                                 
                                 tooltip_txt: 'Calibrate Machine Anchor 1 Position'
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_callibration_probing_pressed("Anchor1")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_Anchor_1.png'
                             ProbeButton:
                                 
                                 tooltip_txt: 'Calibrate Machine Anchor 2 Position'
-                                tooltip_image: ''
+                                tooltip_image: self.image
                                 on_release: root.on_callibration_probing_pressed("Anchor2")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_Anchor_2.png'
 
                         BoxLayout:
-                            size_hint_x: 0.7 if app.android_touch else 0.6
+                            size_hint_x: 0.6
                             DeferredProbeSettings:
                                 settings_type: 'CalibrationSettings'
                                 id: calibration_settings_id
@@ -460,7 +470,7 @@
                         padding:dp(10)
 
                         GridLayout:
-                            size_hint_x: 0.3 if app.android_touch else 0.4
+                            size_hint_x: 0.4
                             cols: 2
                             rows: 2
                             spacing: dp(8)
@@ -468,7 +478,8 @@
 
                             ProbeButton:
                                 tooltip_txt: tr._('Probe 4th Axis (A-Axis) stock to determine angular position (M465.1)')
-                                tooltip_image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_Level_03.png'
+                                tooltip_image: self.image
+                                overview_image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_Level_03.png'
                                 on_release: root.on_fourth_axis_probing_pressed("Level")
                                 image: 'addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_Level_02.png'
                             EmptySpace:
@@ -476,7 +487,7 @@
                             EmptySpace:
 
                         BoxLayout:
-                            size_hint_x: 0.7 if app.android_touch else 0.6
+                            size_hint_x: 0.6
                             DeferredProbeSettings:
                                 settings_type: 'FourthAxisSettings'
                                 id: fourth_axis_settings
@@ -511,7 +522,7 @@
                     padding: '0dp'
                     canvas.before:
                         Color:
-                            rgba: 40/255, 40/255, 40/255, 1
+                            rgba: theme.BACKGROUND
                         RoundedRectangle:
                             pos: self.pos
                             size: self.size
@@ -521,7 +532,7 @@
                         padding: '0dp'
                         canvas.before:
                             Color:
-                                rgba: 50/255, 50/255, 50/255, 1
+                                rgba: theme.PANEL
                             Ellipse:
                                 pos: self.pos
                                 size: self.size
@@ -541,16 +552,13 @@
                                     jog_command: "X-{}".format(step_xy.text)
 
                             ProbeJogCell:
-                                Label:
-                                Spinner:
+                                JogStepSpinner:
                                     id: step_xy
                                     center: 0.5, 0.5
-                                    size_hint_y: None
-                                    height: app.touch_target if app.android_touch else dp(30)
+                                    size_hint_y: 1
                                     text: app.jog_step_xy
                                     on_text: app.jog_step_xy = self.text
                                     values: '10', '1', '0.1', '0.01', '0.005'
-                                Label:
                             ProbeJogCell:
                                 JogTouchButton:
                                     text: 'X+'
@@ -576,7 +584,7 @@
                     orientation: 'horizontal'
                     canvas.before:
                         Color:
-                            rgba: 50/255, 50/255, 50/255, 1
+                            rgba: theme.PANEL
                         RoundedRectangle:
                             pos: self.pos
                             size: self.size
@@ -594,31 +602,26 @@
                         ProbeJogCell:
                             JogTouchButton:
                                 text: 'Z+'
+                                tooltip_image: "data/AxisMotion/AxisMotion_ZPos.png"
                                 height: 30
                                 jog_command: "Z{}".format(step_z.text)
 
                         ProbeJogCell:
-                            Label:
-                            Spinner:
+                            JogStepSpinner:
                                 id: step_a
                                 center: 0.5, 0.5
-                                size_hint_y: None
-                                height: app.touch_target if app.android_touch else dp(30)
+                                size_hint_y: 1
                                 text: app.jog_step_a
                                 on_text: app.jog_step_a = self.text
                                 values: '90', '10', '1', '0.1'
-                            Label:
                         ProbeJogCell:
-                            Label:
-                            Spinner:
+                            JogStepSpinner:
                                 id: step_z
                                 center: 0.5, 0.5
-                                size_hint_y: None
-                                height: app.touch_target if app.android_touch else dp(30)
+                                size_hint_y: 1
                                 text: app.jog_step_z
                                 on_text: app.jog_step_z = self.text
                                 values: '10', '1', '0.1', '0.01', '0.005'
-                            Label:
                         ProbeJogCell:
                             JogTouchButton:
                                 text: 'A-'
@@ -628,6 +631,7 @@
                         ProbeJogCell:
                             JogTouchButton:
                                 text: 'Z-'
+                                tooltip_image: "data/AxisMotion/AxisMotion_ZNeg.png"
                                 height: 30
                                 jog_command: "Z-{}".format(step_z.text)
 
@@ -646,7 +650,7 @@
                         padding: '3dp'
                         canvas.before:
                             Color:
-                                rgba: 50/255, 50/255, 50/255, 1
+                                rgba: theme.PANEL
                             RoundedRectangle:
                                 pos: self.pos
                                 size: self.size

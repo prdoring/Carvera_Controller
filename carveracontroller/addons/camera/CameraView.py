@@ -3,9 +3,14 @@
 import logging
 from io import BytesIO
 
+from kivy.app import App
+from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
 from kivy.graphics import Rectangle, RenderContext
-from kivy.properties import NumericProperty, ObjectProperty
+from kivy.properties import BooleanProperty, NumericProperty, ObjectProperty
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.popup import Popup
 from kivy.uix.widget import Widget
 
 ADJUST_MIN = 0.2
@@ -103,3 +108,71 @@ class CameraView(Widget):
         if self.collide_point(*touch.pos):
             return True
         return super().on_touch_up(touch)
+
+
+class CameraControls(BoxLayout):
+    """Keep compact camera adjustments in a bounded, scrollable dialog."""
+
+    adjust_open = BooleanProperty(False)
+    adjust_popup = ObjectProperty(None, allownone=True)
+
+    def on_kv_post(self, _base_widget):
+        Clock.schedule_once(self._bind_app, 0)
+
+    def _bind_app(self, _dt):
+        app = App.get_running_app()
+        if app is not None:
+            app.bind(camera_streaming=self._sync_adjust_popup,
+                     supports_camera=self._sync_adjust_popup,
+                     android_touch=self._sync_adjust_popup)
+            if app.root is not None:
+                app.root.content.bind(current=self._page_changed)
+        self._sync_adjust_popup()
+
+    def on_parent(self, _instance, parent):
+        if parent is None and self.adjust_popup is not None:
+            self.adjust_popup.dismiss()
+
+    def on_adjust_open(self, *_args):
+        self._sync_adjust_popup()
+
+    def _page_changed(self, _content, page):
+        if page != "File" and self.adjust_popup is not None:
+            self.adjust_popup.dismiss()
+
+    def _sync_adjust_popup(self, *_args):
+        app = App.get_running_app()
+        if app is None or "adjust_panel" not in self.ids:
+            return
+        visible = self.adjust_open and app.camera_streaming and app.supports_camera and app.android_touch
+        if not visible:
+            if self.adjust_popup is not None:
+                self.adjust_popup.dismiss()
+            return
+        if self.adjust_popup is not None:
+            return
+        from carveracontroller.__main__ import tr
+        from carveracontroller.ui.android_layout import DialogActions, DialogSurface
+
+        panel = getattr(self.ids.adjust_panel, "__self__", self.ids.adjust_panel)
+        self._inline_viewport = panel.parent
+        self._inline_viewport.remove_widget(panel)
+        surface = DialogSurface()
+        surface.add_widget(panel)
+        actions = DialogActions()
+        close = Button(text=tr._("Close"))
+        actions.add_widget(close)
+        surface.add_widget(actions)
+        popup = Popup(title=tr._("Camera adjustments"), content=surface, size_hint=(.9, .9))
+        self.adjust_popup = popup
+        close.bind(on_release=lambda *_: popup.dismiss())
+        popup.bind(on_dismiss=self._restore_inline_adjustments)
+        popup.open()
+
+    def _restore_inline_adjustments(self, *_args):
+        panel = getattr(self.ids.adjust_panel, "__self__", self.ids.adjust_panel)
+        if panel.parent is not None:
+            panel.parent.remove_widget(panel)
+        self._inline_viewport.add_widget(panel)
+        self.adjust_popup = None
+        self.adjust_open = False

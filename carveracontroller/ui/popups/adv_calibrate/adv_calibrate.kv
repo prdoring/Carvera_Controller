@@ -1,110 +1,84 @@
+#:import theme carveracontroller.ui.theme
 #:import tr carveracontroller.__main__.tr
 
 <AdvCalibratePopup>:
     size_hint: 0.55, 0.45
     pos_hint: {"right": 0.75, "top": 0.7}
     auto_dismiss: False
-    BoxLayout:
+    DialogSurface:
         padding: '15dp'
         orientation: 'vertical'
-        Label:
-            canvas.before:
-                Color:
-                    rgba: 45/255, 45/255, 45/255, 1
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
-            size_hint_y: None
-            height: app.touch_target if app.android_touch else dp(30)
+        spacing: dp(8)
+        DialogLabel:
             text: tr._('Advanced TLO Calibrate')
-            halign: 'center'
-            valign: 'middle'
-            text_size: self.size
-        AnchorLayout:
-            anchor_x: 'center'
-            anchor_y: 'top'
-            BoxLayout:
-                orientation: 'vertical'
-                size_hint: None, None
-                width: dp(320)
-                height: self.minimum_height
-                spacing: dp(6)
-                padding: dp(1)
-
-                BoxLayout:
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(28)
-                    Widget:
-                    ProbeSettingLabel:
-                        size_hint_x: None
-                        width: dp(130)
-                        label_text: tr._('Repeats (R):')
-                    ToolTipTextInput:
-                        id: txt_repeat
-                        size_hint_x: None
-                        width: dp(90)
-                        font_size: '14dp'
-                        hint_text: tr._("1")
-                        hint_text_color: (0.2, 0.5, 0.5, 0.5)
-                        tooltip_txt: tr._('Number of TLO measurement repeats. For facemills: probe once per cycle, rotate the face mill between cycles; the TLO uses the lowest cutting edge')
-                        tooltip_image: ''
-                        multiline: False
-                        halign: 'right'
-                        input_type: 'number'
-                        input_filter: 'int'
-                    Widget:
-
-                BoxLayout:
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(28)
-                    Widget:
-                    ProbeSettingLabel:
-                        size_hint_x: None
-                        width: dp(130)
-                        label_text: tr._('X Offset:')
-                    ToolTipTextInput:
-                        id: txt_x_offset
-                        size_hint_x: None
-                        width: dp(90)
-                        font_size: '14dp'
-                        hint_text: tr._("0")
-                        hint_text_color: (0.2, 0.5, 0.5, 0.5)
-                        tooltip_txt: tr._('Offset the tool setter location by this amount (positive or negative) in X')
-                        tooltip_image: ''
-                        multiline: False
-                        halign: 'right'
-                        input_type: 'number'
-                        input_filter: 'float'
-                    Widget:
-
-                BoxLayout:
-                    size_hint_y: None
-                    height: app.touch_target if app.android_touch else dp(28)
-                    Widget:
-                    ProbeSettingLabel:
-                        size_hint_x: None
-                        width: dp(130)
-                        label_text: tr._('Y Offset:')
-                    ToolTipTextInput:
-                        id: txt_y_offset
-                        size_hint_x: None
-                        width: dp(90)
-                        font_size: '14dp'
-                        hint_text: tr._("0")
-                        hint_text_color: (0.2, 0.5, 0.5, 0.5)
-                        tooltip_txt: tr._('Offset the tool setter location by this amount (positive or negative) in Y')
-                        tooltip_image: ''
-                        multiline: False
-                        halign: 'right'
-                        input_type: 'number'
-                        input_filter: 'float'
-                    Widget:
-
-        Widget:
-        TouchActionRow:
+            text_role: 'title'
+            bold: True
+            size_hint_y: None
+            height: self.texture_size[1] + dp(12)
+            text_size: self.width, None
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: dp(6)
+            DialogLabel:
+                text: tr._('Repeats (R):')
+                size_hint_y: None
+                height: self.texture_size[1] + dp(8)
+                text_size: self.width, None
+            ToolTipTextInput:
+                id: txt_repeat
+                size_hint_y: None
+                height: max(app.touch_target if app.android_touch else dp(48), self.line_height + dp(20))
+                font_size: '16sp'
+                hint_text: tr._("1")
+                hint_text_color: theme.MUTED
+                tooltip_txt: tr._('Number of TLO measurement repeats. For facemills: probe once per cycle, rotate the face mill between cycles; the TLO uses the lowest cutting edge')
+                tooltip_image: ''
+                multiline: False
+                halign: 'right'
+                input_type: 'number'
+                input_filter: 'int'
+            DialogLabel:
+                text: tr._('X Offset:')
+                size_hint_y: None
+                height: self.texture_size[1] + dp(8)
+                text_size: self.width, None
+            ToolTipTextInput:
+                id: txt_x_offset
+                size_hint_y: None
+                height: max(app.touch_target if app.android_touch else dp(48), self.line_height + dp(20))
+                font_size: '16sp'
+                hint_text: tr._("0")
+                hint_text_color: theme.MUTED
+                tooltip_txt: tr._('Offset the tool setter location by this amount (positive or negative) in X')
+                tooltip_image: ''
+                multiline: False
+                halign: 'right'
+                input_type: 'number'
+                input_filter: 'float'
+            DialogLabel:
+                text: tr._('Y Offset:')
+                size_hint_y: None
+                height: self.texture_size[1] + dp(8)
+                text_size: self.width, None
+            ToolTipTextInput:
+                id: txt_y_offset
+                size_hint_y: None
+                height: max(app.touch_target if app.android_touch else dp(48), self.line_height + dp(20))
+                font_size: '16sp'
+                hint_text: tr._("0")
+                hint_text_color: theme.MUTED
+                tooltip_txt: tr._('Offset the tool setter location by this amount (positive or negative) in Y')
+                tooltip_image: ''
+                multiline: False
+                halign: 'right'
+                input_type: 'number'
+                input_filter: 'float'
+        DialogActions:
             spacing: '5dp'
             size_hint_y: None
-            height: app.touch_target if app.android_touch else dp(40)
+            height: app.touch_target if app.android_touch else dp(48)
             Button:
                 text: tr._('Cancel')
                 on_release: root.dismiss()

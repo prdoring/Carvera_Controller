@@ -1,3 +1,5 @@
+#:import theme carveracontroller.ui.theme
+#:import CameraControls carveracontroller.addons.camera.CameraView.CameraControls
 #:import tr carveracontroller.__main__.tr
 #:import ADJUST_MIN carveracontroller.addons.camera.CameraView.ADJUST_MIN
 #:import ADJUST_MAX carveracontroller.addons.camera.CameraView.ADJUST_MAX
@@ -10,80 +12,109 @@
     anchor_x: 'left'
     anchor_y: 'top'
     size_hint_y: None
-    height: '50dp' if self.visible else 0
+    height: max(dp(50), app.touch_target) if self.visible else 0
     opacity: 1 if self.visible else 0
 
 <CameraAdjustPanel@BoxLayout>:
     visible: False
     orientation: 'vertical'
     size_hint_y: None
-    height: '200dp' if self.visible else 0
+    height: self.minimum_height if self.visible else 0
     opacity: 1 if self.visible else 0
-    padding: '8dp'
-    spacing: '4dp'
+    padding: dp(12)
+    spacing: dp(8)
     canvas.before:
         Color:
-            rgba: 0, 0, 0, 0.6
-        Rectangle:
+            rgba: theme.FIELD
+        RoundedRectangle:
             pos: self.pos
             size: self.size
+            radius: [dp(6)]
+        Color:
+            rgba: theme.BORDER
+        Line:
+            rounded_rectangle: (self.x + .5, self.y + .5, max(0, self.width - 1), max(0, self.height - 1), dp(6))
+            width: 1
+
+<CameraAdjustLabel@Label>:
+    size_hint_x: .4
+    font_size: '14sp'
+    text_size: max(1, self.width), None
+    halign: 'left'
+    valign: 'middle'
 
 <CameraAdjustRow@BoxLayout>:
     label_text: ''
     value: ADJUST_DEFAULT
-    Label:
+    size_hint_y: None
+    height: max(dp(48), app.touch_target, row_label.texture_size[1] + dp(16))
+    spacing: dp(8)
+    CameraAdjustLabel:
+        id: row_label
         text: root.label_text
-        size_hint_x: 0.42
-        font_size: '13sp'
     Slider:
         min: ADJUST_MIN
         max: ADJUST_MAX
         value: root.value
         on_value: root.value = self.value
 
-<CameraControls@BoxLayout>:
-    adjust_open: False
+<CameraControls>:
     orientation: 'vertical'
     size_hint: None, None
-    width: '250dp' if root.adjust_open and app.camera_streaming else '50dp'
+    width: min(dp(300) if root.adjust_open and app.camera_streaming and not app.android_touch else max(dp(50), app.touch_target), self.parent.width if self.parent else dp(300))
     height: self.minimum_height
     CameraButtonSlot:
+        id: configure_slot
         visible: app.camera_streaming
         TransparentButton:
             icon: 'data/configure.png'
             active: root.adjust_open
             size_hint: None, None
-            width: '50dp'
+            width: max(dp(50), app.touch_target)
             height: self.parent.height
             on_release:
                 root.adjust_open = not root.adjust_open
-    CameraAdjustPanel:
-        visible: root.adjust_open and app.camera_streaming
-        BoxLayout:
-            Label:
-                text: tr._('Resolution')
-                size_hint_x: 0.42
-                font_size: '13sp'
-            Spinner:
-                text: RESOLUTION_LABELS[app.camera_resolution]
-                values: RESOLUTION_CHOICES
-                on_text:
-                    app.root.set_camera_resolution(self.text)
-        CameraAdjustRow:
-            label_text: tr._('Brightness')
-            value: app.camera_brightness
-            on_value: app.camera_brightness = self.value
-        CameraAdjustRow:
-            label_text: tr._('Contrast')
-            value: app.camera_contrast
-            on_value: app.camera_contrast = self.value
-        CameraAdjustRow:
-            label_text: tr._('Gamma')
-            value: app.camera_gamma
-            on_value: app.camera_gamma = self.value
-        Button:
-            text: tr._('Reset')
-            on_release:
-                app.camera_brightness = ADJUST_DEFAULT
-                app.camera_contrast = ADJUST_DEFAULT
-                app.camera_gamma = ADJUST_DEFAULT
+    ScrollView:
+        size_hint_y: None
+        height: 0 if root.adjust_popup else min(adjust_panel.height, max(0, root.parent.height - configure_slot.height)) if root.parent else adjust_panel.height
+        opacity: 1 if root.adjust_open and app.camera_streaming else 0
+        disabled: not (root.adjust_open and app.camera_streaming)
+        do_scroll_x: False
+        bar_width: dp(4)
+        bar_color: theme.ACCENT
+        bar_inactive_color: theme.BORDER
+        CameraAdjustPanel:
+            id: adjust_panel
+            visible: root.adjust_open and app.camera_streaming
+            BoxLayout:
+                size_hint_y: None
+                height: max(dp(48), app.touch_target, resolution_label.texture_size[1] + dp(16))
+                spacing: dp(8)
+                CameraAdjustLabel:
+                    id: resolution_label
+                    text: tr._('Resolution')
+                Spinner:
+                    text: RESOLUTION_LABELS[app.camera_resolution]
+                    values: RESOLUTION_CHOICES
+                    on_text:
+                        app.root.set_camera_resolution(self.text)
+            CameraAdjustRow:
+                label_text: tr._('Brightness')
+                value: app.camera_brightness
+                on_value: app.camera_brightness = self.value
+            CameraAdjustRow:
+                label_text: tr._('Contrast')
+                value: app.camera_contrast
+                on_value: app.camera_contrast = self.value
+            CameraAdjustRow:
+                label_text: tr._('Gamma')
+                value: app.camera_gamma
+                on_value: app.camera_gamma = self.value
+            Button:
+                text: tr._('Reset')
+                size_hint_y: None
+                height: max(dp(48), app.touch_target, self.texture_size[1] + dp(16))
+                on_release:
+                    app.camera_brightness = ADJUST_DEFAULT
+                    app.camera_contrast = ADJUST_DEFAULT
+                    app.camera_gamma = ADJUST_DEFAULT

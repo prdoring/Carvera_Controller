@@ -6,6 +6,7 @@ from functools import partial
 
 from kivy.app import App
 from kivy.clock import Clock
+from kivy.core.text import Label as CoreLabel
 from kivy.core.window import Window
 from kivy.factory import Factory
 from kivy.graphics import Color, Rectangle
@@ -14,10 +15,10 @@ from kivy.properties import BooleanProperty, ObjectProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
-from kivy.uix.dropdown import DropDown
 from kivy.uix.label import Label
 from kivy.uix.modalview import ModalView
 from kivy.uix.popup import Popup
+from kivy.utils import get_hex_from_color
 
 from carveracontroller.addons.probing.operations.ConfigUtils import get_machine_config_hint
 from carveracontroller.CNC import CNC
@@ -28,6 +29,8 @@ from carveracontroller.serial_listeners import (
     unregister_serial_listener,
 )
 from carveracontroller.translation import tr
+from carveracontroller.ui import theme
+from carveracontroller.ui.dropdown_layout import ThemedDropDown as DropDown
 from carveracontroller.ui.editing import EditingTextInput as TextInput
 from carveracontroller.ui.LocalFilePicker import (
     confirm_overwrite_then,
@@ -346,7 +349,7 @@ class CMMWorkbenchPopup(ModalView):
         title = line1 if visible else f"[color={_HIDDEN_FEATURE_LABEL_COLOR}]{line1}[/color]"
         if not line2:
             return title, not visible
-        detail_color = "78797f" if visible else _HIDDEN_FEATURE_LABEL_COLOR
+        detail_color = get_hex_from_color(theme.SECONDARY) if visible else _HIDDEN_FEATURE_LABEL_COLOR
         text = f"{title}\n[color={detail_color}][size={int(round(detail_font))}]{line2}[/size][/color]"
         return text, True
 
@@ -521,7 +524,7 @@ class CMMWorkbenchPopup(ModalView):
 
         self._tick_wcs_live()
         surface = DialogSurface(orientation="vertical", padding=dp(12))
-        surface.add_widget(DialogLabel(text=self.ids.lbl_wcs_live.text.replace("  ", "\n")))
+        surface.add_widget(DialogLabel(text=self.ids.lbl_wcs_live.text.replace("  ", "\n"), markup=True))
         actions = DialogActions()
         close = Button(text=tr._("Close"))
         actions.add_widget(close)
@@ -827,8 +830,20 @@ class CMMWorkbenchPopup(ModalView):
             fl = self.ids.feature_rows
             fl.clear_widgets()
             by_id = index_by_id(self.session.features)
-            title_font = sp(16) if App.get_running_app().android_touch else sp(13)
-            detail_font = sp(14) if App.get_running_app().android_touch else sp(11)
+            app = App.get_running_app()
+            touch = app.android_touch
+            title_font = sp(16) if touch else sp(13)
+            detail_font = sp(14) if touch else sp(11)
+
+            def action_width(text):
+                if not touch:
+                    return dp(78)
+                measured = CoreLabel(text=text, font_name=theme.font_for(text), font_size=title_font)
+                measured.refresh()
+                return max(app.touch_target, measured.texture.size[0] + dp(24))
+
+            rename_width = action_width(tr._("Rename"))
+            delete_width = action_width(tr._("Delete"))
             for i, feat in enumerate(self.session.features):
                 line1 = f"{i + 1}. {feat.label}"
                 line2 = feature_secondary_line(feat, by_id)
@@ -860,7 +875,7 @@ class CMMWorkbenchPopup(ModalView):
                 cb_col = BoxLayout(
                     orientation="horizontal",
                     size_hint_x=None,
-                    width=dp(36),
+                    width=max(dp(36), app.touch_target) if touch else dp(36),
                     size_hint_y=1,
                     padding=[0, 0, 0, 0],
                     spacing=0,
@@ -889,6 +904,9 @@ class CMMWorkbenchPopup(ModalView):
                     instance.text_size = (max(w, 1), None)
 
                 lbl.bind(width=_sync_feat_label_textsize)
+                if touch:
+                    lbl.bind(texture_size=lambda _label, size, target=row, minimum=row_h:
+                             setattr(target, "height", max(minimum, size[1] + dp(12))))
                 lbl.bind(on_touch_down=partial(self._on_feature_row_label_touch, feat.id))
 
                 row.add_widget(cb_col)
@@ -896,7 +914,7 @@ class CMMWorkbenchPopup(ModalView):
                 vis_btn = CMMWorkbenchSketchVisibilityToggle(
                     image="data/eye.png",
                     size_hint_x=None,
-                    width=dp(32),
+                    width=max(dp(32), app.touch_target) if touch else dp(32),
                     state="down" if feat.sketch_visible else "normal",
                     disabled=self.is_probing,
                 )
@@ -906,7 +924,7 @@ class CMMWorkbenchPopup(ModalView):
                 rename_btn = Button(
                     text=tr._("Rename"),
                     size_hint_x=None,
-                    width=dp(78),
+                    width=rename_width,
                     disabled=self.is_probing,
                     on_release=partial(self._on_rename_feature, feat.id),
                 )
@@ -914,7 +932,7 @@ class CMMWorkbenchPopup(ModalView):
                 delete_btn = Button(
                     text=tr._("Delete"),
                     size_hint_x=None,
-                    width=dp(78),
+                    width=delete_width,
                     disabled=self.is_probing,
                     on_release=partial(self._on_delete_feature, feat.id),
                 )
@@ -1430,14 +1448,22 @@ class CMMWorkbenchPopup(ModalView):
     def _open_export_format_dropdown(self, anchor_widget, on_pick):
         dd = DropDown()
         dd.auto_width = False
-        dd.width = max(int(anchor_widget.width), int(dp(160)))
-        dd.max_height = dp(240)
+        dd.max_height = min(dp(240), max(dp(44), Window.height - dp(24)))
 
         _format_labels = {
             "JSON": tr._("JSON (full session)"),
             "CSV": tr._("CSV (feature table)"),
             "DXF": tr._("DXF (geometry + angle labels)"),
         }
+        caption_widths = []
+        for caption in _format_labels.values():
+            measured = CoreLabel(text=caption, font_name=theme.font_for(caption),
+                                 font_size=sp(16), bold=True)
+            measured.refresh()
+            caption_widths.append(measured.texture.size[0])
+        dd.width = min(max(dp(44), Window.width - dp(24)),
+                       max(anchor_widget.width, dp(160), max(caption_widths) + dp(24)))
+
         for kind in ("JSON", "CSV", "DXF"):
 
             def _choose(*_a, k=kind):
@@ -1448,8 +1474,13 @@ class CMMWorkbenchPopup(ModalView):
                 text=_format_labels[kind],
                 size_hint_y=None,
                 height=dp(44),
-                font_size=dp(14),
+                font_size=sp(16),
+                halign="left",
+                valign="middle",
             )
+            btn.bind(width=lambda item, width: setattr(item, "text_size", (max(1, width - dp(24)), None)))
+            btn.bind(texture_size=lambda item, size: setattr(item, "height", max(dp(44), size[1] + dp(20))))
+            btn.text_size = (max(1, dd.width - dp(24)), None)
             btn.bind(on_release=_choose)
             dd.add_widget(btn)
 

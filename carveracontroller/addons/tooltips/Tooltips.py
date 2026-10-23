@@ -18,6 +18,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.switch import Switch
 
 from carveracontroller.ui.editing import EditingTextInput as TextInput
+from carveracontroller.ui.help_images import detail_source
 
 # Minimum tooltip box width for short labels (matches previous wrap floor).
 TOOLTIP_MIN_WIDTH = 200
@@ -78,6 +79,18 @@ class ToolTipContentLabel(Label):
 
 class _TooltipBehavior:
     _tooltip_mouse_bound = False
+    _tooltip_file_open = False
+
+    def _release_file_image(self):
+        self._tooltip_file_open = False
+        if self._tooltip and self.tooltip_image and getattr(self, "tooltip_texture", None) is None:
+            image = self._tooltip.ids.tooltip_image
+            image.source = ""
+            image.texture = None
+
+    def _show_file_image(self):
+        self._tooltip_file_open = True
+        self._update_image()
 
     def _sync_tooltip_enabled(self, *args):
         enabled = self.show_tooltips and sys.platform != "ios"
@@ -163,9 +176,10 @@ class ToolTipSwitch(_TooltipBehavior, Switch):
     def _update_image(self, *largs):
         if not self._tooltip:
             return
-        imgpath = self.tooltip_image
+        imgpath = detail_source(self.tooltip_image)
         if imgpath:
-            self._tooltip.ids.tooltip_image.source = imgpath
+            self._tooltip.ids.tooltip_image.nocache = True
+            self._tooltip.ids.tooltip_image.source = imgpath if self._tooltip_file_open else ""
             self._tooltip.ids.tooltip_image.visible = True
         else:
             self._tooltip.ids.tooltip_image.source = ""
@@ -180,7 +194,7 @@ class ToolTipSwitch(_TooltipBehavior, Switch):
         if self.tooltip_image_size:
             tooltip_image.size = self.tooltip_image_size
         elif self.tooltip_image:
-            tooltip_image.size = tooltip_image.texture_size
+            tooltip_image.size = tooltip_image.texture_size if any(tooltip_image.texture_size) else (256, 256)
         else:
             tooltip_image.size = (0, 0)
 
@@ -261,12 +275,16 @@ class ToolTipSwitch(_TooltipBehavior, Switch):
 
     def close_tooltip(self, *args):
         Clock.unschedule(self.display_tooltip)
+        self._release_file_image()
         if self._tooltip:  # for memory leaks
             Window.remove_widget(self._tooltip)
 
     def display_tooltip(self, *args):
         if not self.show_tooltips or self.disabled or not self.get_root_window() or self._is_blocked_by_modal():
             return
+        self._show_file_image()
+        if getattr(self, "_hover_pos", None) is not None:
+            self._layout_tooltip_at(self._hover_pos)
         Window.add_widget(self._tooltip)
 
 
@@ -344,9 +362,10 @@ class ToolTipTextInput(_TooltipBehavior, TextInput):
     def _update_image(self, *largs):
         if not self._tooltip:
             return
-        imgpath = self.tooltip_image
+        imgpath = detail_source(self.tooltip_image)
         if imgpath:
-            self._tooltip.ids.tooltip_image.source = imgpath
+            self._tooltip.ids.tooltip_image.nocache = True
+            self._tooltip.ids.tooltip_image.source = imgpath if self._tooltip_file_open else ""
             self._tooltip.ids.tooltip_image.visible = True
         else:
             self._tooltip.ids.tooltip_image.source = ""
@@ -361,7 +380,7 @@ class ToolTipTextInput(_TooltipBehavior, TextInput):
         if self.tooltip_image_size:
             tooltip_image.size = self.tooltip_image_size
         elif self.tooltip_image:
-            tooltip_image.size = tooltip_image.texture_size
+            tooltip_image.size = tooltip_image.texture_size if any(tooltip_image.texture_size) else (256, 256)
         else:
             tooltip_image.size = (0, 0)
 
@@ -442,12 +461,16 @@ class ToolTipTextInput(_TooltipBehavior, TextInput):
 
     def close_tooltip(self, *args):
         Clock.unschedule(self.display_tooltip)
+        self._release_file_image()
         if self._tooltip:  # for memory leaks
             Window.remove_widget(self._tooltip)
 
     def display_tooltip(self, *args):
         if not self.show_tooltips or self.disabled or not self.get_root_window() or self._is_blocked_by_modal():
             return
+        self._show_file_image()
+        if getattr(self, "_hover_pos", None) is not None:
+            self._layout_tooltip_at(self._hover_pos)
         Window.add_widget(self._tooltip)
 
 
@@ -578,7 +601,8 @@ class ToolTipButton(_TooltipBehavior, Button):
             image_widget.visible = True
         elif self.tooltip_image:
             image_widget.texture = None
-            image_widget.source = self.tooltip_image
+            image_widget.nocache = True
+            image_widget.source = detail_source(self.tooltip_image) if self._tooltip_file_open else ""
             image_widget.visible = True
         else:
             image_widget.source = ""
@@ -595,7 +619,7 @@ class ToolTipButton(_TooltipBehavior, Button):
         if self.tooltip_image_size:
             tooltip_image.size = self.tooltip_image_size
         elif self._has_tooltip_image():
-            tooltip_image.size = tooltip_image.texture_size
+            tooltip_image.size = tooltip_image.texture_size if any(tooltip_image.texture_size) else (256, 256)
         else:
             tooltip_image.size = (0, 0)
         self._update_tooltip_size()
@@ -690,6 +714,7 @@ class ToolTipButton(_TooltipBehavior, Button):
 
     def close_tooltip(self, *args):
         Clock.unschedule(self.display_tooltip)
+        self._release_file_image()
         if self._tooltip:  # for memory leaks
             Window.remove_widget(self._tooltip)
 
@@ -701,6 +726,9 @@ class ToolTipButton(_TooltipBehavior, Button):
         # The box then has to be re-measured around the new image.
         if self._ensure_tooltip_texture() and self._hover_pos is not None:
             self._layout_tooltip_at(self._hover_pos)
+        self._show_file_image()
+        if getattr(self, "_hover_pos", None) is not None:
+            self._layout_tooltip_at(self._hover_pos)
         Window.add_widget(self._tooltip)
 
 
@@ -711,6 +739,14 @@ class ToolTipDropDown(_TooltipBehavior, DropDown):
     tooltip_delay = NumericProperty(0.5)
     show_tooltips = BooleanProperty(False)
     tooltip_image_size = ObjectProperty(None, allownone=True)
+
+    def open(self, widget, *args, **kwargs):
+        if not hasattr(self, "_theme_layout"):
+            from carveracontroller.ui.dropdown_layout import DropdownLayout
+
+            self._theme_layout = DropdownLayout(self)
+        self._theme_layout.open(widget)
+        return super().open(widget, *args, **kwargs)
 
     def __init__(self, **kwargs):
         self._tooltip = None
@@ -774,9 +810,10 @@ class ToolTipDropDown(_TooltipBehavior, DropDown):
     def _update_image(self, *largs):
         if not self._tooltip:
             return
-        imgpath = self.tooltip_image
+        imgpath = detail_source(self.tooltip_image)
         if imgpath:
-            self._tooltip.ids.tooltip_image.source = imgpath
+            self._tooltip.ids.tooltip_image.nocache = True
+            self._tooltip.ids.tooltip_image.source = imgpath if self._tooltip_file_open else ""
             self._tooltip.ids.tooltip_image.visible = True
         else:
             self._tooltip.ids.tooltip_image.source = ""
@@ -791,7 +828,7 @@ class ToolTipDropDown(_TooltipBehavior, DropDown):
         if self.tooltip_image_size:
             tooltip_image.size = self.tooltip_image_size
         elif self.tooltip_image:
-            tooltip_image.size = tooltip_image.texture_size
+            tooltip_image.size = tooltip_image.texture_size if any(tooltip_image.texture_size) else (256, 256)
         else:
             tooltip_image.size = (0, 0)
 
@@ -872,12 +909,16 @@ class ToolTipDropDown(_TooltipBehavior, DropDown):
 
     def close_tooltip(self, *args):
         Clock.unschedule(self.display_tooltip)
+        self._release_file_image()
         if self._tooltip:  # for memory leaks
             Window.remove_widget(self._tooltip)
 
     def display_tooltip(self, *args):
         if not self.show_tooltips or self.disabled or not self.get_root_window() or self._is_blocked_by_modal():
             return
+        self._show_file_image()
+        if getattr(self, "_hover_pos", None) is not None:
+            self._layout_tooltip_at(self._hover_pos)
         Window.add_widget(self._tooltip)
 
 
@@ -952,9 +993,10 @@ class ToolTipLabel(_TooltipBehavior, Label):
     def _update_image(self, *largs):
         if not self._tooltip:
             return
-        imgpath = self.tooltip_image
+        imgpath = detail_source(self.tooltip_image)
         if imgpath:
-            self._tooltip.ids.tooltip_image.source = imgpath
+            self._tooltip.ids.tooltip_image.nocache = True
+            self._tooltip.ids.tooltip_image.source = imgpath if self._tooltip_file_open else ""
             self._tooltip.ids.tooltip_image.visible = True
         else:
             self._tooltip.ids.tooltip_image.source = ""
@@ -969,7 +1011,7 @@ class ToolTipLabel(_TooltipBehavior, Label):
         if self.tooltip_image_size:
             tooltip_image.size = self.tooltip_image_size
         elif self.tooltip_image:
-            tooltip_image.size = tooltip_image.texture_size
+            tooltip_image.size = tooltip_image.texture_size if any(tooltip_image.texture_size) else (256, 256)
         else:
             tooltip_image.size = (0, 0)
 
@@ -1050,23 +1092,27 @@ class ToolTipLabel(_TooltipBehavior, Label):
 
     def close_tooltip(self, *args):
         Clock.unschedule(self.display_tooltip)
+        self._release_file_image()
         if self._tooltip:  # for memory leaks
             Window.remove_widget(self._tooltip)
 
     def display_tooltip(self, *args):
         if not self.show_tooltips or self.disabled or not self.get_root_window() or self._is_blocked_by_modal():
             return
+        self._show_file_image()
+        if getattr(self, "_hover_pos", None) is not None:
+            self._layout_tooltip_at(self._hover_pos)
         Window.add_widget(self._tooltip)
 
 
 class HelpButton(ButtonBehavior, BoxLayout):
     image_source = StringProperty("data/open_iconic_UI/oi--question-mark.png")
     helpPath = StringProperty("https://carvera-community.gitbook.io/docs")
-    background_normal = StringProperty("atlas://data/images/defaulttheme/button")
-    background_down = StringProperty("atlas://data/images/defaulttheme/button_pressed")
-    background_disabled_normal = StringProperty("atlas://data/images/defaulttheme/button_disabled")
+    background_normal = StringProperty("data/theme/button.png")
+    background_down = StringProperty("data/theme/button-down.png")
+    background_disabled_normal = StringProperty("data/theme/button-disabled.png")
     background_disabled_down = StringProperty("atlas://data/images/defaulttheme/button_disabled_pressed")
-    border = ListProperty([16, 16, 16, 16])
+    border = ListProperty([8, 8, 8, 8])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

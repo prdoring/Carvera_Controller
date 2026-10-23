@@ -15,6 +15,7 @@ from kivy.uix.spinner import Spinner
 from carveracontroller import Utils
 from carveracontroller.translation import tr
 
+from . import theme
 from .android_layout import (
     DialogActions,
     DialogLabel,
@@ -141,12 +142,12 @@ def prepare_file_browser(popup):
         row.remove_widget(old_search)
         search.size_hint = (1, 1)
         search.pos_hint = {}
-        search.foreground_color = (.95, .95, .95, 1)
+        search.foreground_color = theme.TEXT
         search.background_normal = ""
         search.background_active = ""
-        search.background_color = (.2, .2, .2, 1)
-        search.hint_text_color = (.72, .72, .72, 1)
-        search.cursor_color = (.95, .95, .95, 1)
+        search.background_color = theme.FIELD
+        search.hint_text_color = theme.MUTED
+        search.cursor_color = theme.ACCENT
         row.height = control_height()
         search_bar = BoxLayout(spacing=dp(6), size_hint_x=.5)
         search_bar.add_widget(search)
@@ -194,14 +195,14 @@ def prepare_file_browser(popup):
                     status.text = tr._("Storage access is granted. Retry the folder.") if Utils.has_all_files_access() else tr._("Storage access is still denied. Grant access or choose another folder.")
             app = App.get_running_app()
             app.bind(on_resume=resume)
-            def folder_changed(_view, folder, label=folder_label):
-                label.text = folder
+            def folder_changed(_view, _paths, label=folder_label):
+                label.text = view.curr_dir
             def selected_changed(_view, filename, label=selected_label):
                 label.text = tr._("Selected file") + ":\n" + filename if filename else ""
-            view.bind(curr_dir=folder_changed)
+            view.bind(curr_path_list=folder_changed)
             view.bind(curr_selected_file=selected_changed)
             dialog.bind(on_dismiss=lambda *_: app.unbind(on_resume=resume))
-            dialog.bind(on_dismiss=lambda *_: view.unbind(curr_dir=folder_changed))
+            dialog.bind(on_dismiss=lambda *_: view.unbind(curr_path_list=folder_changed))
             dialog.bind(on_dismiss=lambda *_: view.unbind(curr_selected_file=selected_changed))
             dialog.open()
         path.bind(on_release=show_path)
@@ -276,7 +277,16 @@ def _finish_file_layout(popup, pages, remote_actions, local_actions, show_action
             menu.bind(on_release=lambda *_: show_actions(local_menu_actions, tr._("Device file actions")))
         header.clear_widgets()
         source.size_hint_x = 1
-        source.shorten = True
+        source.shorten = False
+        source.max_lines = 1
+        source.halign = "center"
+        source.valign = "middle"
+        Builder.unbind_property(source, "text_size")
+        def fit_source(*_args, spinner=source):
+            spinner.text_size = (max(1, spinner.width - dp(24)), None)
+            spinner.texture_update()
+        source.bind(width=fit_source, text=fit_source, font_size=fit_source)
+        fit_source()
         header.add_widget(source)
         if name == "remote":
             counter.size_hint_x = None

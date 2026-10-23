@@ -1,3 +1,4 @@
+#:import theme carveracontroller.ui.theme
 #:import tr carveracontroller.__main__.tr
 #:import coordinates carveracontroller.machine.coordinates
 
@@ -12,7 +13,7 @@
         Label:
             canvas.before:
                 Color:
-                    rgba: 45/255, 45/255, 45/255, 1
+                    rgba: theme.PANEL
                 Rectangle:
                     pos: self.pos
                     size: self.size
@@ -68,7 +69,7 @@
         Label:
             canvas.before:
                 Color:
-                    rgba: 45/255, 45/255, 45/255, 1
+                    rgba: theme.PANEL
                 Rectangle:
                     pos: self.pos
                     size: self.size

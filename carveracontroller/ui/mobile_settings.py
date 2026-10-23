@@ -3,6 +3,7 @@
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.lang import Builder
 from kivy.metrics import Metrics, dp, sp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -14,7 +15,14 @@ from kivy.utils import escape_markup
 
 from carveracontroller.translation import tr
 
-from .android_layout import DialogActions, DialogLabel, DialogSurface, _text_width, control_height
+from .android_layout import (
+    DialogActions,
+    DialogLabel,
+    DialogSurface,
+    _text_width,
+    control_height,
+    fit_scroll_view,
+)
 from .editing import EditingTextInput
 
 
@@ -24,6 +32,8 @@ class MobileSettings:
         self.app = App.get_running_app()
         self.interface = settings.interface
         self.content = next(child for child in self.interface.children if child == self.interface.content)
+        self.content.always_overscroll = False
+        fit_scroll_view(self.content)
         self._rows = {}
         self._filter = Clock.create_trigger(self.filter, .15)
         column = BoxLayout(orientation="vertical", spacing=dp(8))
@@ -62,7 +72,7 @@ class MobileSettings:
         self.interface.add_widget(column)
         self.app.bind(compact_layout=self.reflow, android_keyboard_height=self.reflow)
         Metrics.bind(density=self.reflow, fontscale=self.reflow)
-        self.content.bind(current_uid=self.sync_category)
+        self.content.bind(current_uid=self.sync_category, current_panel=self.align_panel)
         self.refresh()
 
     def refresh(self):
@@ -104,6 +114,9 @@ class MobileSettings:
             if uid == self.content.current_uid:
                 self.categories.text = name
                 break
+
+    def align_panel(self, *_args):
+        self.content.scroll_y = 1
 
     def reflow(self, *_args):
         self.sync_category()
@@ -178,7 +191,8 @@ class MobileSettings:
         item._mobile_value_row = value_row
         item._mobile_info = info
         color_layout = None
-        from carveracontroller.custom_widgets import SettingColorPicker
+        macro_layout = None
+        from carveracontroller.custom_widgets import SettingColorPicker, SettingGCodeSnippet
         if isinstance(item, SettingColorPicker):
             inner = item.color_preview.parent
             picker_button = next(child for child in inner.children if isinstance(child, Button))
@@ -199,10 +213,25 @@ class MobileSettings:
             color_layout = (inner, actions, picker_button)
             item.color_label.bind(width=lambda widget, width: setattr(widget, 'text_size', (max(1, width), None)))
             picker_button.bind(width=lambda widget, width: setattr(widget, 'text_size', (max(1, width - dp(24)), None)))
+        else:
+            if isinstance(item, SettingGCodeSnippet):
+                inner = item.preview.parent
+                editor_button = next(child for child in inner.children if isinstance(child, Button))
+                macro_layout = (inner, editor_button)
+            for value_label in item.content.walk(restrict=True):
+                if type(value_label) is not Label:
+                    continue
+                Builder.unbind_property(value_label, "text_size")
+                value_label.shorten = True
+                value_label.shorten_from = "right"
+                value_label.max_lines = 1
+                value_label.text_size = (max(1, value_label.width - dp(8)), None)
+                value_label.bind(width=lambda widget, width: setattr(
+                    widget, "text_size", (max(1, width - dp(8)), None)))
         def wording(*_args):
             text = f"[b]{escape_markup(item.title or '')}[/b]"
             if not (self.app.compact_layout and Metrics.fontscale > 1.25):
-                text += f"\n[size=14sp][color=aaaaaa]{escape_markup(item.desc or '')}[/color][/size]"
+                text += f"\n[size=14sp][color=b7c3c1]{escape_markup(item.desc or '')}[/color][/size]"
             label.text = text
         item.bind(title=wording, desc=wording)
         wording()
@@ -210,18 +239,34 @@ class MobileSettings:
         item.content.size_hint = (1, 1)
         def fit(*_args):
             wording()
-            stacked = item.width < dp(260) * max(1, Metrics.fontscale)
-            label.parent.orientation = "vertical" if stacked else "horizontal"
-            label.size_hint_x = 1
             info_visible = self.app.compact_layout and Metrics.fontscale > 1.25 and bool(item.desc)
             info.width = max(self.app.touch_target, sp(16)*3) if info_visible else 0
             info.opacity = int(info_visible)
             info.disabled = not info_visible
+            required_value = max(dp(240 if color_layout else 160), sp(16) * 8) + info.width
+            if macro_layout is not None:
+                inner, editor_button = macro_layout
+                editor_button.size_hint_x = None
+                editor_button.width = max(control_height(), _text_width(
+                    editor_button.text, editor_button.font_name, sp(16), editor_button.bold) + dp(24))
+                item.preview.size_hint_min_x = dp(80)
+                required_value = editor_button.width + dp(80) + sum(inner.padding[::2])
+                required_value += inner.spacing + info.width + value_row.spacing
+            stacked = item.width < dp(260) * max(1, Metrics.fontscale)
+            if macro_layout is not None:
+                minimum_title = dp(200) * max(1, Metrics.fontscale)
+                stacked = stacked or item.width < required_value + minimum_title + label.parent.spacing
+            label.parent.orientation = "vertical" if stacked else "horizontal"
+            label.size_hint_x = 1
             value_row.size_hint_x = 1 if stacked else None
             if not stacked:
-                value_row.width = max(dp(240 if color_layout else 160), sp(16) * 8) + info.width
+                value_row.width = required_value
             value_row.height = control_height()
+            if macro_layout is not None:
+                inner.height = max(control_height(), editor_button.texture_size[1] + dp(16))
+                value_row.height = inner.height
             if color_layout is not None:
+                item.content.size_hint = (1, 1)
                 inner, actions, picker_button = color_layout
                 item.color_preview.width = control_height()
                 actions.height = max(control_height(), picker_button.texture_size[1] + dp(16))
@@ -239,6 +284,8 @@ class MobileSettings:
         if color_layout is not None:
             item.color_label.bind(texture_size=fit)
             color_layout[2].bind(texture_size=fit)
+        if macro_layout is not None:
+            macro_layout[1].bind(texture_size=fit, font_size=fit)
         item.bind(width=fit)
         item._mobile_fit = fit
         fit()
@@ -251,6 +298,9 @@ class MobileSettings:
         query = self.search.text.strip().casefold()
         matching = set()
         for uid, panel in self.content.panels.items():
+            if not hasattr(panel, "_mobile_search_spacing"):
+                panel._mobile_search_spacing = tuple(panel.spacing)
+            panel.spacing = (0, 0) if query else panel._mobile_search_spacing
             self._remember_rows(panel)
             for item in panel.children:
                 title, desc = (getattr(item, "title", "") or ""), (getattr(item, "desc", "") or "")

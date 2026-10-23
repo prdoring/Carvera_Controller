@@ -24,6 +24,7 @@ from kivy.uix.spinner import Spinner
 from carveracontroller.CNC import CNC
 from carveracontroller.Controller import Controller
 from carveracontroller.translation import tr
+from carveracontroller.ui.android_layout import _text_width
 
 from . import gamepad as gamepad_module
 
@@ -794,13 +795,13 @@ class GamepadBindingsPopup(Popup):
         label_text = tr._(gamepad_module.ACTION_LABELS.get(action, action))
         current = self._describe_binding(action)
 
-        row = BoxLayout(orientation="horizontal", size_hint_y=None, height=max(dp(64), sp(16) * 2 + dp(16)) if App.get_running_app().android_touch else dp(36), spacing=dp(6))
+        row = BoxLayout(orientation="horizontal", size_hint_y=None, spacing=dp(6))
 
-        name_lbl = Label(text=label_text, size_hint_x=0.35, halign="left", valign="middle")
-        name_lbl.bind(size=lambda w, s: setattr(w, "text_size", s))
+        name_lbl = Label(text=label_text, size_hint_x=0.35, font_size=sp(16), halign="left", valign="middle")
+        name_lbl.bind(width=lambda widget, width: setattr(widget, "text_size", (max(1, width), None)))
 
-        binding_lbl = Label(text=current, size_hint_x=0.35, halign="center", valign="middle")
-        binding_lbl.bind(size=lambda w, s: setattr(w, "text_size", s))
+        binding_lbl = Label(text=current, size_hint_x=0.35, font_size=sp(16), halign="center", valign="middle")
+        binding_lbl.bind(width=lambda widget, width: setattr(widget, "text_size", (max(1, width), None)))
 
         bind_btn = Button(text=tr._("Bind..."), size_hint_x=0.15)
         bind_btn.bind(on_release=lambda btn, a=action, bl=binding_lbl: self._start_listening(a, btn, bl))
@@ -808,10 +809,39 @@ class GamepadBindingsPopup(Popup):
         unbind_btn = Button(text=tr._("Unbind"), size_hint_x=0.15)
         unbind_btn.bind(on_release=lambda *_, a=action: self._unbind_action(a))
 
+        def fit_action_widths(*_args):
+            for button, labels in ((bind_btn, (tr._("Bind..."), tr._("Waiting..."))),
+                                   (unbind_btn, (tr._("Unbind"),))):
+                button.size_hint_x = None
+                button.width = max(dp(48), max(_text_width(text, button.font_name, button.font_size, button.bold)
+                                              for text in labels) + dp(24))
+
+        for button in (bind_btn, unbind_btn):
+            button.bind(font_size=fit_action_widths, font_name=fit_action_widths)
+        fit_action_widths()
+
         row.add_widget(name_lbl)
         row.add_widget(binding_lbl)
         row.add_widget(bind_btn)
         row.add_widget(unbind_btn)
+        row._mobile_form_fitted = True
+
+        def fit_row(*_args):
+            target = dp(48) if App.get_running_app().android_touch else dp(36)
+            for button in (bind_btn, unbind_btn):
+                button.size_hint_y = None
+                button.height = max(target, button.texture_size[1] + dp(16))
+                button.pos_hint = {"center_y": .5}
+            row.height = max(target, name_lbl.texture_size[1] + dp(12),
+                             binding_lbl.texture_size[1] + dp(12),
+                             bind_btn.height, unbind_btn.height)
+
+        for label in (name_lbl, binding_lbl):
+            label.text_size = (max(1, label.width), None)
+            label.bind(texture_size=fit_row)
+        for button in (bind_btn, unbind_btn):
+            button.bind(texture_size=fit_row)
+        fit_row()
         self._list_layout.add_widget(row)
         self._row_widgets[action] = (binding_lbl, bind_btn)
 
@@ -1009,8 +1039,9 @@ class SettingGamepadBindings(SettingItem):
             orientation="horizontal", spacing=dp(10), size_hint=(1, None), height=dp(40), padding=[dp(10), 0]
         )
 
-        self.summary_label = Label(text=self._get_summary(), halign="left", valign="middle", size_hint=(1, 1))
-        self.summary_label.bind(size=lambda w, s: setattr(w, "text_size", s))
+        self.summary_label = Label(text=self._get_summary(), halign="left", valign="middle", size_hint=(1, 1),
+                                   shorten=True, shorten_from="right")
+        self.summary_label.bind(size=lambda w, s: setattr(w, "text_size", (max(1, s[0]), s[1])))
 
         btn = Button(text=tr._("Configure..."), size_hint=(None, 1), width=dp(130))
         btn.bind(on_release=self._open_popup)

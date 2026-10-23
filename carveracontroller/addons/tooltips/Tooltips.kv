@@ -1,16 +1,9 @@
+#:import theme carveracontroller.ui.theme
 
 <ToolTipButton>:
     show_tooltips: app.show_tooltips
     tooltip_delay: app.tooltip_delay
-    background_color: 0,0,0,0
-    canvas.before:
-        Color:
-            rgba: (88/255,88/255,88/255,1) if self.state=='normal' else (50/255,164/255,206/255,1)
-        RoundedRectangle:
-
-            pos: self.pos
-            size: self.size
-            radius: [dp(self.tooltip_radius if self.tooltip_radius else 0),]
+    background_color: theme.CONTROL
 
 <ToolTipDropDown>:
     show_tooltips: app.show_tooltips
@@ -35,12 +28,12 @@
     spacing: 15
     canvas.before:
         Color:
-            rgba: 0.1, 0.1, 0.1, 0.9
+            rgba: (*theme.FIELD[:3], 0.9)
         Rectangle:
             size: self.size[0]+10,self.size[1]
             pos: self.pos
         Color:
-            rgba: 0.8, 0.8, 0.8, 1  # Light grey border
+            rgba: theme.SECONDARY  # Light grey border
         Line:
             width: 1.5
             rectangle: (self.pos[0],self.pos[1], self.size[0] + 10 ,self.size [1]) 
@@ -86,12 +79,12 @@
     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
     size_hint: None, None
     height: app.touch_target if app.android_touch else (self.parent.height if self.parent else dp(48))
-    width: app.touch_target if app.android_touch else (self.parent.height * 2 if self.parent else dp(96))
+    width: max(app.touch_target, dp(72), sp(16) * 4) if app.android_touch else (self.parent.height * 2 if self.parent else dp(96))
     state_image: self.background_normal if self.state == 'normal' else self.background_down
     disabled_image: self.background_disabled_normal if self.state == 'normal' else self.background_disabled_down
     canvas:
         Color:
-            rgba: (0.3, 0.3, 0.3, 1) if app.android_touch else (0, 1, 0, 1)
+            rgba: theme.CONTROL
         BorderImage:
             border: self.border
             pos: self.pos

@@ -6,13 +6,15 @@ import weakref
 from kivy.app import App
 from kivy.base import EventLoop
 from kivy.clock import Clock
+from kivy.core.text import Label as CoreLabel
 from kivy.core.window import Window
 from kivy.factory import Factory
-from kivy.metrics import dp
+from kivy.metrics import Metrics, dp, sp
 from kivy.properties import BooleanProperty, StringProperty
 from kivy.uix.behaviors import ButtonBehavior, ToggleButtonBehavior
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.settings import SettingItem
+from kivy.uix.spinner import Spinner
 from kivy.uix.tabbedpanel import TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
@@ -312,6 +314,26 @@ class JogTouchButton(ToolTipButton):
             _jog_owner = None
 
 
+class JogStepSpinner(Spinner):
+    """Step distance selector with the same footprint as its axis controls."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bind(width=self._fit_value, text=self._fit_value,
+                  font_name=self._fit_value, font_size=self._fit_value, bold=self._fit_value)
+        Metrics.bind(density=self._fit_value, fontscale=self._fit_value)
+
+    def _fit_value(self, *_args):
+        app = App.get_running_app()
+        desired = sp(20 if getattr(app, "android_touch", False) else 24)
+        label = CoreLabel(text=self.text, font_name=self.font_name,
+                          font_size=desired, bold=self.bold)
+        label.refresh()
+        available = max(1, self.width - dp(12))
+        self.font_size = min(desired, desired * available / max(1, label.texture.size[0]))
+
+
+
 def cancel_jog():
     if _jog_owner is not None:
         _jog_owner.cancel_jog()
@@ -341,6 +363,7 @@ class TouchPostprocessor:
 
 
 Factory.register("JogTouchButton", cls=JogTouchButton)
+Factory.register("JogStepSpinner", cls=JogStepSpinner)
 Factory.register("TouchCheckBox", cls=TouchCheckBox)
 Factory.register("TouchToggleButton", cls=TouchToggleButton)
 Factory.register("TouchTabbedPanelItem", cls=TouchTabbedPanelItem)

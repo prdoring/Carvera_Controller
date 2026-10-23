@@ -1891,3 +1891,69 @@ msgstr ""
 
 #~ msgid "XYZProbe"
 #~ msgstr "XYZ对刀"
+
+msgid "XY Jog"
+msgstr "XY 点动"
+
+msgid "A / Z Jog"
+msgstr "A / Z 点动"
+
+msgid "Jog and setup"
+msgstr "点动与设置"
+
+msgid "Speed "
+msgstr "速度 "
+
+msgid "Mode: "
+msgstr "模式："
+
+msgid "Keyboard"
+msgstr "键盘"
+
+msgid "AutoLevel"
+msgstr "自动调平"
+
+msgid "Probing"
+msgstr "探测"
+
+msgid "Probe info"
+msgstr "探测说明"
+
+msgid "Control help"
+msgstr "控制帮助"
+
+msgid "Margin"
+msgstr "扫描边框"
+
+msgid "ZProbe"
+msgstr "Z 轴对刀"
+
+msgid "Jog"
+msgstr "点动"
+
+msgid "Select a file to preview"
+msgstr "选择文件以预览"
+
+msgid "Automatic"
+msgstr "自动选择"
+
+msgid "System keyboard"
+msgstr "系统键盘"
+
+msgid "Docked virtual keyboard"
+msgstr "停靠式虚拟键盘"
+
+msgid "Virtual keyboard for each field"
+msgstr "每个输入框使用独立虚拟键盘"
+
+msgid "System and docked virtual keyboard"
+msgstr "系统键盘和停靠式虚拟键盘"
+
+msgid "System and per-field virtual keyboard"
+msgstr "系统键盘和各输入框虚拟键盘"
+
+msgid "Viewer controls"
+msgstr "预览控件"
+
+msgid "Offline"
+msgstr "离线"

@@ -7,7 +7,7 @@ from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
-from kivy.properties import BooleanProperty, ListProperty, ObjectProperty, StringProperty
+from kivy.properties import BooleanProperty, ListProperty, NumericProperty, ObjectProperty, StringProperty
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.dropdown import DropDown
@@ -544,11 +544,16 @@ class GcodeColorSchemePanel(BoxLayout):
     """Dropdown plus scrollable, toggleable legend for toolpath colors / visibility."""
 
     any_visible = BooleanProperty(True)
+    max_height = NumericProperty(LEGEND_PANEL_MAX_HEIGHT)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._makera_root = None
         self._entry_count = 0
+        self._resize_layout = Clock.create_trigger(partial(self._finish_layout, reset_scroll=False))
+        self.bind(max_height=self._resize_layout)
+        if "legend_header" in self.ids:
+            self.ids.legend_header.bind(height=self._resize_layout)
         app = App.get_running_app()
         if app is not None:
             app.bind(tool=self._on_active_tool_changed, active_color=self._on_active_color_changed)
@@ -682,7 +687,7 @@ class GcodeColorSchemePanel(BoxLayout):
         if spinner.text != selected:
             spinner.text = selected
 
-    def _finish_layout(self, _dt=None):
+    def _finish_layout(self, _dt=None, reset_scroll=True):
         legend_box = self.ids.get("legend_box")
         scroll = self.ids.get("legend_scroll")
         if legend_box is None or scroll is None:
@@ -695,8 +700,8 @@ class GcodeColorSchemePanel(BoxLayout):
         legend_box.height = content_h
         legend_box.do_layout()
 
-        chrome_h = HEADER_HEIGHT + PANEL_BOTTOM_PADDING
-        max_scroll_h = max(LEGEND_PANEL_MAX_HEIGHT - chrome_h, 0)
+        chrome_h = self.ids.legend_header.height + PANEL_BOTTOM_PADDING
+        max_scroll_h = max(min(LEGEND_PANEL_MAX_HEIGHT, self.max_height) - chrome_h, 0)
         needs_scroll = content_h > max_scroll_h + 0.5
         scroll_h = max_scroll_h if needs_scroll else content_h
 
@@ -705,4 +710,5 @@ class GcodeColorSchemePanel(BoxLayout):
         scroll.do_scroll_y = needs_scroll
 
         self.do_layout()
-        scroll.scroll_y = 1
+        if reset_scroll:
+            scroll.scroll_y = 1

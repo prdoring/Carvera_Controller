@@ -1,0 +1,820 @@
+[
+  {
+    "source": "assets/design/slate/probing/angle/probe_angle_arbitrary_negative.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/angle/probe_angle_arbitrary_negative.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X = sample separation; E = lateral reach.",
+      "Q sets reference; #153 is measured angle."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/angle/probe_angle_x_above.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/angle/probe_angle_x_above.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/angle/probe_angle_x_above.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/angle/probe_angle_x_above.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = separation between two samples.",
+      "E = lateral approach / search distance."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/angle/probe_angle_x_below.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/angle/probe_angle_x_below.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/angle/probe_angle_x_below.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/angle/probe_angle_x_below.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = separation between two samples.",
+      "E = lateral approach / search distance."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/angle/probe_angle_y_left.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/angle/probe_angle_y_left.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/angle/probe_angle_y_left.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/angle/probe_angle_y_left.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = separation between two samples.",
+      "E = lateral approach / search distance."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/angle/probe_angle_y_right.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/angle/probe_angle_y_right.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/angle/probe_angle_y_right.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/angle/probe_angle_y_right.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = separation between two samples.",
+      "E = lateral approach / search distance."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_4th_Axis_Level_02.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_Level_02.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_4th_Axis_Level_02.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/calibration/Calibrate_4th_Axis_Level_02.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "H is downward reach at each sample.",
+      "Optional V rotation only when enabled."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_4th_Axis_Level_03.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_Level_03.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "H is downward reach at each sample.",
+      "Optional V rotation only when enabled."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_4th_Axis_M469.6_Front.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_M469.6_Front.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Top \u2192 front \u2192 back \u2192 top; refine.",
+      "R is diameter. Y / Z inputs are unused."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_4th_Axis_M469.6_Top.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_M469.6_Top.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_4th_Axis_M469.6_Top.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/calibration/Calibrate_4th_Axis_M469.6_Top.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "View from +Z. R is artifact diameter.",
+      "Top touches and module Z reference also run."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_4th_Axis_Z.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_4th_Axis_Z.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_4th_Axis_Z.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/calibration/Calibrate_4th_Axis_Z.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Four pin-top samples; R is pin diameter.",
+      "Center height = mean(top samples) \u2212 R/2."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_Anchor_1.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_Anchor_1.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_Anchor_1.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/calibration/Calibrate_Anchor_1.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Use the configured anchor geometry.",
+      "Automatic positioning precedes probing."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_Anchor_2.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_Anchor_2.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_Anchor_2.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/calibration/Calibrate_Anchor_2.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Use the configured anchor geometry.",
+      "Automatic positioning precedes probing."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_BoreX.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_BoreX.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_BoreX.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/calibration/Calibrate_BoreX.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Known X / Y diameter; both axes run."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_BossX.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_BossX.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_BossX.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/calibration/Calibrate_BossX.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = known full reference width.",
+      "Center to outside: X/2 + J, Y/2 + J."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_BossY.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_BossY.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_BossY.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/calibration/Calibrate_BossY.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = known full reference width.",
+      "Center to outside: X/2 + J, Y/2 + J."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_On_Anchor_2.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/calibration/Calibrate_On_Anchor_2.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/calibration/Calibrate_On_Anchor_2.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/calibration/Calibrate_On_Anchor_2.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Configured anchor width is sampled in X.",
+      "Automatic position and top touch first."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/general_parameters/probe_parameter_d.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/general_parameters/probe_parameter_d.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Diameter across the contacting tip.",
+      "Do not use the shaft diameter."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/general_parameters/probe_parameter_q.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/general_parameters/probe_parameter_q.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "View from +Z toward the XY plane.",
+      "Positive Q turns counterclockwise."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_circular_bore.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_center/inside_center_circular_bore.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_circular_bore.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/inside_center/inside_center_circular_bore.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = search reach from the start.",
+      "Opposing contacts determine the center."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_motion_overview.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_center/inside_center_motion_overview.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "H = maximum downward search travel.",
+      "After a hit, retract C from that surface."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_parameter_c.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_center/inside_center_parameter_c.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "H = maximum downward search travel.",
+      "After a hit, retract C from that surface."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_parameter_h.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_center/inside_center_parameter_h.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "H = maximum downward search travel.",
+      "After a hit, retract C from that surface."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_rectangular_pocket.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_center/inside_center_rectangular_pocket.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_rectangular_pocket.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/inside_center/inside_center_rectangular_pocket.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = search reach from the start.",
+      "Opposing contacts determine the center."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_rectangular_pocket_x.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_center/inside_center_rectangular_pocket_x.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_rectangular_pocket_x.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/inside_center/inside_center_rectangular_pocket_x.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = search reach from the start.",
+      "Opposing contacts determine the center."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_rectangular_pocket_y.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_center/inside_center_rectangular_pocket_y.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/inside_center/inside_center_rectangular_pocket_y.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/inside_center/inside_center_rectangular_pocket_y.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = search reach from the start.",
+      "Opposing contacts determine the center."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_corner/inX+Y+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_corner/inX+Y+.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/inside_corner/inX+Y+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/inside_corner/inX+Y+.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X+Y+ \u00b7 two perpendicular contact faces."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_corner/inX+Y-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_corner/inX+Y-.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/inside_corner/inX+Y-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/inside_corner/inX+Y-.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X+Y\u2212 \u00b7 two perpendicular contact faces."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_corner/inX-Y+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_corner/inX-Y+.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/inside_corner/inX-Y+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/inside_corner/inX-Y+.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X\u2212Y+ \u00b7 two perpendicular contact faces."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/inside_corner/inX-Y-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/inside_corner/inX-Y-.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/inside_corner/inX-Y-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/inside_corner/inX-Y-.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X\u2212Y\u2212 \u00b7 two perpendicular contact faces."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_circular_boss.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_center/outside_center_circular_boss.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_circular_boss.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/outside_center/outside_center_circular_boss.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = full width or diameter.",
+      "Center to outside: X/2 + J, Y/2 + J."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_motion_overview.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_center/outside_center_motion_overview.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "H disabled: side descent is E + D/2.",
+      "H enabled: side descent is E + C + D/2."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_parameter_c.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_center/outside_center_parameter_c.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Side descent: E + C + D/2.",
+      "C is used after the optional top touch."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_parameter_e.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_center/outside_center_parameter_e.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "H disabled: side descent is E + D/2.",
+      "H enabled: side descent is E + C + D/2."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_parameter_h.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_center/outside_center_parameter_h.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "H = optional maximum downward search.",
+      "After the hit, retract R before side travel."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_rect_boss.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_center/outside_center_rect_boss.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_rect_boss.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/outside_center/outside_center_rect_boss.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = full width or diameter.",
+      "Center to outside: X/2 + J, Y/2 + J."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_rect_boss_x.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_center/outside_center_rect_boss_x.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_rect_boss_x.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/outside_center/outside_center_rect_boss_x.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = full width or diameter.",
+      "Center to outside: X/2 + J, Y/2 + J."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_rect_boss_y.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_center/outside_center_rect_boss_y.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/outside_center/outside_center_rect_boss_y.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/outside_center/outside_center_rect_boss_y.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X / Y = full width or diameter.",
+      "Center to outside: X/2 + J, Y/2 + J."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_corner/X+Y+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_corner/X+Y+.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/outside_corner/X+Y+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/outside_corner/X+Y+.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X+Y+ \u00b7 two perpendicular contact faces."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_corner/X+Y-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_corner/X+Y-.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/outside_corner/X+Y-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/outside_corner/X+Y-.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X+Y\u2212 \u00b7 two perpendicular contact faces."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_corner/X-Y+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_corner/X-Y+.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/outside_corner/X-Y+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/outside_corner/X-Y+.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X\u2212Y+ \u00b7 two perpendicular contact faces."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/outside_corner/X-Y-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/outside_corner/X-Y-.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/outside_corner/X-Y-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/outside_corner/X-Y-.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "X\u2212Y\u2212 \u00b7 two perpendicular contact faces."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/single_axis/X+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/single_axis/X+.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/single_axis/X+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/single_axis/X+.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Signed search toward the contacted face."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/single_axis/X-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/single_axis/X-.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/single_axis/X-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/single_axis/X-.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Signed search toward the contacted face."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/single_axis/Y+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/single_axis/Y+.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/single_axis/Y+.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/single_axis/Y+.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Signed search toward the contacted face."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/single_axis/Y-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/single_axis/Y-.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/single_axis/Y-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/single_axis/Y-.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Signed search toward the contacted face."
+    ]
+  },
+  {
+    "source": "assets/design/slate/probing/single_axis/Z-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/single_axis/Z-.png",
+    "width": 256,
+    "height": 256,
+    "mode": "selector"
+  },
+  {
+    "source": "assets/design/slate/probing/single_axis/Z-.svg",
+    "target": "carveracontroller/addons/probing/data/icons_1024x768/details/single_axis/Z-.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Signed search toward the contacted face."
+    ]
+  },
+  {
+    "source": "assets/design/slate/motion/AxisMotion_XPos.svg",
+    "target": "carveracontroller/data/AxisMotion/AxisMotion_XPos.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Front view: spindle moves along X.",
+      "Bed is stationary during this movement."
+    ]
+  },
+  {
+    "source": "assets/design/slate/motion/AxisMotion_XNeg.svg",
+    "target": "carveracontroller/data/AxisMotion/AxisMotion_XNeg.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Front view: spindle moves along X.",
+      "Bed is stationary during this movement."
+    ]
+  },
+  {
+    "source": "assets/design/slate/motion/AxisMotion_YPos.svg",
+    "target": "carveracontroller/data/AxisMotion/AxisMotion_YPos.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Front view: bed moves along Y.",
+      "Spindle is stationary during this movement."
+    ]
+  },
+  {
+    "source": "assets/design/slate/motion/AxisMotion_YNeg.svg",
+    "target": "carveracontroller/data/AxisMotion/AxisMotion_YNeg.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Front view: bed moves along Y.",
+      "Spindle is stationary during this movement."
+    ]
+  },
+  {
+    "source": "assets/design/slate/motion/AxisMotion_ZPos.svg",
+    "target": "carveracontroller/data/AxisMotion/AxisMotion_ZPos.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "View from \u2212Y toward the X/Z plane.",
+      "Spindle rises."
+    ]
+  },
+  {
+    "source": "assets/design/slate/motion/AxisMotion_ZNeg.svg",
+    "target": "carveracontroller/data/AxisMotion/AxisMotion_ZNeg.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "View from \u2212Y toward the X/Z plane.",
+      "Spindle lowers."
+    ]
+  },
+  {
+    "source": "assets/design/slate/motion/AxisMotion_APos.svg",
+    "target": "carveracontroller/data/AxisMotion/AxisMotion_APos.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Oblique view toward the chuck face.",
+      "Chuck rotates; bed remains stationary."
+    ]
+  },
+  {
+    "source": "assets/design/slate/motion/AxisMotion_ANeg.svg",
+    "target": "carveracontroller/data/AxisMotion/AxisMotion_ANeg.png",
+    "width": 512,
+    "height": 512,
+    "mode": "help",
+    "description": [
+      "Oblique view toward the chuck face.",
+      "Chuck rotates; bed remains stationary."
+    ]
+  }
+]

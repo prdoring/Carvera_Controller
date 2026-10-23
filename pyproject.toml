@@ -9,6 +9,7 @@ version = "0.0.0"
 license = "GPL-2.0"
 readme = "README.md"
 authors = [ "Carvera-Community",]
+include = [{ path = "carveracontroller/locales/**/*.mo", format = ["wheel", "sdist"] }]
 [[tool.poetry.packages]]
 include = "carveracontroller"
 

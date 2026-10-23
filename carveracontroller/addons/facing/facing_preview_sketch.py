@@ -16,6 +16,8 @@ from kivy.graphics import (
 )
 from kivy.uix.widget import Widget
 
+from carveracontroller.ui import theme
+
 from .facing_gcode import FacingEnvelope
 from .probe_grid_gcode import ProbeGridGeometry
 
@@ -35,7 +37,7 @@ class FacingXYPreviewSketch(Widget):
         with self.canvas:
             PushMatrix()
             Translate(self.x, self.y)
-            Color(0.12, 0.12, 0.13, 1)
+            Color(*theme.FIELD)
             Rectangle(pos=(0, 0), size=(iw, ih))
 
             g = getattr(self, "_geom", None)
@@ -104,13 +106,13 @@ class FacingXYPreviewSketch(Widget):
             # Kivy Line(dash_length=…) seems to be unreliable, draw dashes explicitly.
             dash_px = max(5.0, abs(scale) * 1.15)
             gap_px = max(3.0, abs(scale) * 0.75)
-            Color(0.48, 0.48, 0.5, 0.75)
+            Color(*theme.MUTED[:3], 0.75)
             for a, b in ((p_bl, p_br), (p_br, p_tr), (p_tr, p_tl), (p_tl, p_bl)):
                 for seg in self._dash_segment_pairs(a, b, dash_px, gap_px):
                     Line(points=seg, width=1)
 
         flat_stock = self._rect_line(nx0, ny0, nx1, ny1, px)
-        Color(0.62, 0.62, 0.65, 1)
+        Color(*theme.SECONDARY)
         Line(points=flat_stock, width=1.75)
 
         if probe_geom is not None:
@@ -148,7 +150,7 @@ class FacingXYPreviewSketch(Widget):
                 x, y = toolpath[i]
                 qx, qy = px(x, y)
                 flat.extend([qx, qy])
-            Color(0.95, 0.72, 0.35, 0.65)
+            Color(*theme.ACCENT[:3], 0.65)
             Line(points=flat, width=1)
 
         ox0, oy0 = px(0.0, 0.0)
@@ -161,7 +163,7 @@ class FacingXYPreviewSketch(Widget):
         orad = max(min(scale * 1.1, 8.0), 4.5)
         Color(0.93, 0.93, 0.96, 0.95)
         Ellipse(pos=(ox0 - orad, oy0 - orad), size=(2 * orad, 2 * orad))
-        Color(0.22, 0.22, 0.24, 1)
+        Color(*theme.FIELD)
         Ellipse(pos=(ox0 - orad * 0.35, oy0 - orad * 0.35), size=(orad * 0.7, orad * 0.7))
         Color(0.35, 0.78, 0.42, 1)
         Line(points=[ox0, oy0, ox_x, oy_x], width=2.8)

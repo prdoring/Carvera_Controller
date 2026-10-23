@@ -127,10 +127,8 @@ class Simulation:
                     root.cmd_manager.current = "manual_cmd_page"
                 return
             if name in ("actions", "jog-settings", "history", "local-files", "file-search"):
-                if name == "actions":
-                    self.app._mobile_main.show_machine_actions()
-                elif name == "jog-settings":
-                    self.app._mobile_main.show_jog_settings()
+                if name in ("actions", "jog-settings"):
+                    root.content.current = "Control"
                 elif name == "history":
                     root.manual_cmd.past_mdi_commands = ["G0 X10 Y20", "G1 Z-1.25 F100"]
                     root.manual_cmd.show_touch_history()
@@ -228,13 +226,22 @@ class Simulation:
 
             state = request.get("state", "N/A")
             model = request.get("model", "CA1")
-            if state not in ("Idle", "Run", "Pause", "Alarm", "N/A") or model not in ("CA1", "C1"):
+            if state not in ("Idle", "Run", "Pause", "Hold", "Tool", "Sleep", "Alarm", "N/A") or model not in ("CA1", "C1"):
                 raise ValueError("Unsupported simulated state")
             self.app.root.config_loaded = True
             CNC.vars["state"] = state
             self.app.model = model
             self.app.state = state
             self.app.has_4axis = bool(request.get("rotary", False))
+            if "atc" in request:
+                self.app.has_atc = bool(request["atc"])
+            if "community" in request:
+                self.app.is_community_firmware = bool(request["community"])
+                root.controller.is_community_firmware = self.app.is_community_firmware
+            if "firmware" in request:
+                from .Utils import digitize_v
+
+                self.app.fw_version_digitized = digitize_v(request["firmware"])
             if "playing" in request:
                 self.app.playing = bool(request["playing"])
             if "filename" in request:
