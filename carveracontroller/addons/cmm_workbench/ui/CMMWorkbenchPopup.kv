@@ -66,8 +66,8 @@
         BoxLayout:
             id: cmm_workbench_body
             orientation: 'vertical'
-            padding: dp(8)
-            spacing: dp(6)
+            padding: dp(4) if app.android_touch else dp(8)
+            spacing: dp(4) if app.android_touch else dp(6)
             size_hint: 1, 1
             pos_hint: {'x': 0, 'y': 0}
 
@@ -82,7 +82,7 @@
                     tab_width: dp(118)
                     bar_width: dp(8)
                     bar_color: 0.52, 0.68, 0.85, 1
-                    padding: dp(6), dp(8), dp(6), dp(10)
+                    padding: [dp(4)] * 4 if app.android_touch else [dp(6), dp(8), dp(6), dp(10)]
                     disabled: root.is_probing
 
                     TouchTabbedPanelItem:
@@ -107,6 +107,7 @@
                                     color: 0.88, 0.88, 0.92, 1
                                     text: tr._('Manual capture — no motion') if app.android_touch else tr._("[b]Manual (no motion)[/b]\n[color=78797f]Live position is shown below. Load it into the fields or type your own, then add a point or circle.[/color]")
                                 BoxLayout:
+                                    id: manual_position_row
                                     orientation: 'horizontal'
                                     size_hint_y: None
                                     height: max(app.touch_target, sp(16) * 1.25 + dp(12)) if app.android_touch else dp(72)
@@ -114,18 +115,27 @@
                                     Widget:
                                         size_hint_x: None if app.android_touch else 1
                                         width: 0 if app.android_touch else dp(100)
-                                    Label:
-                                        id: lbl_wcs_live
+                                    RelativeLayout:
                                         size_hint_x: 1 if app.android_touch else None
                                         size_hint_y: 1
                                         width: dp(292)
-                                        font_size: '16sp' if app.android_touch else dp(13)
-                                        halign: 'right'
-                                        valign: 'middle'
-                                        text_size: self.width, None
-                                        markup: True
-                                        color: 0.65, 0.92, 0.98, 1
-                                        text: ''
+                                        Label:
+                                            id: lbl_wcs_live
+                                            font_size: '16sp' if app.android_touch else dp(13)
+                                            halign: 'right'
+                                            valign: 'middle'
+                                            text_size: self.width, None
+                                            markup: True
+                                            color: 0.65, 0.92, 0.98, 1
+                                            text: ''
+                                            opacity: 0 if app.android_touch and self.texture_size[1] > self.height else 1
+                                        Button:
+                                            id: position_details
+                                            text: tr._('Position')
+                                            font_size: '16sp'
+                                            opacity: 1 - lbl_wcs_live.opacity
+                                            disabled: bool(lbl_wcs_live.opacity)
+                                            on_release: root.show_current_position()
                                     AnchorLayout:
                                         size_hint_x: None
                                         width: max(dp(136), sp(16) * 6.5) if app.android_touch else dp(136)
@@ -968,7 +978,7 @@
                             padding: [dp(4), dp(4), dp(20), dp(10)]
 
             DialogLabel:
-                text: root.session_status
+                text: '' if app.android_touch and app.compact_layout else root.session_status
                 text_role: 'secondary'
             TouchActionRow:
                 id: cmm_actions
@@ -982,7 +992,7 @@
                     on_release: root.on_load_session()
                 Button:
                     id: cmm_save
-                    text: tr._('Save as...')
+                    text: (tr._('Save…') + (' *' if root.session_dirty else '')) if app.android_touch else tr._('Save as...')
                     size_hint_x: 1
                     disabled: root.is_probing or not root.can_use_local_file_picker
                     on_release: root.open_save_format_dropdown(self)

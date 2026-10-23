@@ -64,7 +64,7 @@ def prepare_diagnostics(modal):
             for child in widget.children:
                 if isinstance(child, Switch):
                     child.size_hint_x = None
-                    child.width = dp(96)
+                    child.width = max(dp(96), sp(16) * 5)
             outputs.add_widget(widget)
             if isinstance(getattr(widget, "label", None), str):
                 label = widget.label

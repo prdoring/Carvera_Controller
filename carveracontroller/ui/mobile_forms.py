@@ -1,13 +1,14 @@
 """Compact forms reuse their editors, values, focus and callbacks."""
 
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
 
 from carveracontroller.translation import tr
 
-from .android_layout import DialogLabel, style_action
+from .android_layout import DialogLabel, TouchActionRow, style_action
 
 
 class WorkspaceLayout:
@@ -22,6 +23,49 @@ class WorkspaceLayout:
 
     def update(self, *_args):
         app = App.get_running_app()
+        if app.android_touch and not hasattr(self, '_error_body'):
+            scroll = self.grid.parent
+            grid = next(widget for widget in scroll.children if widget == self.grid)
+            error = self.popup.ids.wcs_apply_error
+            error = next(widget for widget in error.parent.children if widget == error)
+            error.parent.remove_widget(error)
+            # ScrollView retains viewport size callbacks after removal.
+            grid.unbind(size=scroll._set_viewport_size)
+            grid.unbind(size=scroll._trigger_update_from_scroll,
+                        size_hint_min=scroll._trigger_update_from_scroll)
+            scroll.remove_widget(grid)
+            body = BoxLayout(orientation='vertical', spacing=dp(8), size_hint_y=None)
+            body.bind(minimum_height=body.setter('height'))
+            body.add_widget(error)
+            body.add_widget(grid)
+            scroll.add_widget(body)
+            self._error_body = body
+            def initialize_scroll(*_args):
+                self.popup.unbind(on_open=initialize_scroll)
+                def position_first_card(_dt):
+                    scroll.scroll_y = 1
+                    scroll._update_effect_y_bounds()
+                Clock.schedule_once(position_first_card, .15)
+            self.popup.bind(on_open=initialize_scroll)
+            if self.popup._is_open:
+                initialize_scroll()
+            footer = self.popup.ids.btn_ok.parent
+            parent, index = footer.parent, footer.parent.children.index(footer)
+            buttons = list(reversed(footer.children))
+            help_button = next(widget for widget in self.popup.walk(restrict=True) if type(widget).__name__ == 'HelpButton')
+            help_row = help_button.parent
+            help_row.remove_widget(help_button)
+            help_row.parent.remove_widget(help_row)
+            index = parent.children.index(footer)
+            footer.clear_widgets()
+            parent.remove_widget(footer)
+            actions = TouchActionRow(spacing=dp(8))
+            for widget in [*buttons, help_button]:
+                actions.add_widget(widget)
+            parent.add_widget(actions, index=min(index, len(parent.children)))
+            from .mobile_tools import compact_actions
+            more = compact_actions(self.popup, actions, lambda button: button in (self.popup.ids.btn_ok, self.popup.ids.btn_close), app)
+            more.text = tr._('More')
         compact = app.android_touch and app.compact_layout
         if compact == self.compact:
             return

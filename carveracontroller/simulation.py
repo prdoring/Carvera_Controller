@@ -83,7 +83,25 @@ class Simulation:
         started = time.perf_counter()
         try:
             self._action(request)
-            Clock.schedule_once(lambda _dt: self._report(request, started), .25)
+            quiet = [None, 0]
+            def settled(_dt):
+                from kivy.core.window import Window
+                from kivy.uix.modalview import ModalView
+
+                transitions = (self.app.root.content.transition, self.app.root.cmd_manager.transition)
+                surfaces = [self.app.root] + [widget for widget in Window.children if isinstance(widget, ModalView)]
+                geometry = tuple((widget.uid, *(round(value, 1) for value in [*widget.pos, *widget.size]))
+                                 for surface in surfaces for widget in surface.walk(restrict=True))
+                quiet[1] = quiet[1] + 1 if geometry == quiet[0] else 0
+                quiet[0] = geometry
+                if any(transition.is_active for transition in transitions) or quiet[1] < 3:
+                    if time.perf_counter() - started > 5:
+                        self._response.write_text(json.dumps({"id": request.get("id"), "error": "Scene transition did not settle"}), encoding="utf-8")
+                    else:
+                        Clock.schedule_once(settled, .05)
+                    return
+                self._report(request, started)
+            Clock.schedule_once(settled, .75)
         except Exception as error:
             self._response.write_text(json.dumps({"id": request.get("id"), "error": str(error)}), encoding="utf-8")
 
@@ -100,12 +118,35 @@ class Simulation:
                 if isinstance(modal, ModalView):
                     modal.dismiss(force=True, animation=False)
             name = request["scene"]
+            self._current_scene = name
             if name in ("control", "preview", "console"):
                 root.content.current = "Control" if name == "control" else "File"
                 self.app.show_lines = name == "console"
                 self.app.show_preview = name != "console"
                 if name == "console":
                     root.cmd_manager.current = "manual_cmd_page"
+                return
+            if name in ("actions", "jog-settings", "history", "local-files", "file-search"):
+                if name == "actions":
+                    self.app._mobile_main.show_machine_actions()
+                elif name == "jog-settings":
+                    self.app._mobile_main.show_jog_settings()
+                elif name == "history":
+                    root.manual_cmd.past_mdi_commands = ["G0 X10 Y20", "G1 Z-1.25 F100"]
+                    root.manual_cmd.show_touch_history()
+                else:
+                    from kivy.clock import Clock
+
+                    folder = Path(self.app.user_data_dir) / "exports"
+                    folder.mkdir(exist_ok=True)
+                    (folder / "Fixture folders and saved programs").mkdir(exist_ok=True)
+                    for filename in ("Fixture plate.cnc", "Fixture part with a long name in setup three.cnc"):
+                        (folder / filename).write_text("G21 G90\nG0 X0 Y0\n", encoding="utf-8")
+                    root.open_upload_local_file_popup()
+                    root.file_popup.local_rv.child_dir(str(folder))
+                    root.file_popup.open(animation=False)
+                    if name == "file-search":
+                        Clock.schedule_once(lambda _dt: root.file_popup._mobile_search_buttons["local"].dispatch("on_release"), .1)
                 return
             if name == "picker":
                 from .ui.LocalFilePicker import open_local_file_picker
@@ -115,7 +156,25 @@ class Simulation:
                 return
             mapping = {"input": root.input_popup, "unlock": root.unlock_popup, "job": root.coord_popup,
                        "files": root.file_popup, "settings": root.config_popup, "wcs": root.wcs_settings_popup,
-                       "diagnostics": root.diagnose_popup, "updates": root.upgrade_popup}
+                       "diagnostics": root.diagnose_popup, "updates": root.upgrade_popup,
+                       "confirm": root.confirm_popup, "message": root.message_popup,
+                       "reconnect": root.reconnection_popup, "progress": root.progress_popup,
+                       "probe-choice": root.select_probe_popup}
+            if name in ("color-editor", "macro-editor", "numeric-editor", "text-editor", "option-editor"):
+                from .custom_widgets import SettingColorPicker, SettingGCodeSnippet
+                from .ui.settings_fields import EditingSettingNumeric, EditingSettingOptions, EditingSettingString
+
+                types = {"color-editor":SettingColorPicker, "macro-editor":SettingGCodeSnippet,
+                         "numeric-editor":EditingSettingNumeric,"text-editor":EditingSettingString,
+                         "option-editor":EditingSettingOptions}
+                root.config_popup.open(animation=False)
+                setting = next(item for item in root.config_popup._all_setting_items() if type(item) is types[name])
+                self._editor = setting
+                if name in ("color-editor", "macro-editor"):
+                    setting.open_popup()
+                else:
+                    setting._create_popup(None)
+                return
             if name not in mapping and name not in self._scenes:
                 if name == "probing":
                     from .addons.probing.ProbingPopup import ProbingPopup
@@ -138,7 +197,13 @@ class Simulation:
             modal.open(animation=False)
         elif op == "field":
             widgets = {name: widget for surface in [root] + list(Window.children)
-                       for name, widget in surface.ids.items() if isinstance(widget, TextInput)}
+                       for container in surface.walk(restrict=True) for name, widget in container.ids.items()
+                       if isinstance(widget, TextInput)}
+            editor = getattr(self, "_editor", None)
+            if editor is not None:
+                for name, attribute in (("editor", "textinput"), ("macro_name", "name_input"), ("macro_gcode", "gcode_input")):
+                    if hasattr(editor, attribute):
+                        widgets[name] = getattr(editor, attribute)
             field = widgets[request["field"]]
             if "text" in request:
                 field.text = str(request["text"])
@@ -149,11 +214,45 @@ class Simulation:
                 field.cancel_selection()
                 field.cursor = field.get_cursor_from_index(len(field.text))
         elif op == "scale":
+            from kivy.config import Config
+
             density = float(os.environ.get("CARVERA_ANDROID_DENSITY", "1"))
+            Config.set("carvera", "android_ui_scale", str(request["scale"]))
+            Config.write()
             Metrics.density = density * float(request["scale"])
             self.app.touch_target = max(48 * density, 48 * Metrics.density)
             self.app._touch_layout.size_controls(root)
             self.app._touch_layout.update()
+        elif op == "state":
+            from .CNC import CNC
+
+            state = request.get("state", "N/A")
+            model = request.get("model", "CA1")
+            if state not in ("Idle", "Run", "Pause", "Alarm", "N/A") or model not in ("CA1", "C1"):
+                raise ValueError("Unsupported simulated state")
+            self.app.root.config_loaded = True
+            CNC.vars["state"] = state
+            self.app.model = model
+            self.app.state = state
+            self.app.has_4axis = bool(request.get("rotary", False))
+            if "playing" in request:
+                self.app.playing = bool(request["playing"])
+            if "filename" in request:
+                self.app.selected_remote_filename = request["filename"]
+            if request.get("populate_wcs"):
+                popup = self.app.root.wcs_settings_popup
+                popup.original_values = {name:dict.fromkeys(("X","Y","Z","A","R"),0.0)
+                                         for name in ("G54","G55","G56","G57","G58","G59","G59.1","G59.2","G59.3")}
+                for key, field in popup.ids.items():
+                    if key.startswith("g5") and not key.endswith("description") and hasattr(field,"text"):
+                        field.disabled = False
+                        field.text = "0"
+        elif op == "populate_preview":
+            import threading
+
+            path = Path(self.app.user_data_dir) / "simulated-preview.cnc"
+            path.write_text("G21 G90\n" + "".join(f"G1 X{i % 120} Y{(i // 120) % 80} F600\n" for i in range(2000)), encoding="utf-8")
+            threading.Thread(target=root.load_gcode_file, args=(str(path),), daemon=True).start()
         elif op == "dismiss_keyboard":
             Window.release_all_keyboards()
         elif op != "inspect":
@@ -162,6 +261,7 @@ class Simulation:
     def _report(self, request, started):
         from kivy.core.window import Window
         from kivy.metrics import Metrics
+        from kivy.uix.button import Button
         from kivy.uix.modalview import ModalView
         from kivy.uix.textinput import TextInput
 
@@ -181,6 +281,24 @@ class Simulation:
                   "modals": modals,
                   "commands": [str(command) for command in self.commands], "blocked_attempts": len(self.attempts),
                   "settle_ms": (time.perf_counter() - started) * 1000}
+        report.update(scene=getattr(self, "_current_scene", None), page=self.app.root.content.current,
+                      command_page=self.app.root.cmd_manager.current,
+                      source_revision=os.environ.get("CARVERA_SOURCE_REVISION", "development"))
+        report["visible_actions"] = []
+        for surface in surfaces:
+            for widget in surface.walk(restrict=True):
+                if not isinstance(widget, Button) or not widget.width or not widget.height or widget.get_root_window() is not Window:
+                    continue
+                ancestor = widget
+                visible = True
+                while ancestor is not None and ancestor is not Window:
+                    if not ancestor.opacity or not ancestor.width or not ancestor.height:
+                        visible = False
+                        break
+                    ancestor = ancestor.parent
+                if visible:
+                    report["visible_actions"].append({"text":widget.text, "bounds":[*widget.to_window(*widget.pos), *widget.size],
+                                                      "texture":list(widget.texture_size)})
         self._response.write_text(json.dumps(report), encoding="utf-8")
 
     def close(self):

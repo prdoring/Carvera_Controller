@@ -1,6 +1,35 @@
 from tests.integration.conftest import pump_frames
 
 
+def test_settings_content_survives_collection_while_reparented(mobile, monkeypatch):
+    import gc
+    import json
+
+    from kivy.config import ConfigParser
+    from kivy.uix.popup import Popup
+    from kivy.uix.settings import SettingsWithSidebar
+
+    from carveracontroller.ui.mobile_settings import MobileSettings
+
+    config = ConfigParser()
+    config.add_section('example')
+    config.set('example', 'name', 'retained draft')
+    settings = SettingsWithSidebar()
+    settings.add_json_panel('Example', config, data=json.dumps([
+        {'type': 'string', 'title': 'Name', 'desc': 'Saved name', 'section': 'example', 'key': 'name'}]))
+    interface = settings.interface
+    remove = interface.remove_widget
+    def collect_after_removal(widget, *args, **kwargs):
+        remove(widget, *args, **kwargs)
+        gc.collect()
+    monkeypatch.setattr(interface, 'remove_widget', collect_after_removal)
+    manager = MobileSettings(settings, Popup())
+    gc.collect()
+    assert manager.content.parent is not None
+    item = next(item for item in manager._rows if hasattr(item, 'value'))
+    assert item.value == 'retained draft'
+
+
 def test_settings_search_keeps_hidden_values_available_for_apply(mobile):
     from kivy.uix.settings import SettingItem
 

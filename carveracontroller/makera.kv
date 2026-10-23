@@ -305,15 +305,31 @@
                 source: 'data/folder-32.png' if root.is_dir else 'data/file-32.png'
                 pos: self.center_x - dp(10), self.center_y - dp(10)
                 size: dp(20), dp(20)
-    Label:
-        id: id_label1
-        text_size: self.size
-        text: root.filename + ('\n' + root.filedate + ' · ' + root.filesize if app.android_touch else '')
-        font_size: '16sp' if app.android_touch else '15sp'
-        shorten: True
-        max_lines: 2 if app.android_touch else 1
-        halign: 'left'
-        valign: 'middle'
+    BoxLayout:
+        orientation: 'vertical'
+        padding: (0, dp(4)) if app.android_touch else 0
+        Label:
+            id: id_label1
+            text_size: self.size
+            text: root.filename
+            font_size: '16sp' if app.android_touch else '15sp'
+            shorten: True
+            max_lines: 1
+            halign: 'left'
+            valign: 'middle'
+        Label:
+            id: file_metadata
+            text_size: self.size
+            text: root.filedate + ' · ' + root.filesize
+            font_size: '14sp'
+            color: (.95, .95, .95, 1) if root.selected else (.72, .72, .72, 1)
+            size_hint_y: 1 if app.android_touch else None
+            height: 0
+            opacity: 1 if app.android_touch else 0
+            shorten: True
+            max_lines: 1
+            halign: 'left'
+            valign: 'middle'
     Label:
         id: id_label2
         text_size: self.size
@@ -2644,6 +2660,7 @@
                             on_release:
                                 root.ti_remote_search.text = ''
                 BoxLayout:
+                    id: remote_file_columns
                     size_hint_y: None
                     height: app.touch_target if app.android_touch else dp(40)
                     orientation: 'horizontal'
@@ -2681,6 +2698,7 @@
                         on_release:
                             root.remote_rv.fill_dir(sort_key = 'size', keyword = root.ti_remote_search.text)
                 BoxLayout:
+                    id: remote_selection_bar
                     size_hint_y: None
                     height: app.touch_target if app.android_touch else 0
                     opacity: 1 if app.android_touch else 0
@@ -2902,6 +2920,7 @@
                             on_release:
                                 root.ti_local_search.text = ''
                 BoxLayout:
+                    id: local_file_columns
                     size_hint_y: None
                     height: app.touch_target if app.android_touch else dp(40)
                     orientation: 'horizontal'
@@ -4157,6 +4176,7 @@
                     orientation: 'vertical'
                     spacing: '5dp'
                     TouchActionRow:
+                        id: viewer_panes
                         size_hint_y: None
                         height: self.minimum_height if app.android_touch and not app.android_keyboard_height else 0
                         opacity: 1 if app.android_touch and not app.android_keyboard_height else 0
@@ -4179,10 +4199,12 @@
                                 app.show_lines = True
                                 cmd_manager.current = 'manual_cmd_page'
                         ToggleButton:
+                            id: viewer_legend
                             text: tr._('Legend')
                             state: 'down' if app.show_legend else 'normal'
                             on_release: app.show_legend = self.state == 'down'
                         Button:
+                            id: viewer_camera
                             text: tr._('Camera')
                             disabled: not app.supports_camera
                             on_release: root.ids.camera_splitter.toggle_collapsed()
@@ -4310,7 +4332,7 @@
                                             BoxLayout:
                                                 orientation: 'horizontal'
                                                 size_hint_y: None
-                                                height: max(dp(96), self.parent.height * .45) if app.android_touch else dp(66)
+                                                height: min(max(dp(96), self.parent.height * .45), max(app.touch_target, self.parent.height)) if app.android_touch else dp(66)
                                                 ToolTipButton:
                                                     id: toggle_file
                                                     width: 0 if app.android_touch else dp(40)
@@ -4331,7 +4353,7 @@
                                                     on_release: manual_cmd.show_touch_history()
                                                 MDITextInput:
                                                     id: manual_cmd
-                                                    hint_text: tr._('Enter commands, then tap Send') if app.android_touch else tr._('Enter command... <control+enter to send>')
+                                                    hint_text: tr._('G-code') if app.android_touch else tr._('Enter command... <control+enter to send>')
                                                     multiline: True
                                                     on_text_validate:
                                                         if app.state == 'Idle' or app.state == 'Pause' or root.allow_mdi_while_machine_running == '1' : root.send_cmd()
@@ -4581,6 +4603,7 @@
                         pos: self.pos
                         size: self.size
                 IconButton:
+                    id: main_file_button
                     icon: 'data/file.png'
                     android_label: tr._('Files')
                     tooltip_txt: tr._('Select File')
@@ -4670,9 +4693,10 @@
                             color: 240/255, 240/255, 240/255, 1
 
                 Button:
-                    text: '?'
+                    id: main_help_button
+                    text: tr._('Help')
                     size_hint_x: None
-                    width: app.touch_target if app.android_touch else 0
+                    width: max(app.touch_target, sp(16) * 3) if app.android_touch else 0
                     disabled: not app.android_touch
                     opacity: 1 if app.android_touch else 0
                     on_release: app._touch_layout.show_help() if app._touch_layout else None
@@ -4727,6 +4751,7 @@
             text_size: self.size
         
         DialogLabel:
+            id: wcs_apply_error
             text: root.apply_error
             color: 1, .55, .3, 1
             size_hint_y: None
@@ -4737,7 +4762,7 @@
                 cols: 8
                 spacing: '5dp'
                 size_hint: (None, None)
-                width: self.parent.width
+                width: self.parent.width if self.parent else 0
                 height: self.minimum_height
                 
                 # Header row

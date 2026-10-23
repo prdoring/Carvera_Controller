@@ -11,9 +11,10 @@ Unrelated USB work was present in the checkout and was preserved.
 
 Related report: [Android touch support audit](android-touch-audit.md).
 
-Status: the original audit is complete. Landscape implementation and local
-Android verification are recorded below. Pi and physical machine acceptance
-remain pending the user's release of the device.
+Status: the original audit is complete. The October 15 candidate was not
+accepted after visual review. The October 22 corrections and their validation
+are recorded below. The user has released the Pi; replacement and physical
+machine acceptance are still pending.
 
 ## Main conclusion
 
@@ -642,6 +643,9 @@ Other evidence:
 
 ## Implementation verification (October 15, 2026)
 
+This section records the earlier candidate. Its screenshots and APK are
+superseded by the October 22 work below; it was never installed on the Pi.
+
 The original renders above describe 2.2.0, before the Android touch work.
 Current work builds on 3ef91ef. Android density, keyboard composition,
 captured jog cancellation, file selection, viewer gestures and CMM sketch
@@ -834,9 +838,121 @@ disabled because it has no machine connection:
 - [800×480 Config and Run](mobile-ux-verified/job-800.png).
 - [800×480 Settings](mobile-ux-verified/settings-800.png).
 - [800×480 Facing](mobile-ux-verified/facing-800.png).
-- [1920×1080 native keyboard with reachable actions](mobile-ux-verified/keyboard-1920.png).
+- [800×480 native keyboard at maximum interface and font sizes](mobile-ux-verified/keyboard-800.png).
 
 The verified APK is retained locally as
 `C:\Users\prdor\.codex\visualizations\2026\10\14\01a13c63-1a6c-7c50-8bda-d425aba59926\controller-2.2.0.9-android-landscape.apk`.
 The same directory contains `mobile-release.json`, signature/build logs, native
-captures and timing measurements. Installation and fresh Pi backups are pending.
+captures and timing measurements. The October 22 verification below supersedes
+the earlier candidate's visual acceptance and installation status.
+
+## Visual corrections (October 22, 2026)
+
+Review of the earlier candidate found wasted dialog space, unnecessary
+scrolling, overlapping file-search controls, excessive stacked toolbars,
+clipped CMM controls, and poor editing space above the keyboard. Window bounds
+alone did not establish that a screen was usable. The October 15 screenshots
+must not be treated as final visual acceptance.
+
+The shared layout now measures natural text and footer heights, distinguishes
+fixed confirmation controls explicitly, and deducts keyboard and system insets
+once. Short dialogs fit their contents; complex compact tools use nearly the
+available screen. Text fields have visible focus and error borders. Splitters
+retain large grab areas while displaying thin dividers.
+
+Two confirmed responsiveness faults were corrected: conflicting label-size
+bindings repeatedly resized dialogs, and measuring a multiline editor before
+it acquired a scrolling parent could loop indefinitely at the window.
+
+Main jogging remains outside scrolling containers, with machine actions and
+overrides in named sheets. File storage choices are explicit, search controls
+no longer overlap their paths, and save destinations retain a Filename label.
+Job setup prioritizes origin/probing/leveling before auxiliary options. Tool
+tabs use measured fit, deferred probe fields receive the same input styling,
+and CMM live-position controls no longer overflow. Facing retains its four
+tabs and moves optional views away from the primary form. Settings retain
+their editors, staged values, category navigation, and optional search.
+
+The final layout retains one CMM view selector, a shorter Save action with an
+unsaved-change indicator, and separate setting information panels. Narrow
+probing parameter cells stack their descriptions above their editors. File
+search opens in its own sheet; filenames and metadata use separate lines.
+The save dialog keeps its filename editor and fixed confirmation controls
+visible, with folder navigation in a separate sheet. Optional preview panes
+remain available through Views without rebuilding their widgets.
+
+Three additional faults have regression coverage. Focus-reveal requests are
+coalesced so repeated layout events cannot indefinitely postpone revealing an
+editor. Widget styling stays within the intended subtree; traversing sibling
+layouts had incorrectly enlarged numeric fields. WCS reparenting explicitly
+unbinds the old ScrollView viewport-size callbacks before attaching its new
+body. Otherwise the removed grid overwrote the new viewport's dimensions,
+causing extreme scroll offsets and initially hidden WCS cards. WCS starts at
+G54 and keeps Close, Apply offsets, and More together.
+
+### Final local verification
+
+- The complete suite passed **475 tests**, with 15 missing legacy desktop
+  image baselines skipped. After the final WCS correction, all **5 focused WCS
+  tests** passed, including the new scrolling regression. Lint and whitespace
+  checks passed. This does not imply a second complete-suite run after that
+  narrow correction.
+- Native Android 16 screenshots cover 13 screens in all 12 combinations of
+  800×480, 1024×600, and 1920×1080; interface sizes 100/150%; and font sizes
+  100/200%. The 1920×1080 profile uses native density 1.5, matching the Pi.
+  Additional captures cover populated preview/console, idle/running/paused
+  simulated states, shared editors, and native keyboards at maximum scaling.
+  The simulator recorded no attempted physical connections.
+- Screenshot review includes main controls, console, preview, files, save,
+  unlock, job setup, WCS, settings, probing, CMM, facing, and diagnostics at
+  ordinary and enlarged sizes. Large forms scroll; short prompts and save
+  dialogs retain fixed actions without a scrolling outer window. The largest
+  text setting intentionally shows fewer form rows at once.
+- Local input dispatch to the next frame had a **14.3 ms p95** across 40
+  presses. This excludes hardware and Android input latency and is not a Pi
+  measurement. First opening Settings took 589 ms, CMM 112 ms, and files
+  108 ms. These first-use stalls remain a limitation. Loading the 10,000-line
+  preview took 2.83 seconds including settling; its measured frame p95 was
+  51.1 ms, with a 79.5 ms maximum. Ordinary input-popup opening p95 was 51.1 ms.
+
+Production and isolated simulator packages were built from the same source
+content, `9dd92bf2c4b1`, including the existing Kivy/SDL patches and Java bridge.
+The production package is **2.2.0.9 / 20209**, with the existing package identity,
+signer, launcher, and manual startup. APK SHA-256:
+`ab70c7db246004605b8331fbf1ab253a17b3966ababe2207e59f671b6ea8471e`.
+
+### Pi replacement and remaining acceptance
+
+After the user released the idle Pi, a fresh stopped-app backup retained all
+1,719 application files and the verified installed 2.2.0.8 rollback APK. The
+upgrade preserves user files after bootstrap extraction and excludes runtime
+and extraction markers from restoration. No machine movement was initiated by
+the agent. The final device verification is recorded with the release evidence
+in `pi-ux-deployment.json` and `pi-ux-verification.json`.
+
+The Pi now runs 2.2.0.9/20209 as its sole controller package. The restored
+preferences match the backup except for the expected application version
+metadata. The existing USB permission survived replacement, and the controller
+reconnected to the CA1, which reported firmware 2.2.0c and Sleep state. No reset,
+unlock, motion, spindle action, or probe operation was requested. The temporary
+profiling flag is removed before handoff.
+
+The measured normal launch reached the event loop in 16.2 seconds, including
+ADB polling overhead; Android boot itself was not remeasured. Four injected
+presses produced 34.2 ms median feedback, a reported 103.0 ms p95, and a
+264.9 ms maximum. Two exceeded 100 ms. This small sample includes first-use
+work and cannot establish the device's p95 target; Pi responsiveness acceptance
+remains open. The larger local sample must not be substituted for this result.
+
+Settings loaded successfully and returned to its full layout after Back hid
+the native keyboard. Intermediate screenshots during the keyboard transition
+showed a reduced window; settled screenshots must be used when assessing the
+final bounds. Injected ADB text did not establish real typing correctness, so
+the native keyboard is not signed off. The inline color value/action in wide
+settings still clips at the right edge and needs a further layout correction.
+First opening Settings can briefly show its empty frame while controls load.
+
+Touchscreen feel, storage denial/return, and live probe cancellation still need
+user validation. The user must operate any movement and cancellation checks;
+simulated success does not establish physical stop behavior. Device-dependent
+acceptance remains open for those checks.

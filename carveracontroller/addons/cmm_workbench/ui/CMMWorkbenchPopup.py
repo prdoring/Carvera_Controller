@@ -510,9 +510,25 @@ class CMMWorkbenchPopup(ModalView):
             wy = float(CNC.vars.get("wy", 0.0))
             wz = float(CNC.vars.get("wz", 0.0))
             position = f"X {wx:+.4f}  Y {wy:+.4f}  Z {wz:+.4f}"
+            if App.get_running_app().android_touch:
+                lbl.font_size = sp(16)
             lbl.text = position if App.get_running_app().android_touch else f"[b]{tr._('Current position')}[/b]\nX  {wx:+.4f}   Y  {wy:+.4f}   Z  {wz:+.4f}"
         except Exception:
             logger.debug("Could not refresh live position label", exc_info=True)
+
+    def show_current_position(self):
+        from carveracontroller.ui.android_layout import DialogActions, DialogLabel, DialogSurface
+
+        self._tick_wcs_live()
+        surface = DialogSurface(orientation="vertical", padding=dp(12))
+        surface.add_widget(DialogLabel(text=self.ids.lbl_wcs_live.text.replace("  ", "\n")))
+        actions = DialogActions()
+        close = Button(text=tr._("Close"))
+        actions.add_widget(close)
+        surface.add_widget(actions)
+        popup = Popup(title=tr._("Current position"), content=surface)
+        close.bind(on_release=lambda *_: popup.dismiss())
+        popup.open()
 
     def _sync_manual_wcs_fields_from_machine(self, *_args):
         try:

@@ -45,9 +45,10 @@ def mobile(kivy_app):
     from carveracontroller.ui.android_layout import AndroidTouchLayout
 
     app = kivy_app
-    original = (Window.size, Metrics.density, Metrics.fontscale, app.touch_target, app.android_touch)
+    original = (Window.system_size, Metrics.density, Metrics.fontscale, app.touch_target, app.android_touch)
     app.android_touch = True
     Metrics.density = 1
+    Metrics.fontscale = 1
     app.touch_target = 48
     layout = AndroidTouchLayout(app)
     app._touch_layout = layout
@@ -59,8 +60,20 @@ def mobile(kivy_app):
         app.android_keyboard_height = 0
         layout.stop()
         app._touch_layout = None
-        Window.size, Metrics.density, Metrics.fontscale, app.touch_target, app.android_touch = original
+        window_size, Metrics.density, Metrics.fontscale, app.touch_target, app.android_touch = original
+        Window.size = window_size
         pump_frames(3)
+
+
+def set_window_size(size):
+    """Request physical framebuffer pixels on both scaled and unscaled hosts."""
+    from kivy.core.window import Window
+
+    ratio = Window.size[0] / Window.system_size[0]
+    Window.minimum_width = Window.minimum_height = 0
+    Window.size = tuple(round(value / ratio) for value in size)
+    pump_frames(6)
+    assert tuple(Window.size) == tuple(size)
 
 
 def pump_frames(count=10, sleep=0):

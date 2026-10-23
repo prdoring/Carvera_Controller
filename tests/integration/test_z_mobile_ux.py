@@ -218,7 +218,12 @@ def test_large_text_main_controls_contain_their_labels(mobile):
         pump_frames(8)
         summary = app.root._mobile_jog_summary
         assert summary.height >= summary.texture_size[1]
-        assert app.root._mobile_action_groups[0].parent.parent.height >= app.touch_target
+        assert app.root._mobile_action_groups[0].parent is None
+        before = list(app.simulation.commands)
+        main.show_machine_actions()
+        pump_frames(8)
+        assert app.root._mobile_action_groups[0].get_root_window() is Window
+        assert app.simulation.commands == before
         before = list(app.simulation.commands)
         main.show_jog_settings()
         pump_frames(8)

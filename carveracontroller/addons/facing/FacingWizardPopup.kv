@@ -74,6 +74,7 @@
                 text: tr._('G-code preview')
                 on_release: root.show_gcode_preview = self.state == 'down'
         DialogLabel:
+            id: facing_program_status
             text: root.program_state
             text_role: 'secondary'
             height: self.texture_size[1] + dp(8)

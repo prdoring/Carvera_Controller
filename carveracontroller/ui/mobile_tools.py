@@ -4,6 +4,7 @@ import re
 
 from kivy.app import App
 from kivy.core.window import Window
+from kivy.lang import Builder
 from kivy.metrics import Metrics, dp, sp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -23,6 +24,7 @@ from .android_layout import (
     DialogLabel,
     DialogSurface,
     TouchActionRow,
+    _text_width,
     control_height,
     fit_form_grid,
     fit_tabs,
@@ -41,11 +43,12 @@ def operation_selector(panel):
     parent.remove_widget(panel)
     panel.size_hint = (1, 1)
     selector = Spinner(font_size=sp(16), size_hint_y=None)
+    selector._mobile_keyboard_secondary = True
     tabs = list(reversed(panel.tab_list))
     selector.values = [tab.text for tab in tabs]
     def select(_spinner, text):
         for tab in tabs:
-            if tab.text == text and panel.current_tab is not tab:
+            if tab.text == text and panel.current_tab != tab:
                 panel.switch_to(tab)
                 break
     def sync(*_args):
@@ -82,7 +85,7 @@ def adapt_probe_settings(settings):
     app = App.get_running_app()
     if app is None or not app.android_touch:
         return
-    for widget in settings.walk():
+    for widget in settings.walk(restrict=True):
         if isinstance(widget, GridLayout) and widget.row_force_default:
             widget.cols = 1
             widget.row_default_height = control_height()
@@ -107,6 +110,31 @@ def adapt_probe_settings(settings):
                     child.font_size = sp(16)
                     child.size_hint_min_x = 0
                     child.halign = "left"
+            row = widget.parent
+            if isinstance(row, BoxLayout) and not getattr(row, "_mobile_parameter_bound", False):
+                row._mobile_parameter_bound = True
+                label_box = widget
+                label = next(child for child in widget.children if isinstance(child, Label))
+                fields = [child for child in row.children if child != widget]
+                original = {child: tuple(child.size_hint) for child in row.children}
+                def fit_parameter(*_args, row=row, label_box=label_box, label=label, fields=fields, original=original):
+                    needed = _text_width(label.text, label.font_name, sp(16)) + dp(40) + max(dp(120), sp(16) * 6)
+                    stacked = row.width < needed
+                    row._mobile_stacked_form = stacked
+                    row.orientation = "vertical" if stacked else "horizontal"
+                    for child in row.children:
+                        child.size_hint = (1, None) if stacked else original[child]
+                    if stacked:
+                        label_box.height = max(control_height(), label.texture_size[1] + dp(12))
+                        row.height = label_box.height + sum(field.height for field in fields) + row.spacing * len(fields) + sum(row.padding[1::2])
+                    else:
+                        row.height = max(control_height(), label.texture_size[1] + dp(12))
+                row.bind(width=fit_parameter)
+                label.bind(texture_size=fit_parameter)
+                for field in fields:
+                    field.bind(height=fit_parameter)
+                Metrics.bind(density=fit_parameter, fontscale=fit_parameter)
+                fit_parameter()
     layout = getattr(app, "_touch_layout", None)
     if layout is not None:
         layout.size_controls(settings)
@@ -115,7 +143,18 @@ def adapt_probe_settings(settings):
 def select_panes(parent, first, second, first_title, second_title, compact):
     """Keep at least one existing pane visible; retain its contents and state."""
     app = App.get_running_app()
-    selectors = TouchActionRow(spacing=dp(6))
+    panel = next(widget for widget in first.walk(restrict=True) if isinstance(widget, TabbedPanel))
+    operations = {tr._(first_title) + " · " + tab.text: tab for tab in reversed(panel.tab_list)}
+    def capture_title():
+        return next(name for name, tab in operations.items() if tab == panel.current_tab)
+    selectors = Spinner(text=capture_title(), values=(*operations, tr._(second_title)),
+                        size_hint_y=None, height=control_height())
+    selectors._mobile_keyboard_secondary = True
+    selectors.disabled = panel.disabled
+    panel.bind(disabled=lambda _panel, value: setattr(selectors, "disabled", value))
+    original_selector = panel.mobile_selector
+    selector_parent = original_selector.parent
+    selector_index = selector_parent.children.index(original_selector)
     hints = {first: tuple(first.size_hint), second: tuple(second.size_hint)}
     buttons = []
     def apply(_button=None):
@@ -136,9 +175,14 @@ def select_panes(parent, first, second, first_title, second_title, compact):
     for pane, title in ((first, first_title), (second, second_title)):
         button = ToggleButton(text=tr._(title), state="down" if pane is first or not compact else "normal")
         button.bind(on_release=apply)
-        selectors.add_widget(button)
         buttons.append(button)
-    parent.add_widget(selectors, index=len(parent.children))
+    def choose(_selector, text):
+        selected = buttons[1] if text == tr._(second_title) else buttons[0]
+        if text in operations and panel.current_tab != operations[text]:
+            panel.switch_to(operations[text])
+        selected.state = "down"
+        apply(selected)
+    selectors.bind(text=choose)
     def reflow(*_args):
         if not app.compact_layout:
             for button in buttons:
@@ -146,11 +190,19 @@ def select_panes(parent, first, second, first_title, second_title, compact):
         if app.compact_layout and sum(button.state == "down" for button in buttons) > 1:
             buttons[1].state = "normal"
         apply()
+        selectors.height = control_height()
+        selectors.text = capture_title() if buttons[0].state == "down" else tr._(second_title)
+        if app.compact_layout and original_selector.parent is not None:
+            original_selector.parent.remove_widget(original_selector)
+        elif not app.compact_layout and original_selector.parent is None:
+            selector_parent.add_widget(original_selector, index=selector_index)
         if app.compact_layout and selectors.parent is None:
             parent.add_widget(selectors, index=len(parent.children))
         elif not app.compact_layout and selectors.parent is not None:
             parent.remove_widget(selectors)
     app.bind(compact_layout=reflow)
+    panel.bind(current_tab=lambda *_: setattr(selectors, "text", capture_title()) if buttons[0].state == "down" else None)
+    Metrics.bind(density=reflow, fontscale=reflow)
     reflow()
     return selectors
 
@@ -159,12 +211,15 @@ def prepare_tool_dialog(modal, app):
     if getattr(modal, "_mobile_tool_prepared", False):
         return
     modal._mobile_tool_prepared = True
-    panels = [w for w in modal.walk() if isinstance(w, TabbedPanel)]
+    panels = [w for w in modal.walk(restrict=True) if isinstance(w, TabbedPanel)]
     name = type(modal).__name__
     if name == "CoordPopup":
+        for widget in modal.walk(restrict=True):
+            if isinstance(widget, Label) and widget.text == tr._("Config and Run"):
+                widget.parent._mobile_keyboard_secondary = True
         toggle = modal.ids.show_illustration
         toggle.parent.remove_widget(toggle)
-        scroll = next(widget for widget in modal.walk() if isinstance(widget, ScrollView))
+        scroll = next(widget for widget in modal.walk(restrict=True) if isinstance(widget, ScrollView))
         options = scroll.children[0]
         secondary = list(reversed(options.children))[:3]
         for widget in secondary:
@@ -175,7 +230,7 @@ def prepare_tool_dialog(modal, app):
         for key, title in (("btn_origin", "Set work origin"), ("btn_zprobe", "Configure Z probing"), ("btn_leveling", "Configure leveling")):
             if key in modal.ids:
                 modal.ids[key].text = tr._(title)
-        for widget in modal.walk():
+        for widget in modal.walk(restrict=True):
             if isinstance(widget, Button) and widget.text in (tr._("Run"), tr._("Do ") + modal.mode):
                 style_action(widget, "primary")
         return
@@ -186,7 +241,39 @@ def prepare_tool_dialog(modal, app):
         return
     for panel in panels:
         operation_selector(panel)
+    if name == "ProbingPopup":
+        outer = modal.ids.btn_close.parent.parent
+        primary = modal.ids.tabbedpanelid
+        while primary.parent != outer:
+            primary = primary.parent
+        for row in outer.children:
+            if row != primary and row != modal.ids.btn_close.parent:
+                row._mobile_keyboard_secondary = True
+                help_button = next((child for child in row.children if type(child).__name__ == "HelpButton"), None)
+                if help_button is not None:
+                    warning = next(child for child in row.children if isinstance(child, Label))
+                    wording = warning.text
+                    row.remove_widget(help_button)
+                    for prop in ("height", "opacity", "disabled"):
+                        Builder.unbind_property(row, prop)
+                    row.height, row.opacity, row.disabled = 0, 0, True
+                    surface = DialogSurface(orientation="vertical", padding=dp(8))
+                    surface.add_widget(DialogLabel(text=wording))
+                    actions = DialogActions()
+                    actions.add_widget(help_button)
+                    close = Button(text=tr._("Close"))
+                    actions.add_widget(close)
+                    surface.add_widget(actions)
+                    sheet = Popup(title=tr._("Probe requirements"), content=surface)
+                    close.bind(on_release=lambda *_, target=sheet: target.dismiss())
+                    info = Button(text=tr._("Probe info"))
+                    info._mobile_keyboard_secondary = True
+                    info.bind(on_release=lambda *_, target=sheet: target.open())
+                    modal.ids.btn_close.parent.add_widget(info, index=1)
+                    modal._mobile_requirements = sheet
+                    modal.bind(on_dismiss=lambda *_, target=sheet: target.dismiss())
     if name == "CMMWorkbenchPopup":
+        style_action(modal.ids.cmm_save, "primary")
         left = panels[0].parent
         pair = left.parent
         right = next(w for w in pair.children if w is not left)
@@ -196,10 +283,10 @@ def prepare_tool_dialog(modal, app):
                         (modal.ids.cmm_save, modal.ids.cmm_cancel_probe, modal.ids.cmm_close), app)
         for panel in panels:
             for tab in panel.tab_list:
-                for grid in tab.content.walk():
+                for grid in tab.content.walk(restrict=True):
                     if isinstance(grid, GridLayout) and grid.cols == 2 and any(hasattr(child, "input_policy") for child in grid.children):
                         fit_form_grid(grid)
-        for widget in modal.walk():
+        for widget in modal.walk(restrict=True):
             if isinstance(widget, GridLayout) and widget.cols == 4:
                 widget.cols = max(1, int(widget.width / dp(160)))
                 widget.rows = None
@@ -214,7 +301,7 @@ def prepare_tool_dialog(modal, app):
             optional.parent.remove_widget(optional)
             modal._optional_panes = optional
         row = modal.ids.btn_generate_program.parent
-        compact_actions(modal, row, lambda button: button == modal.ids.btn_generate_program or getattr(button, "text", "") == tr._("Close"), app)
+        row.parent._mobile_keyboard_padding = True
         preview_button = Button(text=tr._("Views"))
         def show_views(*_args):
             surface = DialogSurface(orientation="vertical", padding=dp(8))
@@ -237,9 +324,11 @@ def prepare_tool_dialog(modal, app):
                 modal._optional_panes.add_widget(button)
         preview_button.bind(on_release=show_views)
         row.add_widget(preview_button)
+        compact_actions(modal, row, lambda button: button == modal.ids.btn_generate_program or getattr(button, "text", "") == tr._("Close"), app)
+        modal.ids.facing_program_status._mobile_keyboard_secondary = True
         for panel in panels:
             for tab in panel.tab_list:
-                for widget in tab.content.walk():
+                for widget in tab.content.walk(restrict=True):
                     if isinstance(widget, GridLayout) and widget.cols == 2:
                         widget.row_force_default = True
                         widget.row_default_height = max(app.touch_target, sp(16) * 2 + dp(16))
@@ -247,7 +336,7 @@ def prepare_tool_dialog(modal, app):
         # Put each existing field grid above its supporting help paragraph.
         for panel in panels:
             for tab in panel.tab_list:
-                for column in list(tab.content.walk()):
+                for column in list(tab.content.walk(restrict=True)):
                     if isinstance(column, BoxLayout) and column.orientation == "vertical" and len(column.children) == 2:
                         first, second = reversed(column.children)
                         if isinstance(first, Label) and isinstance(second, GridLayout):
@@ -315,7 +404,7 @@ def compact_features(modal, column, app):
 
 def prepare_jog_overlay(modal, app):
     modal._mobile_jog_ready = True
-    buttons = {widget.text: widget for widget in modal.walk() if isinstance(widget, JogTouchButton)}
+    buttons = {widget.text: widget for widget in modal.walk(restrict=True) if isinstance(widget, JogTouchButton)}
     # KV ids are weak proxies; retain the controls while replacing their parents.
     step_xy, step_a, step_z = (modal.ids[name].__self__ for name in ("scan_jog_step_xy", "scan_jog_step_a", "scan_jog_step_z"))
     settings = [modal.ids[name].__self__ for name in ("jog_speed_btn_scan", "jog_mode_btn_scan", "kb_jog_btn_scan", "pendant_jog_btn_scan")]
@@ -364,6 +453,7 @@ def prepare_jog_overlay(modal, app):
 def compact_actions(modal, row, keep, app):
     original = list(reversed(row.children))
     more = Button(text=tr._("More…"))
+    more._mobile_keyboard_secondary = True
     secondary = [widget for widget in original if widget.is_event_type("on_release") and not keep(widget)]
     current = [None]
     def dismiss_sheet(*_args):
@@ -405,3 +495,4 @@ def compact_actions(modal, row, keep, app):
         modal.bind(is_probing=reflow)
     modal.bind(on_dismiss=dismiss_sheet)
     reflow()
+    return more

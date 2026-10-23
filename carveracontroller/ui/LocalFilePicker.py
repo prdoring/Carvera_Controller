@@ -9,6 +9,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.factory import Factory
+from kivy.metrics import Metrics, dp, sp
 from kivy.properties import ListProperty, StringProperty
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.boxlayout import BoxLayout
@@ -21,7 +22,15 @@ from kivy.utils import platform
 from carveracontroller import Utils
 from carveracontroller.translation import tr
 
-from .android_layout import DialogActions, DialogLabel, DialogSurface, TouchActionRow, style_action
+from .android_layout import (
+    DialogActions,
+    DialogLabel,
+    DialogSurface,
+    TouchActionRow,
+    _text_width,
+    control_height,
+    style_action,
+)
 from .touch import Gesture
 
 
@@ -73,6 +82,71 @@ class LocalFilePickerSheet(BoxLayout):
         if platform == "android":
             App.get_running_app().bind(on_resume=self._resume_storage)
             self._refresh_storage_status()
+
+    def prepare_mobile_layout(self, owner):
+        if getattr(self, "_mobile_form", None) is not None:
+            return
+        owner._mobile_full_width = True
+        children = list(reversed(self.children))
+        header, chooser, caption, filename, actions = children
+        self.clear_widgets()
+        self.padding = self.spacing = 0
+        surface = DialogSurface(orientation="vertical", padding=dp(8), spacing=dp(8))
+        folder = Button(text=tr._("Choose folder"), size_hint_y=None, height=control_height())
+        folder._mobile_keyboard_secondary = caption._mobile_keyboard_secondary = True
+        name_row = BoxLayout(size_hint_y=None, spacing=dp(8))
+        caption.size_hint_x = None
+        caption.text_role = "secondary"
+        name_row.add_widget(caption)
+        name_row.add_widget(filename)
+        name_row.bind(minimum_height=name_row.setter("height"))
+        def fit_name(*_args):
+            caption.width = _text_width(caption.text, caption.font_name, sp(14)) + dp(16)
+        Metrics.bind(density=fit_name, fontscale=fit_name)
+        fit_name()
+        for widget in (folder, name_row, actions):
+            surface.add_widget(widget)
+        self.add_widget(surface)
+        self._mobile_form = surface
+        browser = BoxLayout(orientation="vertical", padding=dp(8), spacing=dp(8))
+        browser.add_widget(header)
+        browser.add_widget(chooser)
+        footer = DialogActions(spacing=dp(8))
+        use_folder = Button(text=tr._("Use folder"))
+        footer.add_widget(use_folder)
+        style_action(use_folder, "primary")
+        browser.add_widget(footer)
+        sheet = Popup(title=tr._("Choose folder"), content=browser, auto_dismiss=False)
+        sheet._mobile_workspace = True
+        self._mobile_browser = sheet
+        original = list(reversed(header.children))
+        header.clear_widgets()
+        header.add_widget(original[0])
+        original[0].size_hint_x = 1
+        options = Button(text=tr._("Options"))
+        header.add_widget(options)
+        option_surface = DialogSurface(orientation="vertical", padding=dp(8), spacing=dp(8))
+        for widget in original[1:]:
+            widget.size_hint_x = 1
+            widget.size_hint_y = None
+            widget.height = control_height()
+            option_surface.add_widget(widget)
+        option_footer = DialogActions()
+        close = Button(text=tr._("Close"))
+        option_footer.add_widget(close)
+        option_surface.add_widget(option_footer)
+        option_sheet = Popup(title=tr._("Folder options"), content=option_surface)
+        self._mobile_folder_options = option_sheet
+        options.bind(on_release=lambda *_: option_sheet.open())
+        close.bind(on_release=lambda *_: option_sheet.dismiss())
+        folder.bind(on_release=lambda *_: sheet.open())
+        use_folder.bind(on_release=lambda *_: sheet.dismiss())
+        owner.bind(on_dismiss=lambda *_: (sheet.dismiss(), option_sheet.dismiss()))
+        sheet.bind(on_dismiss=lambda *_: option_sheet.dismiss())
+        def folder_caption(*_args):
+            folder.text = tr._("Folder") + ": " + self.curr_dir_name
+        self.bind(curr_dir_name=folder_caption)
+        folder_caption()
 
     def _refresh_storage_status(self, *_args):
         self.storage_status = tr._("Storage access is available") if Utils.has_all_files_access() else tr._("Some folders need storage access. Your file name and folder stay here while you grant access.")

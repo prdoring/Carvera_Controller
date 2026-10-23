@@ -1780,10 +1780,18 @@ class WCSSettingsPopup(ModalView):
                 pass
 
         self.has_changes = has_changes
+        app = App.get_running_app()
+        mobile = app is not None and app.android_touch
         if hasattr(self.ids, "btn_ok"):
-            self.ids.btn_ok.text = tr._("Save Changes") if has_changes else tr._("Ok")
+            if mobile:
+                self.ids.btn_ok.text = tr._("Apply offsets")
+            else:
+                self.ids.btn_ok.text = tr._("Save Changes") if has_changes else tr._("Ok")
         if hasattr(self.ids, "btn_close"):
-            self.ids.btn_close.text = tr._("Close without saving") if has_changes else tr._("Close")
+            if mobile:
+                self.ids.btn_close.text = tr._("Discard offsets") if has_changes else tr._("Close")
+            else:
+                self.ids.btn_close.text = tr._("Close without saving") if has_changes else tr._("Close")
 
 
 class SetRotationPopup(ModalView):
