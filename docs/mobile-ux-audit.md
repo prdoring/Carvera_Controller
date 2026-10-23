@@ -948,9 +948,21 @@ Settings loaded successfully and returned to its full layout after Back hid
 the native keyboard. Intermediate screenshots during the keyboard transition
 showed a reduced window; settled screenshots must be used when assessing the
 final bounds. Injected ADB text did not establish real typing correctness, so
-the native keyboard is not signed off. The inline color value/action in wide
-settings still clips at the right edge and needs a further layout correction.
-First opening Settings can briefly show its empty frame while controls load.
+the native keyboard is not signed off. First opening Settings can briefly show
+its empty frame while controls load.
+
+The clipped inline color setting is corrected in a source follow-up after the
+Pi installation. Its RGB value wraps above the existing preview and picker
+action, and longer action labels increase the row height instead of extending
+outside it. The existing picker, staged value, and cancellation behavior are
+preserved. All 12 focused settings/layout checks passed, including four color
+row configurations, long labels, and cancellation without machine commands.
+Local Kivy renders show the [Pi-sized color row](mobile-ux-verified/color-row-local-1920.png)
+and [enlarged compact color row](mobile-ux-verified/color-row-local-800.png).
+The focused test run also emitted a Kivy widget-destructor warning during
+teardown; its assertions passed.
+The installed Pi APK remains the build described above; this follow-up will
+be included in the next APK. Its native device check remains pending.
 
 Touchscreen feel, storage denial/return, and live probe cancellation still need
 user validation. The user must operate any movement and cancellation checks;

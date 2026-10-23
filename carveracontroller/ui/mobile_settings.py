@@ -177,6 +177,28 @@ class MobileSettings:
         parent.add_widget(value_row, index=index)
         item._mobile_value_row = value_row
         item._mobile_info = info
+        color_layout = None
+        from carveracontroller.custom_widgets import SettingColorPicker
+        if isinstance(item, SettingColorPicker):
+            inner = item.color_preview.parent
+            picker_button = next(child for child in inner.children if isinstance(child, Button))
+            inner.clear_widgets()
+            inner.orientation = 'vertical'
+            inner.padding = 0
+            inner.spacing = dp(8)
+            actions = BoxLayout(size_hint_y=None, spacing=dp(8))
+            picker_button.text = tr._('Choose color')
+            picker_button.size_hint = (1, 1)
+            picker_button.halign = 'center'
+            picker_button.valign = 'middle'
+            item.color_label.size_hint = (1, None)
+            actions.add_widget(item.color_preview)
+            actions.add_widget(picker_button)
+            inner.add_widget(item.color_label)
+            inner.add_widget(actions)
+            color_layout = (inner, actions, picker_button)
+            item.color_label.bind(width=lambda widget, width: setattr(widget, 'text_size', (max(1, width), None)))
+            picker_button.bind(width=lambda widget, width: setattr(widget, 'text_size', (max(1, width - dp(24)), None)))
         def wording(*_args):
             text = f"[b]{escape_markup(item.title or '')}[/b]"
             if not (self.app.compact_layout and Metrics.fontscale > 1.25):
@@ -196,8 +218,16 @@ class MobileSettings:
             info.opacity = int(info_visible)
             info.disabled = not info_visible
             value_row.size_hint_x = 1 if stacked else None
-            value_row.width = max(dp(160), sp(16) * 8) + info.width
+            if not stacked:
+                value_row.width = max(dp(240 if color_layout else 160), sp(16) * 8) + info.width
             value_row.height = control_height()
+            if color_layout is not None:
+                inner, actions, picker_button = color_layout
+                item.color_preview.width = control_height()
+                actions.height = max(control_height(), picker_button.texture_size[1] + dp(16))
+                item.color_label.height = item.color_label.texture_size[1] + dp(8)
+                inner.height = actions.height + item.color_label.height + inner.spacing
+                value_row.height = inner.height
             label.height = label.texture_size[1] + dp(12)
             desired = (label.height + value_row.height if stacked else max(label.height, value_row.height)) + dp(12)
             if item._search_hidden:
@@ -206,6 +236,9 @@ class MobileSettings:
             else:
                 item.height = desired
         label.bind(texture_size=fit)
+        if color_layout is not None:
+            item.color_label.bind(texture_size=fit)
+            color_layout[2].bind(texture_size=fit)
         item.bind(width=fit)
         item._mobile_fit = fit
         fit()

@@ -1,4 +1,6 @@
-from tests.integration.conftest import pump_frames
+import pytest
+
+from tests.integration.conftest import pump_frames, set_window_size
 
 
 def test_settings_content_survives_collection_while_reparented(mobile, monkeypatch):
@@ -93,6 +95,52 @@ def test_wrapping_actions_reserve_padding_and_spacing(mobile):
     assert row.cols < 3
     assert all(widget.width >= app.touch_target for widget in row.children)
     assert all(widget.right <= row.right - row.padding[2] + 1 for widget in row.children)
+
+
+@pytest.mark.parametrize('size,density,fontscale', [
+    ((1920, 1080), 1.5, 1),
+    ((800, 480), 1, 1),
+    ((800, 480), 1.5, 2),
+    ((1024, 600), 1.5, 2),
+])
+def test_color_setting_value_and_action_fit_after_scaling(mobile, size, density, fontscale):
+    from kivy.metrics import Metrics
+    from kivy.uix.button import Button
+
+    from carveracontroller.custom_widgets import SettingColorPicker
+
+    app, layout = mobile
+    before = list(app.simulation.commands)
+    set_window_size(size)
+    Metrics.density, Metrics.fontscale = density, fontscale
+    app.touch_target = 48 * density
+    layout.update()
+    popup = app.root.config_popup
+    popup.open(animation=False)
+    pump_frames(20)
+    manager = popup._mobile_settings
+    item = next(row for row in manager._rows if isinstance(row, SettingColorPicker))
+    action = next(widget for widget in item.content.walk(restrict=True) if isinstance(widget, Button))
+    value = item.value
+    assert action.right <= item._mobile_value_row.right + 1
+    assert action.x >= item._mobile_value_row.x - 1
+    assert action.height >= app.touch_target
+    assert item.color_label.texture_size[0] <= item.color_label.width + 1
+    assert item.color_label.texture_size[1] <= item.color_label.height + 1
+    original = action.text
+    try:
+        action.text = 'Choose this highlight colour for the active machine controls'
+        pump_frames(15)
+        assert action.texture_size[0] <= action.width + 1
+        assert action.texture_size[1] <= action.height + 1
+        action.dispatch('on_release')
+        pump_frames(12)
+        assert item._popup._is_open
+        item._popup.dismiss(force=True, animation=False)
+        assert item.value == value
+        assert app.simulation.commands == before
+    finally:
+        action.text = original
 
 
 def test_android_picker_starts_in_writable_controller_files(mobile, monkeypatch):
