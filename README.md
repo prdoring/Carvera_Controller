@@ -44,6 +44,8 @@ To contribute to this project or set up a local development environment, follow 
 * For building iOS app, you need a working XCode installation as well as the build tool that can be installed with `brew install autoconf automake libtool pkg-config`
 * Building the Android app needs a Linux host. The prerequisites can be found here: [buildozer prerequisites](https://buildozer.readthedocs.io/en/latest/installation.html). A script to install them is provided in `scripts/install_android_prereqs.sh`. Be aware that buildozer downloads/installs multiple GB of Android development tooling.
 
+For Windows development and Android device testing, see the [Windows and Android development guide](docs/windows-android-development.md).
+
 ### Installing Poetry
 
 Follow the official installation instructions to install Poetry. The simplest method is via the command line:
