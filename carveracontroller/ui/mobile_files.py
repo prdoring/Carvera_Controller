@@ -1,5 +1,7 @@
 """File actions and destinations with the existing controller callbacks."""
 
+import os
+
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.lang import Builder
@@ -27,6 +29,10 @@ from .android_layout import (
 )
 
 
+def _root_directory(view):
+    return view.base_dir or os.path.abspath(os.path.join(view.curr_dir, os.sep))
+
+
 def prepare_file_browser(popup):
     if getattr(popup, "_mobile_files_ready", False):
         return
@@ -44,7 +50,7 @@ def prepare_file_browser(popup):
         rv = next(child for child in proxy.parent.children if child == proxy)
         pages[name] = {"rv": rv}
     sources = []
-    for name, header, title in (("remote", remote, tr._("On the mill")), ("local", popup.ids.local_file_header, tr._("On this device"))):
+    for name, header, title in (("remote", remote, tr._("Mill")), ("local", popup.ids.local_file_header, tr._("Device"))):
         pages[name]["header"] = header
         pages[name]["directories"] = next(child for child in header.children if isinstance(child, BoxLayout)
                                           and any(hasattr(item, "data_text") for item in child.children))
@@ -52,12 +58,12 @@ def prepare_file_browser(popup):
             if isinstance(child, Label) and not isinstance(child, ButtonBehavior) and child.text:
                 index = header.children.index(child)
                 header.remove_widget(child)
-                source = Spinner(text=title, values=(tr._("On this device"), tr._("On the mill")), size_hint_x=.45)
+                source = Spinner(text=title, values=(tr._("Device"), tr._("Mill")), size_hint_x=.45)
                 header.add_widget(source, index=index)
                 sources.append(source)
                 pages[name]["source"] = source
                 def choose(_widget, text):
-                    target = "local_page" if text == tr._("On this device") else "remote_page"
+                    target = "local_page" if text == tr._("Device") else "remote_page"
                     if popup.popup_manager.current != target:
                         if target == "local_page":
                             app.root.open_upload_local_file_popup()
@@ -73,7 +79,7 @@ def prepare_file_browser(popup):
         header.height = control_height()
     def sync_source(_manager, page):
         for source in sources:
-            source.text = tr._("On this device") if page == "local_page" else tr._("On the mill")
+            source.text = tr._("Device") if page == "local_page" else tr._("Mill")
     popup.popup_manager.bind(current=sync_source)
     actions = [child for child in reversed(remote.children) if isinstance(child, Button) and not isinstance(child, Spinner)]
     for child in actions:
@@ -157,7 +163,7 @@ def prepare_file_browser(popup):
         row.add_widget(search_bar)
         path = Button(text=rv.curr_dir, shorten=True)
         path.bind(size=lambda item, size: setattr(item, "text_size", (max(1, size[0] - dp(16)), None)))
-        rv.bind(curr_path_list=lambda _rv, _paths, item=path, view=rv: setattr(item, "text", view.curr_dir))
+        rv.bind(curr_dir=lambda _rv, directory, item=path: setattr(item, "text", directory))
         row.add_widget(path, index=1)
         def show_path(_button, view=rv):
             surface = DialogSurface(orientation="vertical", padding=dp(12))
@@ -221,9 +227,7 @@ def _finish_file_layout(popup, pages, remote_actions, local_actions, show_action
     open_button = next(child for child in remote_footer.children if child == popup.ids.btn_select)
     close_button = next(child for child in remote_footer.children if getattr(child, "text", "") == tr._("Close"))
     clear_job = next(child for child in remote_footer.children if child not in (open_button, close_button))
-    clear_job.text = tr._("Clear current job")
-    clear_job.bind(on_release=lambda *_: popup._file_action_sheet.dismiss())
-    remote_actions.append(clear_job)
+    clear_job.text = tr._("Clear Job")
     selection = popup.ids.remote_selection_bar
     mode_button = next(child for child in selection.children if isinstance(child, Button))
     counter = next(child for child in selection.children if type(child) is Label)
@@ -236,10 +240,12 @@ def _finish_file_layout(popup, pages, remote_actions, local_actions, show_action
     remote_footer.clear_widgets()
     parent.remove_widget(remote_footer)
     footer = TouchActionRow(spacing=dp(6))
-    for button in (close_button, mode_button, open_button):
+    for button in (close_button, clear_job, open_button):
         button.size_hint = (1, 1)
         footer.add_widget(button)
     parent.add_widget(footer, index=footer_index)
+    mode_button.bind(on_release=lambda *_: popup._file_action_sheet.dismiss())
+    remote_actions.append(mode_button)
     pages["remote"].update(footer=footer, mode=mode_button, counter=counter)
     local_footer = pages["local"]["footer"]
     local_footer.clear_widgets()
@@ -353,17 +359,38 @@ def _finish_file_layout(popup, pages, remote_actions, local_actions, show_action
         search.bind(text=filtered)
         filtered(search, search.text)
         page["path_row"].add_widget(launch)
+        up = Button(text=tr._("Up"), size_hint_x=None)
+        up.bind(on_release=lambda _button, view=rv: view.parent_dir())
+        page["path_row"].add_widget(up, index=len(page["path_row"].children))
+        root = Button(text=tr._("Root"), size_hint_x=None)
+        root.bind(on_release=lambda _button, view=rv: view.list_dir(new_dir=_root_directory(view)))
+        page["path_row"].add_widget(root, index=len(page["path_row"].children))
+        retry = Button(text=tr._("Refresh"), size_hint_x=None)
+        retry.bind(on_release=lambda _button, view=rv: view.list_dir())
+        header.add_widget(retry, index=1)
+        page.update(up=up, root=root, retry=retry)
+        def retry_caption(_view, _state, page=page):
+            page["retry"].text = tr._("Retry") if getattr(page["rv"], "_directory_error", "") else tr._("Refresh")
+        rv.bind(browser_state=retry_caption)
+        retry_caption(rv, rv.browser_state)
+        def navigation(_view, directory, page=page):
+            page["up"].disabled = os.path.normpath(directory) == os.path.normpath(_root_directory(page["rv"]))
+            page["root"].disabled = page["up"].disabled
+        rv.bind(curr_dir=navigation)
+        navigation(rv, rv.curr_dir)
         popup._mobile_search_sheets[name] = sheet
         popup._mobile_search_buttons[name] = launch
         page["search_button"] = launch
 
         def reflow(*_args, page=page):
+            for button in (page["source"], page["path"], page["menu"], page["search_button"], page["up"], page["root"], page["retry"]):
+                button.size_hint_min_y = app.touch_target
             page["header"].height = page["path_row"].height = control_height()
             page["header"].spacing = page["path_row"].spacing = dp(6)
             page["path_row"].padding = 0
             page["footer"].spacing = dp(6)
             page["search"].height = control_height()
-            for button in (page["menu"], page["search_button"]):
+            for button in (page["menu"], page["search_button"], page["up"], page["root"], page["retry"]):
                 button.width = max(app.touch_target, _text_width(button.text, button.font_name, sp(16)) + dp(24))
             page["rv"].layout_manager.default_size = (None, max(dp(72), sp(16) * 2.6 + dp(16)))
             if "counter" in page:
@@ -375,6 +402,7 @@ def _finish_file_layout(popup, pages, remote_actions, local_actions, show_action
         if "counter" in page:
             page["counter"].bind(text=reflow)
         launch.bind(text=reflow)
+        retry.bind(text=reflow)
         Metrics.bind(density=reflow, fontscale=reflow)
         app.bind(touch_target=reflow)
         header.bind(width=reflow)

@@ -11,6 +11,7 @@ from kivy.uix.dropdown import DropDown
 from kivy.uix.label import Label
 from kivy.uix.slider import Slider
 from kivy.uix.switch import Switch
+from kivy.uix.widget import Widget
 
 
 class DropdownLayout:
@@ -26,6 +27,9 @@ class DropdownLayout:
         dropdown = self.dropdown
         dropdown.container.padding = dp(6)
         dropdown.container.spacing = dp(4)
+        dropdown.bar_width = dp(8)
+        dropdown.bar_inactive_color = (.55, .60, .65, .65)
+        dropdown.scroll_type = ["bars", "content"]
         change = getattr(dropdown, "change_dropdown", None)
         if change is not None:
             button = next((child for child in dropdown.container.children if child == change), None)
@@ -101,6 +105,8 @@ class DropdownLayout:
                     child.height = height
                 return sum(heights) + max(0, len(heights) - 1) * widget.spacing + sum(widget.padding[1::2])
             return max(heights, default=0) + sum(widget.padding[1::2])
+        if type(widget) is Widget:
+            return 0
         return widget.height
 
     def fit(self, *_args):

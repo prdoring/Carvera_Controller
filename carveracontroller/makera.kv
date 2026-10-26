@@ -860,13 +860,14 @@
             id: status_temp
             title: tr._('Temp:')
             value: '10 C'
-    DropDownHint:
-        text: tr._(' Auto Vacuum')
     BoxLayout:
         padding: '0.5dp'
         size_hint_y: None
         height: app.touch_target if app.android_touch else dp(40)
         disabled: app.model != 'C1'
+        Label:
+            text: tr._('Auto Vacuum')
+            font_size: '16sp'
         Switch:
             id: vacuum_switch
             canvas.before:
@@ -879,13 +880,14 @@
             on_active:
                 if self.set_flag: self.set_flag = False
                 else: app.root.update_control('vacuum_mode', self.active)
-    DropDownHint:
-        text: tr._(' Auto Ext. Out')
     BoxLayout:
         padding: '0.5dp'
         size_hint_y: None
         height: app.touch_target if app.android_touch else dp(40)
         disabled: not (app.is_community_firmware and app.fw_version_digitized >= digitize_v("2.2.0"))
+        Label:
+            text: tr._('Auto Ext. Out')
+            font_size: '16sp'
         Switch:
             id: extout_switch
             canvas.before:
@@ -3906,7 +3908,7 @@
             ToolTipButton:
                 id: viewer_panes_toggle
                 size_hint_x: None
-                width: app.touch_target if app.android_touch and content.current == 'File' and not app.android_keyboard_height else 0
+                width: app.touch_target if app.android_touch and content.current == 'File' else 0
                 size_hint_min_x: 0
                 opacity: 1 if self.width else 0
                 disabled: not self.opacity
@@ -4322,15 +4324,15 @@
                     DisclosurePanel:
                         id: viewer_panes_host
                         size_hint_y: None
-                        height: viewer_panes.minimum_height if app.android_touch and app.viewer_panes_expanded and not app.android_keyboard_height else 0
+                        height: viewer_panes.minimum_height if app.android_touch and app.viewer_panes_expanded else 0
                         opacity: 1 if self.height else 0
                         disabled: not self.opacity
                         TouchActionRow:
                             id: viewer_panes
                             size_hint_y: None
                             height: self.minimum_height
-                            opacity: 1 if app.android_touch and not app.android_keyboard_height else 0
-                            disabled: not app.android_touch or bool(app.android_keyboard_height)
+                            opacity: 1 if app.android_touch else 0
+                            disabled: not app.android_touch
                             spacing: dp(6)
                             ToggleButton:
                                 text: tr._('Preview')
@@ -4476,7 +4478,8 @@
                                             BoxLayout:
                                                 orientation: 'horizontal'
                                                 size_hint_y: None
-                                                height: min(max(dp(96), self.parent.height * .45), max(app.touch_target, self.parent.height)) if app.android_touch else dp(66)
+                                                padding: 0, 0, 0, (max(0, app.android_keyboard_height - self.to_window(*self.pos)[1] + dp(8)) if app.android_touch and manual_cmd.focus and app.android_keyboard_height else 0)
+                                                height: ((max(app.touch_target, manual_cmd.line_height + dp(16)) if manual_cmd.focus and app.android_keyboard_height else min(max(dp(96), self.parent.height * .45), max(app.touch_target, self.parent.height))) + self.padding[3]) if app.android_touch else dp(66)
                                                 ToolTipButton:
                                                     id: toggle_file
                                                     width: 0 if app.android_touch else dp(40)
@@ -4511,10 +4514,10 @@
                                                     on_release:
                                                         root.send_cmd()
                         FloatBox:
-                            size_hint_x: (1 if app.show_preview and not app.android_keyboard_height else None) if app.android_touch else 1
-                            width: 0 if app.android_touch and (not app.show_preview or app.android_keyboard_height) else dp(400)
-                            opacity: 0 if app.android_touch and (not app.show_preview or app.android_keyboard_height) else 1
-                            disabled: app.android_touch and (not app.show_preview or app.android_keyboard_height)
+                            size_hint_x: (1 if app.show_preview else None) if app.android_touch else 1
+                            width: 0 if app.android_touch and not app.show_preview else dp(400)
+                            opacity: 0 if app.android_touch and not app.show_preview else 1
+                            disabled: app.android_touch and not app.show_preview
                             id: float_layout
                             color_scheme_panel: color_scheme_panel
                             camera_controls: camera_controls

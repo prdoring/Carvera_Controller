@@ -41,7 +41,11 @@ def move(motion, x, y):
 
 @pytest.fixture
 def jog():
+    from carveracontroller.Controller import Controller
+
     controller = SimpleNamespace(
+        jog_mode=Controller.JOG_MODE_CONTINUOUS,
+        JOG_MODE_CONTINUOUS=Controller.JOG_MODE_CONTINUOUS,
         continuous_jog_active=False, _continuous_jog_stopping=False,
         jog=Mock(), stopContinuousJog=Mock(), stream=object(),
     )
@@ -119,6 +123,100 @@ def test_stopping_jog_cannot_restart(jog):
     controller._continuous_jog_stopping = True
     dispatch("begin", finger())
     controller.jog.assert_not_called()
+
+
+def test_step_tap_is_not_blocked_by_an_old_continuous_stop(jog):
+    from carveracontroller.Controller import Controller
+
+    _, controller, _ = jog
+    controller.jog_mode = Controller.JOG_MODE_STEP
+    controller.continuous_jog_active = controller._continuous_jog_stopping = True
+    motion = finger()
+    dispatch('begin', motion)
+    dispatch('end', motion)
+    controller.jog.assert_called_once_with('X1')
+
+
+def test_lost_release_does_not_keep_owning_the_jog_buttons(jog):
+    button, controller, _ = jog
+    motion = finger()
+    dispatch("begin", motion)
+    EventLoop.touches.remove(motion)
+    button._check_jog(0)
+    controller.stopContinuousJog.assert_called_once()
+    assert button._jog_touch is None
+    fresh = finger(ident="fresh")
+    dispatch("begin", fresh)
+    dispatch("end", fresh)
+    assert controller.jog.call_count == 2
+
+
+def test_probe_automation_releases_an_unacknowledged_jog_stop(jog, monkeypatch):
+    from queue import Queue
+
+    from carveracontroller.CNC import CNC
+    from carveracontroller.Controller import Controller
+
+    monkeypatch.setattr(CNC, 'vars', dict(CNC.vars))
+    _, _, root = jog
+    controller = Controller.__new__(Controller)
+    controller.jog_mode = Controller.JOG_MODE_CONTINUOUS
+    controller.jog_speed = 300
+    controller.is_community_firmware = True
+    controller.continuous_jog_active = False
+    controller._continuous_jog_stopping = False
+    controller.stream = object()
+    controller.log = Queue()
+    controller.status_revision = 0
+    controller.executeCommand = Mock()
+    controller.executeRealtime = Mock()
+    root.controller = controller
+    controller.startContinuousJog("Y10")
+    controller.stopContinuousJog()
+    controller.setJogMode(Controller.JOG_MODE_STEP)
+    controller.parseLine("ok")  # Firmware's quick-release abort has no ^Y.
+    assert controller._continuous_jog_stopping
+    controller.parseLine("<Idle|MPos:0,0,0|WPos:0,0,0|A:0>")
+    assert controller._continuous_jog_stopping  # An Idle poll alone is not a stop acknowledgement.
+    controller.parseLine("<Run|MPos:0,0,0|WPos:0,0,0|A:1>")
+    controller.parseLine("Done ATC")
+    controller.parseLine("<Idle|MPos:0,0,0|WPos:0,0,0|A:0>")
+    assert not controller.continuous_jog_active
+    fresh = finger(ident="after-probe")
+    dispatch("begin", fresh)
+    dispatch("end", fresh)
+    assert controller.executeCommand.call_args_list[-1].args == ("$J X1 F300",)
+
+
+def test_jog_stop_acknowledgement_is_not_swallowed_by_a_directory_load():
+    from queue import Queue
+
+    from carveracontroller.Controller import Controller
+    from carveracontroller.protocols.messages import MessageKind, ParsedMessage
+
+    controller = Controller.__new__(Controller)
+    controller.continuous_jog_active = controller._continuous_jog_stopping = True
+    controller.loadNUM = 1
+    controller.load_buffer = Queue()
+    controller._handle_protocol_message(ParsedMessage(MessageKind.LINE, "^Y"))
+    assert not controller.continuous_jog_active
+    assert not controller._continuous_jog_stopping
+    assert controller.load_buffer.empty()
+
+
+def test_folder_data_updates_the_load_activity_time():
+    from queue import Queue
+
+    from carveracontroller.Controller import Controller
+    from carveracontroller.protocols.messages import MessageKind, ParsedMessage
+
+    controller = Controller.__new__(Controller)
+    controller.load_buffer = Queue()
+    controller.load_buffer_size = 0
+    with patch('carveracontroller.Controller.time.time', return_value=109):
+        controller._handle_protocol_message(ParsedMessage(MessageKind.LOAD_CHUNK, 'fixture.cnc 100 12345'))
+    assert controller.load_last_activity == 109
+    assert controller.load_buffer.get_nowait() == 'fixture.cnc 100 12345'
 
 
 def test_jog_acknowledgement_and_competing_input_do_not_replay_motion(jog):

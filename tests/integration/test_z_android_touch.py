@@ -215,7 +215,7 @@ def test_android_forms_remain_above_keyboard(kivy_app, which):
             assert modal.ids.jog_panel.disabled
         buttons = [widget for widget in modal.walk() if isinstance(widget, Button) and widget.opacity and widget.width]
         assert buttons
-        assert all(widget.size_hint_min_y >= 72 for widget in buttons)
+        assert all(widget.size_hint_min_y is not None and widget.size_hint_min_y >= 72 for widget in buttons), [(type(widget).__name__, widget.text, widget.size_hint_min_y) for widget in buttons if widget.size_hint_min_y is None or widget.size_hint_min_y < 72]
         if which == "position":
             button = modal.ids.btn_ok
             assert button.to_window(*button.pos)[1] >= 420
@@ -223,7 +223,7 @@ def test_android_forms_remain_above_keyboard(kivy_app, which):
             field.focus = True
             layout.focus_field(field)
             pump_frames(12, sleep=0.04)
-            assert field.focus
+            assert field._number_pad._is_open
             field.focus = False
         app.android_keyboard_height = 0
         pump_frames(4)

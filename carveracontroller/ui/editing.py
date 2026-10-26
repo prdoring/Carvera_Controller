@@ -63,22 +63,46 @@ class EditingTextInput(TextInput):
             self.validation_error = False
 
     def _bind_keyboard(self):
+        if self._uses_number_pad():
+            return
         if platform == "android":
             policy = self.effective_policy()
             self.input_type = "number" if policy in ("integer", "decimal") else "text"
             self.keyboard_suggestions = policy == "text"
         super()._bind_keyboard()
 
+    def _uses_number_pad(self):
+        app = App.get_running_app()
+        return bool(app and app.android_touch and not self.readonly
+                    and self.effective_policy() in ("integer", "decimal"))
+
     def _editing_focus(self, _widget, focused):
         if self._keyboard_event is not None:
             self._keyboard_event.cancel()
             self._keyboard_event = None
         self.validation_error = not focused and not self.draft_valid and bool(self.text.strip())
+        if focused and self._uses_number_pad():
+            self._keyboard_event = Clock.schedule_once(self._open_number_pad, 0)
+            return
         if focused and platform == "android":
             layout = getattr(App.get_running_app(), "_touch_layout", None)
             if layout is not None:
                 layout.focus_field(self)
             self._keyboard_event = Clock.schedule_once(self._configure_android_keyboard, 0)
+
+    def _open_number_pad(self, _dt):
+        self._keyboard_event = None
+        if not self.focus or self.disabled or self.get_root_window() is None:
+            return
+        from .number_pad import NumberPad
+
+        if App.get_running_app().android_keyboard_height:
+            from kivy.core.window import Window
+
+            Window.release_all_keyboards()
+        self.focus = False
+        self._number_pad = NumberPad(self)
+        self._number_pad.open(animation=False)
 
     def _configure_android_keyboard(self, _dt):
         self._keyboard_event = None

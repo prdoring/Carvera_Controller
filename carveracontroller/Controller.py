@@ -129,6 +129,7 @@ class Controller:
         self.queue = Queue()  # Command queue to be send to GRBL
         self.load_buffer = Queue()
         self.load_buffer_size = 0
+        self.load_last_activity = 0
         self.total_buffer_size = 0
 
         self.loadNUM = 0
@@ -1441,6 +1442,9 @@ class Controller:
 
         if "A" in d:
             CNC.vars["atc_state"] = int(d["A"][0])
+            if CNC.vars["atc_state"]:
+                # The automation owns motion; a preceding continuous jog has ended.
+                self._clear_continuous_jog_state()
         else:
             CNC.vars["atc_state"] = 0
 
@@ -1604,6 +1608,7 @@ class Controller:
     # Close connection port
     # ----------------------------------------------------------------------
     def close(self):
+        self._clear_continuous_jog_state()
         if self.stream is None:
             return
         try:
@@ -1811,20 +1816,19 @@ class Controller:
         self._continuous_jog_stopping = False
         if speed is None:
             if self.jog_speed > 0 and self.jog_speed < 10000:
-                self.executeCommand(f"$J -c {_dir} F{self.jog_speed}")
+                command = f"$J -c {_dir} F{self.jog_speed}"
             else:
                 if scale_feed_override is not None:
-                    self.executeCommand(f"$J -c {_dir} {scale_feed_override}")
+                    command = f"$J -c {_dir} {scale_feed_override}"
                 else:
-                    self.executeCommand(f"$J -c {_dir}")
+                    command = f"$J -c {_dir}"
         else:
-            self.executeCommand(f"$J -c {_dir} F{speed}")
+            command = f"$J -c {_dir} F{speed}"
+        if self.executeCommand(command) is False:
+            self._clear_continuous_jog_state()
 
     def stopContinuousJog(self):
         """Stop continuous jogging"""
-
-        if self.jog_mode != Controller.JOG_MODE_CONTINUOUS:
-            return
 
         # Send Ctrl+Y, then wait for firmware ^Y before allowing a new $J -c.
         # Mark stopping immediately so status polls stop sending keepalives that
@@ -2089,8 +2093,9 @@ class Controller:
                     if msg:
                         CNC.vars["alarm_message"] = msg
             else:
-                # Firmware continuous-jog timeout: clear local state so jogging can restart.
-                if "Stop request timeout" in line or "Internal stop request reset" in line:
+                # An automation completion also releases a preceding unacknowledged stop.
+                if ("Stop request timeout" in line or "Internal stop request reset" in line
+                        or (line.strip() == "Done ATC" and self._continuous_jog_stopping)):
                     self._clear_continuous_jog_state()
                 self.log.put((self.MSG_NORMAL, line))
         except (LookupError, ArithmeticError, ValueError) as e:
@@ -2141,10 +2146,14 @@ class Controller:
             return
 
         text = message.text or ""
+        if message.kind == MessageKind.LINE and text.strip() == "^Y":
+            self.parseLine(text.strip())
+            return
         if message.kind == MessageKind.LOAD_CHUNK:
             cleaned = re.sub(r"<.*?>", "", text).strip()
             if not cleaned:
                 return
+            self.load_last_activity = time.time()
             for line2 in cleaned.replace("\r\n", "\n").split("\n"):
                 if line2:
                     self.load_buffer.put(line2)
@@ -2157,6 +2166,7 @@ class Controller:
             return
         cleaned_line = re.sub(r"<.*?>", "", text).strip()
         if cleaned_line:
+            self.load_last_activity = time.time()
             for line2 in cleaned_line.replace("\r\n", "\n").split("\n"):
                 if line2:
                     self.load_buffer.put(line2)

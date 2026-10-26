@@ -17,7 +17,10 @@ class AndroidInput:
 
         @run_on_ui_thread
         def install():
-            self.api.install(autoclass("org.kivy.android.PythonActivity").mActivity)
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            params = autoclass("android.view.WindowManager$LayoutParams")
+            activity.getWindow().setSoftInputMode(params.SOFT_INPUT_ADJUST_NOTHING)
+            self.api.install(activity)
 
         install()
 
@@ -32,7 +35,10 @@ class AndroidInput:
             gestures.cancel_all_touches()
             self.app.root.controller.stopContinuousJog()
             self.edges.clear()
-        self.app.safe_area_padding = state["insets"]
+        insets = state["insets"]
+        if state["keyboard_height"]:
+            insets[3] = self.app.safe_area_padding[3]
+        self.app.safe_area_padding = insets
         self.app.android_keyboard_height = state["keyboard_height"]
         return state["interrupted"]
 

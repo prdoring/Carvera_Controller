@@ -263,7 +263,9 @@ class JogTouchButton(ToolTipButton):
             return False
         app = App.get_running_app()
         controller = app.root.controller
-        if _jog_owner is not None or controller.continuous_jog_active or controller._continuous_jog_stopping:
+        continuous_locked = (controller.jog_mode == controller.JOG_MODE_CONTINUOUS
+                             and (controller.continuous_jog_active or controller._continuous_jog_stopping))
+        if _jog_owner is not None or continuous_locked:
             return True
         if not app.root._machine_allows_jogging() or not self.jog_command:
             return True
@@ -277,9 +279,11 @@ class JogTouchButton(ToolTipButton):
         return True
 
     def _check_jog(self, dt):
+        if self._jog_touch is None:
+            return False
         app = App.get_running_app()
         if (self.disabled or self.get_root_window() is None or self._jog_controller.stream is None
-                or not app.root._machine_allows_jogging()):
+                or not app.root._machine_allows_jogging() or self._jog_touch not in EventLoop.touches):
             self.cancel_jog()
 
     def on_touch_move(self, touch):

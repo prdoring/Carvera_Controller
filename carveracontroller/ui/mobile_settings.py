@@ -52,7 +52,7 @@ class MobileSettings:
         self.search = EditingTextInput(hint_text=tr._("Search settings"), multiline=False,
                                        size_hint_y=None, height=control_height())
         self.search_open = False
-        self.search.bind(text=self._filter, focus=self.reflow)
+        self.search.bind(text=self._filter, focus=self._search_visibility)
         self.search_row = BoxLayout(size_hint_y=None, spacing=dp(8))
         self.search_row.add_widget(self.search)
         self._keyboard_buttons = []
@@ -70,7 +70,8 @@ class MobileSettings:
         column.add_widget(self.empty)
         column.add_widget(self.content)
         self.interface.add_widget(column)
-        self.app.bind(compact_layout=self.reflow, android_keyboard_height=self.reflow)
+        self.app.bind(compact_layout=self.reflow)
+        self.popup.bind(height=self._keyboard_controls)
         Metrics.bind(density=self.reflow, fontscale=self.reflow)
         self.content.bind(current_uid=self.sync_category, current_panel=self.align_panel)
         self.refresh()
@@ -129,7 +130,13 @@ class MobileSettings:
         self.navigation.disabled = not compact
         for button in (self.search_button, self.close_button):
             button.width = max(self.app.touch_target, _text_width(button.text, button.font_name, sp(16)) + dp(24))
-        visible = not compact or self.search_open or bool(self.search.text) or self.search.focus
+        self._search_visibility()
+        for item in self._rows:
+            if isinstance(item, SettingItem) and hasattr(item, "_mobile_fit"):
+                item._mobile_fit()
+        self.filter()
+
+    def _keyboard_controls(self, *_args):
         available = Window.height - max(self.app.android_keyboard_height, self.app.safe_area_padding[3]) - self.app.safe_area_padding[1]
         tight = self.search.focus and bool(self.app.android_keyboard_height) and available < control_height() * 3 + dp(60)
         for button, parent, index in self._keyboard_buttons:
@@ -138,14 +145,14 @@ class MobileSettings:
                 if button.parent is not None:
                     button.parent.remove_widget(button)
                 destination.add_widget(button, index=0 if tight else min(index, len(destination.children)))
+
+    def _search_visibility(self, *_args):
+        visible = not self.app.compact_layout or self.search_open or bool(self.search.text) or self.search.focus
+        self._keyboard_controls()
         self.search.size_hint = (1, 1)
         self.search_row.height = control_height() if visible else 0
         self.search.opacity = int(visible)
         self.search.disabled = not visible
-        for item in self._rows:
-            if isinstance(item, SettingItem) and hasattr(item, "_mobile_fit"):
-                item._mobile_fit()
-        self.filter()
 
     def close(self, *_args):
         self.search.focus = False
@@ -155,7 +162,7 @@ class MobileSettings:
         self.search_open = not self.search_open
         if not self.search_open:
             self.search.focus = False
-        self.reflow()
+        self._search_visibility()
         if self.search_open:
             self.search.focus = True
 

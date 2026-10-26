@@ -74,7 +74,7 @@ def test_short_actions_use_one_line_and_long_actions_wrap(mobile):
     assert all(button.texture_size[1] <= button.height for button in row.children)
 
 
-def test_safe_area_and_keyboard_are_deducted_once(mobile):
+def test_safe_area_is_preserved_when_the_keyboard_overlays_the_screen(mobile):
     app, layout = mobile
     old = list(app.safe_area_padding)
     try:
@@ -82,8 +82,8 @@ def test_safe_area_and_keyboard_are_deducted_once(mobile):
         app.safe_area_padding = [12, 24, 18, 30]
         app.android_keyboard_height = 240
         layout.update()
-        assert app.root.pos == [12, 240]
-        assert app.root.size == [994, 336]
+        assert app.root.pos == [12, 30]
+        assert app.root.size == [994, 546]
         app.root.unlock_popup.open(animation=False)
         pump_frames(8)
         assert app.root.unlock_popup.y >= 240
@@ -277,7 +277,7 @@ def test_compact_job_controls_keep_stop_inside_the_window(mobile, state, playing
         for button in controls:
             left, bottom = button.to_window(*button.pos)
             assert left >= 0
-            assert left + button.width <= Window.width
+            assert left + button.width <= Window.width, [(getattr(child, 'text', ''), child.width, child.size_hint_x) for child in button.parent.children]
             assert bottom >= 0
     finally:
         if main is not None:
@@ -348,7 +348,7 @@ def test_large_text_settings_prioritize_value_and_keep_description_accessible(mo
 
 
 @pytest.mark.parametrize('scene', ['numeric', 'input', 'cmm', 'facing', 'probing'])
-def test_enlarged_small_screen_keeps_focused_field_inside_its_keyboard_viewport(mobile, scene):
+def test_enlarged_small_screen_keeps_the_editor_in_view(mobile, scene):
     from kivy.uix.textinput import TextInput
 
     app, layout = mobile
@@ -386,7 +386,17 @@ def test_enlarged_small_screen_keeps_focused_field_inside_its_keyboard_viewport(
         pump_frames(12)
         field = next(widget for widget in modal.ids.tabbedpanelid.current_tab.content.walk() if isinstance(widget, TextInput))
     pump_frames(12)
+    geometry = tuple(modal.pos), tuple(modal.size)
     field.focus = True
+    pump_frames(12)
+    if scene != 'input':
+        pad = field._number_pad
+        assert pad._is_open
+        assert app.android_keyboard_height == 0
+        assert (tuple(modal.pos), tuple(modal.size)) == geometry
+        assert pad.x >= 0 and pad.y >= 0
+        assert pad.right <= Window.width and pad.top <= Window.height
+        return
     app.android_keyboard_height = 240
     pump_frames(24, sleep=.02)
     viewport = field.parent
@@ -401,7 +411,7 @@ def test_enlarged_small_screen_keeps_focused_field_inside_its_keyboard_viewport(
     assert y + field.height <= Window.height
 
 
-def test_cmm_focused_field_stays_visible_after_late_form_reflow(mobile):
+def test_cmm_number_pad_stays_in_view_after_late_form_reflow(mobile):
     app, layout = mobile
     set_window_size((800, 480))
     Metrics.density, Metrics.fontscale = 1.5, 2
@@ -415,21 +425,18 @@ def test_cmm_focused_field_stays_visible_after_late_form_reflow(mobile):
     while not isinstance(viewport, ScrollView):
         viewport = viewport.parent
     field.focus = True
-    app.android_keyboard_height = 240
     pump_frames(24, sleep=.02)
+    pad = field._number_pad
     body = viewport.children[0]
     original = list(body.padding)
     before = list(app.simulation.commands)
     try:
         body.padding = [original[0], original[1] + dp(160), original[2], original[3]]
         pump_frames(8)
-        _, bottom = viewport.to_window(*viewport.pos)
-        _, y = field.to_window(*field.pos)
-        assert viewport.height >= field.height
-        assert bottom - 1 <= y
-        assert y + field.height <= bottom + viewport.height + 1
-        assert y >= app.android_keyboard_height
-        assert y + field.height <= Window.height
+        assert pad._is_open
+        assert pad.x >= 0 and pad.y >= 0
+        assert pad.right <= Window.width and pad.top <= Window.height
+        assert app.android_keyboard_height == 0
         assert app.simulation.commands == before
     finally:
         body.padding = original
@@ -475,8 +482,23 @@ def test_remaining_editors_fit_above_enlarged_keyboard(mobile, scene):
             pump_frames(12)
             modal._mobile_settings.toggle_search()
             field = modal._mobile_settings.search
+            settings_parents = modal._mobile_settings.close_button.parent, modal.btn_apply.parent
         pump_frames(12)
         field.focus = True
+        if scene == 'wcs':
+            pump_frames(12)
+            pad = field._number_pad
+            assert pad._is_open
+            assert app.android_keyboard_height == 0
+            assert pad.x >= 0 and pad.y >= 0
+            assert pad.right <= Window.width and pad.top <= Window.height
+            viewport = field.parent
+            while not isinstance(viewport, ScrollView):
+                viewport = viewport.parent
+            assert modal.ids.wcs_apply_error.parent == viewport.children[0]
+            assert app.simulation.attempts == attempts
+            return
+        before_keyboard_y = field.to_window(*field.pos)[1]
         app.android_keyboard_height = 240
         pump_frames(28, sleep=.02)
         x, y = field.to_window(*field.pos)
@@ -484,16 +506,12 @@ def test_remaining_editors_fit_above_enlarged_keyboard(mobile, scene):
         assert y + field.height <= Window.height + 1, (scene, field.pos, field.size)
         assert x >= -1 and x + field.width <= Window.width + 1
         assert field.width >= app.touch_target
-        if scene == 'wcs':
-            viewport = field.parent
-            while not isinstance(viewport, ScrollView):
-                viewport = viewport.parent
-            assert viewport.height >= field.height
-            assert modal.ids.wcs_apply_error.parent == viewport.children[0]
         if scene == 'settings':
             settings = modal._mobile_settings
-            assert settings.close_button.parent == settings.search_row
-            assert modal.btn_apply.parent == settings.search_row
+            if before_keyboard_y >= 240 + dp(8):
+                assert (settings.close_button.parent, modal.btn_apply.parent) == settings_parents
+            else:
+                assert settings.close_button.parent == modal.btn_apply.parent == settings.search_row
             app.android_keyboard_height = 0
             pump_frames(16)
             assert settings.close_button.parent == settings.navigation

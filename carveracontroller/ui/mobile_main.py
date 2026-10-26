@@ -60,7 +60,6 @@ class MobileMainLayout:
         )
         self.root.coord_system_data_view.bind(main_text=self.refresh)
         self.root.content.bind(current=self.refresh)
-        app.bind(android_keyboard_height=self._keyboard)
         Metrics.bind(density=self._metrics, fontscale=self._metrics)
         self._prepare_view_options()
         self.update()
@@ -102,7 +101,7 @@ class MobileMainLayout:
         self.compact = self.app.compact_layout
         self._sync_view_toggle()
         if getattr(self, "_context_row", None) is not None:
-            self._context_row.unbind(height=self._keyboard)
+            self._context_row.unbind(height=self._fit_header)
         if self.details is not None:
             self.details.dismiss()
             self.details = None
@@ -161,9 +160,9 @@ class MobileMainLayout:
         self.bar.add_widget(coords)
         self.coordinate_row = coords
         self._context_row = context
-        context.bind(height=self._keyboard)
+        context.bind(height=self._fit_header)
         self._coordinate_height = coord_height
-        self._keyboard()
+        self._fit_header()
         self.refresh()
 
     def _metrics(self, *_args):
@@ -172,30 +171,21 @@ class MobileMainLayout:
         if hasattr(self.root, "_mobile_action_groups"):
             self._size_control_groups()
 
-    def _keyboard(self, *_args):
+    def _fit_header(self, *_args):
         if self._stopped or not self.compact or not hasattr(self, "coordinate_row"):
             return
-        visible = not self.app.android_keyboard_height
-        available = (
-            Window.height
-            - max(self.app.android_keyboard_height, self.app.safe_area_padding[3])
-            - self.app.safe_area_padding[1]
-        )
-        context_visible = visible or available >= control_height() * 3 + dp(60)
-        self._context_row.height = max(self._context_row.minimum_height, control_height()) if context_visible else 0
-        self._context_row.opacity = int(context_visible)
-        self._context_row.disabled = not context_visible
-        self.bar.opacity = int(context_visible)
-        self.bar.disabled = not context_visible
+        self._context_row.height = max(self._context_row.minimum_height, control_height())
+        self._context_row.opacity = self.bar.opacity = 1
+        self._context_row.disabled = self.bar.disabled = False
         self.coordinate_row.size_hint_y = None
-        self.coordinate_row.height = self._coordinate_height if visible else 0
-        self.coordinate_row.opacity = 1 if visible else 0
-        self.coordinate_row.disabled = not visible
-        self.bar.height = self.coordinate_row.height + self._context_row.height + (dp(6) if context_visible else 0)
+        self.coordinate_row.height = self._coordinate_height
+        self.coordinate_row.opacity = 1
+        self.coordinate_row.disabled = False
+        self.bar.height = self.coordinate_row.height + self._context_row.height + dp(6)
 
     def _sync_view_toggle(self):
         button = self.root.ids.viewer_panes_toggle
-        visible = self.app.android_touch and self.root.content.current == "File" and not self.app.android_keyboard_height
+        visible = self.app.android_touch and self.root.content.current == "File"
         button.size_hint = (None, 1)
         button.size_hint_min_x = self.app.touch_target if visible else 0
         button.width = self.app.touch_target if visible else 0
@@ -212,7 +202,7 @@ class MobileMainLayout:
         if layout is not None:
             layout._update()
         if self.compact:
-            self._keyboard()
+            self._fit_header()
             self._context_row._columns()
 
     def show_details(self, *_args):
@@ -489,7 +479,7 @@ class MobileMainLayout:
             return
         self._stopped = True
         if getattr(self, "_context_row", None) is not None:
-            self._context_row.unbind(height=self._keyboard)
+            self._context_row.unbind(height=self._fit_header)
         self._control_sizes.cancel()
         self.root.ids.control_center.unbind(width=self._control_sizes)
         for group in getattr(self.root, "_mobile_action_groups", []):
@@ -523,5 +513,4 @@ class MobileMainLayout:
         )
         self.root.coord_system_data_view.unbind(main_text=self.refresh)
         self.root.content.unbind(current=self.refresh)
-        self.app.unbind(android_keyboard_height=self._keyboard)
         Metrics.unbind(density=self._metrics, fontscale=self._metrics)

@@ -86,7 +86,7 @@ class ProbingPopup(ModalView):
         self.calibration_settings = None
         self.fourth_axis_settings = None
         self._settings_panels = ()
-        self._load_settings = Clock.create_trigger(self._materialize_current_settings, 0)
+        self._load_settings = Clock.create_trigger(self._materialize_current_settings, -1)
         self.controller = controller
 
         self.preview_popup = ProbingPreviewPopup(controller)
@@ -97,8 +97,8 @@ class ProbingPopup(ModalView):
         super().__init__(**kwargs)
         self.ids.tabbedpanelid.bind(current_tab=self._load_settings)
 
-    def on_open(self):
-        self._load_settings()
+    def on_pre_open(self):
+        self._materialize_current_settings(0)
 
     def _materialize_current_settings(self, _dt):
         if self._is_open:

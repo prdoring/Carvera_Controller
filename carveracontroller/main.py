@@ -76,6 +76,9 @@ from .translation import tr
 
 logger = logging.getLogger(__name__)
 
+DIRECTORY_IDLE_TIMEOUT = 10
+DIRECTORY_TOTAL_TIMEOUT = 30
+
 import json
 import os
 import platform
@@ -1112,7 +1115,7 @@ class AutoLevelPopup(ModalView):
 
 
 class FilePopup(ModalView):
-    def on_open(self):
+    def on_pre_open(self):
         if App.get_running_app().android_touch:
             from .ui.mobile_files import prepare_file_browser
 
@@ -1133,7 +1136,7 @@ class FilePopup(ModalView):
 
     # -----------------------------------------------------------------------
     def load_remote_root(self):
-        self.remote_rv.child_dir("")
+        self.remote_rv.list_dir(new_dir=self.remote_rv.base_dir)
 
     # -----------------------------------------------------------------------
     def update_local_buttons(self):
@@ -1391,12 +1394,14 @@ class DiagnosePopup(ModalView):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def on_open(self):
-        self.showing = True
+    def on_pre_open(self):
         if App.get_running_app().android_touch:
             from .ui.mobile_diagnostics import prepare_diagnostics
 
             prepare_diagnostics(self)
+
+    def on_open(self):
+        self.showing = True
 
     def on_dismiss(self):
         self.showing = False
@@ -1464,7 +1469,7 @@ class ConfigPopup(ModalView):
                 if isinstance(widget, SettingItem):
                     yield widget
 
-    def on_open(self):
+    def on_pre_open(self):
         App.get_running_app().root._ensure_controller_settings_panels()
         if App.get_running_app().android_touch:
             from .ui.mobile_settings import MobileSettings
@@ -2593,7 +2598,7 @@ class SelectableBoxLayout(TapBehavior, RecycleDataViewBehavior, BoxLayout):
 # -----------------------------------------------------------------------
 class DataRV(RecycleView):
     browser_state = StringProperty("")
-    curr_dir = ""
+    curr_dir = StringProperty("")
     curr_dir_name = StringProperty("")
 
     base_dir = ""
@@ -2753,7 +2758,9 @@ class DataRV(RecycleView):
     def goto_path(self, index):
         if index < len(self.curr_full_path_list):
             app = App.get_running_app()
-            app.root.file_popup.ti_local_search.text = ""
+            popup = app.root.file_popup
+            search = popup.ti_remote_search if self == popup.remote_rv else popup.ti_local_search
+            search.text = ""
             self.list_dir(new_dir=self.curr_full_path_list[index])
 
     def delay_search(self, keyword):
@@ -2772,6 +2779,8 @@ class DataRV(RecycleView):
 # Remote Recycle View
 # -----------------------------------------------------------------------
 class RemoteRV(DataRV):
+    _directory_loading = False
+    _pending_dir = None
     # -----------------------------------------------------------------------
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -2785,6 +2794,8 @@ class RemoteRV(DataRV):
         self.curr_dir_name = "gcodes"
 
     def directory_failed(self, message, *_args):
+        self._directory_loading = False
+        self._pending_dir = None
         self._directory_error = message
         self.browser_state = message
 
@@ -2805,9 +2816,16 @@ class RemoteRV(DataRV):
         if new_dir == None:
             new_dir = self.curr_dir
 
+        if self._directory_loading:
+            self._pending_dir = str(new_dir) if str(new_dir) != self.curr_dir else None
+            return
+
         app = App.get_running_app()
         if app.state in ("N/A", "Wait"):
             self.directory_failed(tr._("Mill disconnected. Connect, then retry this folder."))
+            return
+        if app.root.controller.loadNUM or app.root.controller.sendNUM:
+            self.directory_failed(tr._("A transfer is in progress. Retry this folder when it finishes."))
             return
 
         self.clear_selection()
@@ -2815,9 +2833,16 @@ class RemoteRV(DataRV):
         self._directory_error = ""
         self.browser_state = tr._("Loading files from the mill…")
 
-        threading.Thread(target=app.root.loadRemoteDir, args=(new_dir,), daemon=True).start()
         self.curr_dir = str(new_dir)
+        self._directory_loading = True
+        threading.Thread(target=app.root.loadRemoteDir, args=(new_dir,), daemon=True).start()
         # self.curr_dir_name = os.path.normpath(self.curr_dir)
+
+    def directory_loaded(self, *_args):
+        self._directory_loading = False
+        pending, self._pending_dir = self._pending_dir, None
+        if pending is not None and not self._directory_error:
+            self.list_dir(new_dir=pending)
 
     def on_double_tap(self):
         app = App.get_running_app()
@@ -4391,13 +4416,14 @@ class Makera(RelativeLayout):
                 self.controller.diagnoseUpdate = False
 
             if self.controller.loadNUM == LOAD_DIR:
-                if self.controller.loadEOF or self.controller.loadERR or t - self.short_load_time > SHORT_LOAD_TIMEOUT:
+                timed_out = self.directory_request_timed_out(t)
+                if self.controller.loadEOF or self.controller.loadERR or timed_out:
                     if self.controller.loadERR:
                         Clock.schedule_once(partial(self.file_popup.remote_rv.directory_failed, tr._("Could not load this mill folder. Retry when connected.")), 0)
                         Clock.schedule_once(
                             partial(self.loadError, tr._("Error loading dir") + " '%s'!" % (self.loading_dir)), 0
                         )
-                    elif t - self.short_load_time > SHORT_LOAD_TIMEOUT:
+                    elif timed_out and not self.controller.loadEOF:
                         Clock.schedule_once(partial(self.file_popup.remote_rv.directory_failed, tr._("Mill folder request timed out. Retry when connected.")), 0)
                         Clock.schedule_once(
                             partial(self.loadError, tr._("Timeout loading dir") + " '%s'!" % (self.loading_dir)), 0
@@ -5505,7 +5531,13 @@ class Makera(RelativeLayout):
         self.controller.loadEOF = False
         self.controller.loadERR = False
         self.short_load_time = time.time()
+        self.controller.load_last_activity = self.short_load_time
         self.controller.lsCommand(os.path.normpath(ls_dir))
+
+    def directory_request_timed_out(self, now):
+        last_activity = max(self.short_load_time, self.controller.load_last_activity)
+        return (now - last_activity > DIRECTORY_IDLE_TIMEOUT
+                or now - self.short_load_time > DIRECTORY_TOTAL_TIMEOUT)
 
     # -----------------------------------------------------------------------
     def removeRemoteFile(self, filename):
@@ -5929,6 +5961,7 @@ class Makera(RelativeLayout):
 
     # -----------------------------------------------------------------------
     def fill_remote_dir(self, file_list, *args):
+        Clock.schedule_once(self.file_popup.remote_rv.directory_loaded, 0)
         self.file_popup.remote_rv.curr_file_list_buff = file_list
         self.file_popup.remote_rv.fill_dir(switch_reverse=False)
 
