@@ -5896,8 +5896,7 @@
             Button:
                 id: btn_ok
                 text: tr._('Ok')
-                on_release:
-                    on_release: root.on_ok_pressed()
+                on_release: root.on_ok_pressed()
             BoxLayout:
                 size_hint_x: None
                 width: app.touch_target if app.android_touch else dp(48)
