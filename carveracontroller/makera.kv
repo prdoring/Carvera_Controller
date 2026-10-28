@@ -3971,20 +3971,12 @@
                                             text: 'Y+' if app.invert_y_axis_jogging else "Y-"
                                             jog_command: "Y{}{}".format('' if app.invert_y_axis_jogging else '-', root.step_xy.text)
 
-                                            tooltip_image: 'data/AxisMotion/AxisMotion_YPos.png' if app.invert_y_axis_jogging else 'data/AxisMotion/AxisMotion_YNeg.png'
-                                            tooltip_image_size: [300,300]
-                                            small_icon: True
-                                            tooltip_radius: 30
                                     GridBoxLayout:
                                     GridBoxLayout:
                                         JogTouchButton:
                                             text: 'X-'
                                             jog_command: "X-{}".format(root.step_xy.text)
 
-                                            tooltip_image: 'data/AxisMotion/AxisMotion_XNeg.png'
-                                            tooltip_image_size: [300,300]
-                                            small_icon: True
-                                            tooltip_radius: 30
                                     GridBoxLayout:
                                         JogStepSpinner:
                                             id: step_xy
@@ -3999,20 +3991,12 @@
                                             text: 'X+'
                                             jog_command: "X{}".format(root.step_xy.text)
 
-                                            tooltip_image: 'data/AxisMotion/AxisMotion_XPos.png'
-                                            tooltip_image_size: [300,300]
-                                            small_icon: True
-                                            tooltip_radius: 30
                                     GridBoxLayout:
                                     GridBoxLayout:
                                         JogTouchButton:
                                             text: 'Y-' if app.invert_y_axis_jogging else "Y+"
                                             jog_command: "Y{}{}".format('-' if app.invert_y_axis_jogging else '', root.step_xy.text)
 
-                                            tooltip_image: 'data/AxisMotion/AxisMotion_YNeg.png' if app.invert_y_axis_jogging else 'data/AxisMotion/AxisMotion_YPos.png'
-                                            tooltip_image_size: [300,300]
-                                            small_icon: True
-                                            tooltip_radius: 30
                                     GridBoxLayout:
                         WorkshopPanel:
                             heading: tr._('Jog and setup')
@@ -4268,16 +4252,10 @@
                                             text: 'A+'
                                             jog_command: "A{}".format(root.step_a.text)
 
-                                            tooltip_image: 'data/AxisMotion/AxisMotion_APos.png'
-                                            tooltip_image_size: [300,300]
-                                            small_icon: True
-                                            tooltip_radius: 30
                                     GridBoxLayout:
                                         JogTouchButton:
                                             text: 'Z+'
                                             jog_command: "Z{}".format(root.step_z.text)
-                                            tooltip_image: 'data/AxisMotion/AxisMotion_ZPos.png'
-                                            tooltip_image_size: [300, 300]
 
                                     GridBoxLayout:
                                         JogStepSpinner:
@@ -4300,16 +4278,10 @@
                                             text: 'A-'
                                             jog_command: "A-{}".format(root.step_a.text)
 
-                                            tooltip_image: 'data/AxisMotion/AxisMotion_ANeg.png'
-                                            tooltip_image_size: [300,300]
-                                            small_icon: True
-                                            tooltip_radius: 30
                                     GridBoxLayout:
                                         JogTouchButton:
                                             text: 'Z-'
                                             jog_command: "Z-{}".format(root.step_z.text)
-                                            tooltip_image: 'data/AxisMotion/AxisMotion_ZNeg.png'
-                                            tooltip_image_size: [300, 300]
 
 
                     Widget:

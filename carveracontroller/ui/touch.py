@@ -12,6 +12,7 @@ from kivy.factory import Factory
 from kivy.metrics import Metrics, dp, sp
 from kivy.properties import BooleanProperty, StringProperty
 from kivy.uix.behaviors import ButtonBehavior, ToggleButtonBehavior
+from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.settings import SettingItem
 from kivy.uix.spinner import Spinner
@@ -19,8 +20,6 @@ from kivy.uix.tabbedpanel import TabbedPanelItem
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.widget import Widget
 from kivy.utils import platform
-
-from carveracontroller.addons.tooltips.Tooltips import ToolTipButton
 
 TOUCH_CANCELLED = "carvera_touch_cancelled"
 _gestures = weakref.WeakSet()
@@ -243,7 +242,7 @@ class TouchTabbedPanelItem(CompletedToggle, TabbedPanelItem):
     pass
 
 
-class JogTouchButton(ToolTipButton):
+class JogTouchButton(Button):
     jog_command = StringProperty("")
 
     def __init__(self, **kwargs):
