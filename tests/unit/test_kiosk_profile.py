@@ -83,3 +83,22 @@ def test_atomic_status_write(tmp_path):
     write_json(path, {"busy": True})
     assert json.loads(path.read_text()) == {"busy": True}
     assert not path.with_suffix(".tmp").exists()
+
+
+@pytest.mark.parametrize("token,cancelling", [(1, False), (None, True)])
+def test_active_probe_blocks_maintenance_even_when_machine_reports_idle(token, cancelling):
+    controller = SimpleNamespace(stream=object(), continuous_jog_active=False, _connecting=False, sendNUM=0, loadNUM=0)
+    runner = SimpleNamespace(get_active_token=lambda: token, cancellation_pending=cancelling)
+    root = SimpleNamespace(controller=controller, cmm_workbench_popup=SimpleNamespace(_runner=runner))
+    app = SimpleNamespace(root=root, playing=False, state="Idle")
+    with pytest.raises(ValueError, match="busy"):
+        require_idle(activity(app), confirmed=True)
+
+
+@pytest.mark.parametrize("flag", ["paused", "pausing", "_baud_switch_in_progress"])
+def test_transport_change_blocks_maintenance(flag):
+    controller = SimpleNamespace(stream=object(), continuous_jog_active=False, _connecting=False, sendNUM=0, loadNUM=0)
+    setattr(controller, flag, True)
+    app = SimpleNamespace(root=SimpleNamespace(controller=controller), playing=False, state="Idle")
+    with pytest.raises(ValueError, match="busy"):
+        require_idle(activity(app), confirmed=True)

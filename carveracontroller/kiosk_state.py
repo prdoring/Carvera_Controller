@@ -29,12 +29,14 @@ def write_json(path, value):
 
 def activity(app):
     controller = app.root.controller
+    runner = getattr(getattr(app.root, "cmm_workbench_popup", None), "_runner", None)
     flags = {
         "playing": bool(app.playing),
         "jogging": bool(controller.continuous_jog_active),
         "connecting": bool(controller._connecting),
         "sending": bool(controller.sendNUM or controller.loadNUM),
-        "probing": bool(getattr(app.root, "probe_in_progress", False)),
+        "probing": runner is not None and (runner.get_active_token() is not None or runner.cancellation_pending),
+        "transport": any(getattr(controller, name, False) for name in ("paused", "pausing", "_baud_switch_in_progress")),
         "settings": bool(getattr(getattr(app.root, "_settings_sender", None), "active", False)),
     }
     state = str(app.state)
