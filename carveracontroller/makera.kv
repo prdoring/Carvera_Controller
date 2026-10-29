@@ -900,6 +900,15 @@
             on_active:
                 if self.set_flag: self.set_flag = False
                 else: app.root.update_control('extout_mode', self.active)
+    Button:
+        id: vacuum_power_button
+        text: tr._('Vacuum power...')
+        size_hint_y: None
+        height: app.touch_target if app.android_touch else dp(40)
+        disabled: app.model not in ('C1', 'CA1') or app.state != 'Idle'
+        on_release:
+            root.dismiss()
+            app.root.config_popup.open_vacuum_power()
     DropDownHint:
         text: tr._('RPM Scaling')
     BoxLayout:

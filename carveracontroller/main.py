@@ -1485,6 +1485,16 @@ class ConfigPopup(ModalView):
     def get_original(self, section, key):
         return self._widget_snapshot.get((section, key))
 
+    def open_vacuum_power(self):
+        self.open()
+        for widget in self._all_setting_items():
+            if widget.key == "switch.vacuum.default_on_value":
+                interface = self.settings_panel.interface
+                interface.content.current_uid = widget.panel.uid
+                interface.menu.selected_uid = widget.panel.uid
+                Clock.schedule_once(lambda _dt, setting=widget: setting.dispatch("on_release"), 0)
+                break
+
     def on_dismiss(self):
         app = App.get_running_app()
         makera = app.root

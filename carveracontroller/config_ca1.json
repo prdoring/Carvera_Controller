@@ -1,6 +1,19 @@
 [
     {
         "type": "title",
+        "title": "Vacuum",
+        "section": "Basic"
+    },
+    {
+        "type": "numeric",
+        "title": "Vacuum power",
+        "desc": "Default vacuum power for Auto Ext. Out (50 - 100). Reset the machine after applying.",
+        "section": "Basic",
+        "key": "switch.vacuum.default_on_value",
+        "default": "80"
+    },
+    {
+        "type": "title",
         "title": "Light",
         "section": "Basic"
     },
