@@ -821,6 +821,34 @@
             root.scale_slider.value = 100
             root.select('Third Item')
 
+<VacuumPowerControl>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: 3 * (app.touch_target if app.android_touch else dp(40))
+    DropDownHint:
+        text: tr._('Vacuum power') + ': ' + root.caption
+    Slider:
+        id: power_slider
+        min: 50
+        max: 100
+        step: 5
+        value: root.value
+        disabled: not root.enabled
+        on_value: root.change_power(self.value)
+    BoxLayout:
+        Button:
+            id: decrease
+            text: '-'
+            font_size: '25sp'
+            disabled: not root.enabled or root.value <= 50
+            on_release: root.change_power(root.value - 5)
+        Button:
+            id: increase
+            text: '+'
+            font_size: '25sp'
+            disabled: not root.enabled or root.value >= 100
+            on_release: root.change_power(root.value + 5)
+
 <SpindleDropDown>:
     vacuum_switch: vacuum_switch
     extout_switch: extout_switch
@@ -900,15 +928,8 @@
             on_active:
                 if self.set_flag: self.set_flag = False
                 else: app.root.update_control('extout_mode', self.active)
-    Button:
-        id: vacuum_power_button
-        text: tr._('Vacuum power...')
-        size_hint_y: None
-        height: app.touch_target if app.android_touch else dp(40)
-        disabled: app.model not in ('C1', 'CA1') or app.state != 'Idle'
-        on_release:
-            root.dismiss()
-            app.root.config_popup.open_vacuum_power()
+    VacuumPowerControl:
+        id: vacuum_power
     DropDownHint:
         text: tr._('RPM Scaling')
     BoxLayout:

@@ -28,3 +28,15 @@ def test_diagnose_with_junk_after_brace():
     ctrl.parseBigParentheses("{S:1,1000|RSSI:-40}\x00")
     assert CNC.vars["sw_spindle"] == 1
     assert CNC.vars["RSSI"] == -40
+
+
+def test_diagnose_external_output_power():
+    ctrl = Controller(CNC(), lambda _line: None, False)
+    ctrl.parseBigParentheses("{G:1,0,0,1,75}")
+    assert CNC.vars["sw_light"] == 1
+    assert CNC.vars["extout_state"] == 1
+    assert CNC.vars["extout_power"] == 75
+    assert CNC.vars["extout_report_time"] > 0
+    ctrl.parseBigParentheses("{G:1}")
+    assert CNC.vars["extout_state"] is None
+    assert CNC.vars["extout_power"] is None
