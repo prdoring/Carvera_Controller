@@ -1,0 +1,19 @@
+[Unit]
+Description=Carvera Controller
+After=carvera-kiosk.service
+OnFailure=carvera-recovery.service
+
+[Service]
+User=carvera
+Group=carvera
+SupplementaryGroups=video render input dialout
+Environment=XDG_RUNTIME_DIR=/run/carvera
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=SDL_VIDEODRIVER=wayland
+Environment=CARVERA_PROFILE=kiosk
+Environment=CARVERA_DATA_DIR=/var/lib/carvera
+Environment=CARVERA_RUNTIME_DIR=/run/carvera
+WorkingDirectory=/var/lib/carvera
+ExecStart=/opt/carvera/maintenance/controller.sh
+TimeoutStopSec=15
+Restart=no

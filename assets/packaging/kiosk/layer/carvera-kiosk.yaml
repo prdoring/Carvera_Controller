@@ -1,0 +1,39 @@
+# METABEGIN
+# X-Env-Layer-Name: carvera-kiosk
+# X-Env-Layer-Version: 1.0.0
+# X-Env-Layer-Category: application
+# X-Env-Layer-Desc: Dedicated Carvera touchscreen with local-network maintenance.
+# X-Env-Layer-Requires: network-manager,openssh-server
+# METAEND
+---
+mmdebstrap:
+  packages:
+    - python3
+    - python3-venv
+    - labwc
+    - seatd
+    - wayvnc
+    - wlr-randr
+    - grim
+    - sudo
+    - avahi-daemon
+    - iw
+    - rfkill
+    - wpasupplicant
+    - procps
+    - libglib2.0-bin
+    - libgl1
+    - libegl1
+    - libgles2
+    - libgl1-mesa-dri
+    - libsdl2-2.0-0
+    - libsdl2-image-2.0-0
+    - libsdl2-mixer-2.0-0
+    - libsdl2-ttf-2.0-0
+    - libmtdev1
+    - libhidapi-hidraw0
+    - libhidapi-libusb0
+    - fonts-dejavu-core
+    - ca-certificates
+  customize-hooks:
+    - bash /project/kiosk/install.sh "$1"

@@ -1,0 +1,15 @@
+# METABEGIN
+# X-Env-Layer-Name: carvera-base
+# X-Env-Layer-Version: 1.0.0
+# X-Env-Layer-Category: suite
+# X-Env-Layer-Desc: Minimal Raspberry Pi Trixie base using NetworkManager.
+# X-Env-Layer-Requires: debian-trixie-arm64-multi,
+#  rpi-debian-trixie,
+#  rpi-misc-utils,
+#  rpi-essential-base,
+#  network-manager,
+#  openssh-server,
+#  systemd-timesyncd,
+#  wireless-regulatory
+# METAEND
+---

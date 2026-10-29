@@ -1,0 +1,2 @@
+carvera-admin ALL=(root) NOPASSWD: /usr/local/sbin/carvera-maint ""
+carvera ALL=(root) NOPASSWD: /usr/local/sbin/carvera-recover ""

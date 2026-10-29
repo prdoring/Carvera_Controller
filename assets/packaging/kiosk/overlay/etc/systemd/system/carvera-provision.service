@@ -1,0 +1,14 @@
+[Unit]
+Description=Import local Carvera kiosk provisioning
+After=local-fs.target ssh-hostkeys-generate.service
+Wants=ssh-hostkeys-generate.service
+Before=NetworkManager.service ssh.service carvera-kiosk.service
+RequiresMountsFor=/boot/firmware
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/carvera/maintenance/provision.py
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

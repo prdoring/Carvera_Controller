@@ -1,0 +1,27 @@
+device:
+  layer: rpi4
+  hostname: carvera-pi
+  user1: carvera-admin
+  user1passhash: '*'
+  user1groups: adm,systemd-journal
+  # Keep sudo installed; install.sh replaces the general rule with fixed helpers.
+  user1sudo: passwd
+
+image:
+  layer: image-rpios
+  name: carvera-kiosk-pi4
+  boot_part_size: 512M
+  root_part_size: 4096M
+
+layer:
+  base: carvera-base
+  app: carvera-kiosk
+
+rpisec:
+  eepromupd: 'n'
+
+locale:
+  default: en_US.UTF-8
+  keyboard_keymap: us
+  keyboard_layout: English (US)
+  timezone: America/Los_Angeles

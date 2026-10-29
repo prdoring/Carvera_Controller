@@ -492,10 +492,10 @@ def main():
         "--os",
         metavar="os",
         required=True,
-        choices=["windows", "macos", "linux", "ios", "pypi", "android"],
+        choices=["windows", "macos", "linux", "ios", "pypi", "android", "kiosk"],
         type=str,
         default="linux",
-        help="Choices are: windows, macos, pypi, android or linux. Default is linux.",
+        help="Choices are: windows, macos, pypi, android, linux or kiosk. Default is linux.",
     )
 
     parser.add_argument("--no-appimage", dest="appimage", action="store_false")
@@ -515,6 +515,11 @@ def main():
     )
 
     args = parser.parse_args()
+    if args.os == "kiosk":
+        from kiosk import build
+
+        build(args.version)
+        return
     os_name = args.os
     appimage = args.appimage
     package_version = args.version

@@ -1,0 +1,26 @@
+[Unit]
+Description=Carvera touchscreen session
+After=carvera-provision.service seatd.service
+Requires=seatd.service
+
+[Service]
+User=carvera
+Group=carvera
+SupplementaryGroups=video render input dialout
+RuntimeDirectory=carvera
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+Environment=XDG_RUNTIME_DIR=/run/carvera
+Environment=LIBSEAT_BACKEND=seatd
+TTYPath=/dev/tty1
+StandardInput=tty
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+ExecStart=/usr/bin/labwc -C /etc/carvera/labwc
+ExecStartPost=+/opt/carvera/maintenance/session-ready.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<labwc_config>
+  <desktops><number>1</number></desktops>
+  <windowRules>
+    <windowRule identifier="*" serverDecoration="no" />
+  </windowRules>
+  <keyboard><default /></keyboard>
+  <mouse />
+  <touch mouseEmulation="no" />
+</labwc_config>

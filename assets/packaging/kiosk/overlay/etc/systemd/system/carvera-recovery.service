@@ -1,0 +1,16 @@
+[Unit]
+Description=Carvera touchscreen maintenance and recovery
+After=carvera-kiosk.service
+
+[Service]
+Environment=CARVERA_PROFILE=kiosk
+User=carvera
+Group=carvera
+Environment=XDG_RUNTIME_DIR=/run/carvera
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=SDL_VIDEODRIVER=wayland
+Environment=KIVY_HOME=/var/lib/carvera/recovery
+WorkingDirectory=/var/lib/carvera
+ExecStart=/opt/carvera/recovery-venv/bin/python /opt/carvera/maintenance/recovery.py
+Restart=on-failure
+RestartSec=5

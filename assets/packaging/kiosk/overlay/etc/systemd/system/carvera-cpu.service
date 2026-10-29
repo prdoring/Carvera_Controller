@@ -1,0 +1,10 @@
+[Unit]
+Description=Carvera kiosk CPU policy
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/carvera/maintenance/cpu.sh
+
+[Install]
+WantedBy=multi-user.target

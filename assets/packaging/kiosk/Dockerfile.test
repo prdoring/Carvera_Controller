@@ -1,0 +1,21 @@
+FROM python:3.13-slim-trixie
+ENV DEBIAN_FRONTEND=noninteractive KIVY_NO_ARGS=1 KIVY_NO_CONSOLELOG=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xvfb xauth libgl1 libegl1 libgles2 libgl1-mesa-dri libmtdev1 \
+    libsdl2-2.0-0 libsdl2-image-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 \
+    libhidapi-hidraw0 libhidapi-libusb0 build-essential gettext \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install poetry==2.1.3 poetry-plugin-export==1.9.0 pytest==8.4.2 ruff mypy import-linter Pillow
+WORKDIR /src
+COPY pyproject.toml poetry.lock ./
+RUN poetry export --only main --without-hashes -o /requirements.txt && pip install -r /requirements.txt
+RUN apt-get update && apt-get install -y --no-install-recommends labwc wayvnc wlr-randr \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install pytest-timeout==2.4.0
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev \
+    libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libgbm-dev libdrm-dev libmtdev-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --force-reinstall --no-deps --no-binary=kivy Kivy==2.3.1
+COPY . .
+CMD ["python", "assets/packaging/kiosk/run_checks.py", "tests/unit", "-q"]

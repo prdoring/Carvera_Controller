@@ -1,0 +1,11 @@
+[Unit]
+Description=On-demand Carvera screen access
+After=carvera-kiosk.service
+
+[Service]
+User=carvera
+Group=carvera
+Environment=XDG_RUNTIME_DIR=/run/carvera
+Environment=WAYLAND_DISPLAY=wayland-0
+ExecStart=/usr/bin/wayvnc 127.0.0.1 5900
+Restart=no
