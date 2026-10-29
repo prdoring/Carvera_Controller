@@ -58,6 +58,13 @@ class MobileSettings:
         self._keyboard_buttons = []
         apply = getattr(popup, "btn_apply", None)
         if apply is not None:
+            from carveracontroller.runtime_profile import is_kiosk
+
+            if is_kiosk() and not getattr(popup, "_kiosk_system_button", None):
+                system = Button(text=tr._("System"), size_hint_x=None, width=dp(104))
+                system.bind(on_release=lambda *_: self.app._kiosk.open_recovery())
+                apply.parent.add_widget(system)
+                popup._kiosk_system_button = system
             apply = next(child for child in apply.parent.children if child == apply)
             apply.parent._mobile_keyboard_secondary = True
             self._keyboard_buttons.append((apply, apply.parent, apply.parent.children.index(apply)))

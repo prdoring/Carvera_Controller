@@ -29,6 +29,10 @@ Config.set("graphics", "fullscreen", "0")
 Config.set("kivy", "exit_on_escape", "0")
 Config.set("kivy", "pause_on_minimize", "0")
 Config.set("input", "mouse", "mouse,multitouch_on_demand")
+if os.environ.get("CARVERA_PROFILE") == "kiosk":
+    from carveracontroller.runtime_profile import configure
+
+    configure(Config)
 
 from kivy.base import EventLoop
 from kivy.clock import Clock

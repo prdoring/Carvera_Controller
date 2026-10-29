@@ -2,6 +2,10 @@ import os
 import sys
 import tempfile
 
+from carveracontroller.runtime_profile import prepare
+
+prepare()
+
 _simulation_home = None
 if os.environ.get("CARVERA_SIMULATION") == "1" and "KIVY_HOME" not in os.environ:
     _simulation_home = tempfile.TemporaryDirectory(prefix="carvera-simulation-")

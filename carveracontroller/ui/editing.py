@@ -84,11 +84,12 @@ class EditingTextInput(TextInput):
         if focused and self._uses_number_pad():
             self._keyboard_event = Clock.schedule_once(self._open_number_pad, 0)
             return
-        if focused and platform == "android":
+        if focused and getattr(App.get_running_app(), "touch_mode", False):
             layout = getattr(App.get_running_app(), "_touch_layout", None)
             if layout is not None:
                 layout.focus_field(self)
-            self._keyboard_event = Clock.schedule_once(self._configure_android_keyboard, 0)
+            if platform == "android":
+                self._keyboard_event = Clock.schedule_once(self._configure_android_keyboard, 0)
 
     def _open_number_pad(self, _dt):
         self._keyboard_event = None

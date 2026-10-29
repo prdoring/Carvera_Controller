@@ -68,6 +68,13 @@ import threading
 import time
 
 # os.environ['KIVY_GL_DEBUG'] = '1'
+from kivy.config import Config
+
+from .runtime_profile import configure as configure_runtime
+from .runtime_profile import is_kiosk, may_connect, uses_touch
+
+configure_runtime(Config)
+
 from kivy.core.clipboard import Clipboard
 from kivy.utils import platform as kivy_platform
 
@@ -93,6 +100,7 @@ from kivy.factory import Factory
 from kivy.graphics import Color, Ellipse, Line, PopMatrix, PushMatrix, Rectangle, Rotate, Translate
 from kivy.metrics import Metrics, dp
 from kivy.properties import (
+    AliasProperty,
     BooleanProperty,
     DictProperty,
     ListProperty,
@@ -3402,14 +3410,14 @@ class Makera(RelativeLayout):
         Clock.schedule_interval(self.check_model_metadata, 10)
 
         self.has_onscreen_keyboard = False
-        if kivy_platform in ("android", "ios"):
+        if kivy_platform in ("android", "ios") or is_kiosk():
             self.has_onscreen_keyboard = True
 
         #
         threading.Thread(target=self.monitorSerial).start()
 
         # Auto-connect on startup only when auto-reconnect is enabled.
-        if Config.getboolean("carvera", "auto_reconnect_enabled", fallback=True):
+        if Config.getboolean("carvera", "auto_reconnect_enabled", fallback=True) and may_connect(automatic=True):
             Clock.schedule_once(lambda dt: self.reconnect_last_connection(quiet=True, for_app_launch=True))
 
     def _parse_active_color(self, value):
@@ -3496,9 +3504,9 @@ class Makera(RelativeLayout):
             if "default" in setting:
                 Config.setdefault(setting["section"], setting["key"], setting["default"])
                 setting.pop("default", None)
-            if kivy_platform == "android" and setting.get("key") in ("ui_density", "ui_density_override"):
+            if uses_touch(kivy_platform) and setting.get("key") in ("ui_density", "ui_density_override"):
                 continue
-            if kivy_platform != "android" and setting.get("key") == "android_ui_scale":
+            if not uses_touch(kivy_platform) and setting.get("key") == "android_ui_scale":
                 continue
             controller_config.append(setting)
 
@@ -4155,6 +4163,8 @@ class Makera(RelativeLayout):
 
     def reconnect_last_connection(self, *args, quiet=False, for_app_launch=False):
         """Reconnect using preferred/last method (WiFi address or USB device id)."""
+        if not may_connect(automatic=for_app_launch):
+            return False
         method = self._preferred_reconnect_method(for_app_launch=for_app_launch)
         if method == "usb":
             path = self._resolve_usb_reconnect_path()
@@ -8436,7 +8446,15 @@ class MakeraApp(App):
     jog_pendant_text = StringProperty(tr._("No Pendant"))
     # [left, top, right, bottom] system-bar and cutout insets in pixels.
     safe_area_padding = ListProperty([0, 0, 0, 0])
-    android_touch = BooleanProperty(kivy_platform == "android")
+    touch_mode = BooleanProperty(uses_touch(kivy_platform))
+
+    def _get_android_touch(self):
+        return self.touch_mode
+
+    def _set_android_touch(self, value):
+        self.touch_mode = value
+
+    android_touch = AliasProperty(_get_android_touch, _set_android_touch, bind=("touch_mode",))
     compact_layout = BooleanProperty(False)
     machine_units = StringProperty("mm")
     show_preview = BooleanProperty(True)
@@ -8453,6 +8471,8 @@ class MakeraApp(App):
         from .addons.probing.operations.ConfigUtils import ConfigUtils
 
         ConfigUtils.flush_saves()
+        if getattr(self, "_kiosk", None) is not None:
+            self._kiosk.stop()
         if getattr(self, "_interaction_profile", None) is not None:
             self._interaction_profile.stop()
         if getattr(self.root, "_settings_sender", None) is not None:
@@ -8531,6 +8551,10 @@ class MakeraApp(App):
         self._focus_touch = lambda _window, focused: cancel_all_touches() if not focused else None
         self._modal_touch = lambda *_: cancel_jog()
         Window.bind(focus=self._focus_touch, children=self._modal_touch)
+        if is_kiosk():
+            from .kiosk_runtime import KioskRuntime
+
+            self._kiosk = KioskRuntime(self)
         # Workaround for Android blank screen issue
         # https://github.com/kivy/python-for-android/issues/2720
         viewport_update_count = 0
@@ -8585,8 +8609,8 @@ class MakeraApp(App):
 
 
 def load_app_configs():
-    if kivy_platform == "android":
-        density = float(os.environ.get("CARVERA_ANDROID_DENSITY", "1"))
+    if uses_touch(kivy_platform):
+        density = float(os.environ.get("CARVERA_ANDROID_DENSITY", "1.5" if is_kiosk() else "1"))
         if not Config.has_option("carvera", "android_ui_scale"):
             legacy = Config.getboolean("carvera", "ui_density_override", fallback=False)
             scale = Config.getfloat("carvera", "ui_density", fallback=density) / density if legacy else 1.0
@@ -8622,7 +8646,7 @@ def set_config_defaults(default_lang):
             "input", "mouse", "mouse,multitouch_on_demand"
         )  # disable multitouch simulation on non-mobile platforms
 
-    if kivy_platform == "linux":
+    if kivy_platform == "linux" and not is_kiosk():
         # Remove the default probesysfs entry that treats trackpads as touchscreens.
         # Kivy's default adds '%(name)s = probesysfs,provider=hidinput' which picks up
         # all HID devices including laptop trackpads.
@@ -8632,6 +8656,8 @@ def set_config_defaults(default_lang):
         # "touchscreen" (case-insensitive). This preserves real touchscreen support
         # while excluding trackpads, which never have "touchscreen" in their device name.
         Config.set("input", "touchscreen_%(name)s", "probesysfs,provider=mtdev,match=(?i)touchscreen")
+
+    configure_runtime(Config)
 
     # Only update config if running new version
     if not Config.has_option("carvera", "version") or Config.get("carvera", "version") != __version__:
@@ -8695,7 +8721,7 @@ def set_config_defaults(default_lang):
     if not Config.has_option("carvera", "usb_baud_rate"):
         Config.set("carvera", "usb_baud_rate", "1500000")
     if not Config.has_option("carvera", "reconnect_method"):
-        Config.set("carvera", "reconnect_method", "wifi")
+        Config.set("carvera", "reconnect_method", "usb" if is_kiosk() else "wifi")
     if not Config.has_option("carvera", "usb_device_id"):
         Config.set("carvera", "usb_device_id", "")
     if not Config.has_option("carvera", "usb_serial"):
@@ -8759,7 +8785,7 @@ def set_config_defaults(default_lang):
 
 
 def load_constants():
-    Window.softinput_mode = "" if kivy_platform == "android" else "below_target"
+    Window.softinput_mode = "" if uses_touch(kivy_platform) else "below_target"
 
     _device = None
     _baud = None
@@ -8831,6 +8857,8 @@ def main():
     # Make it global to be able to access it from native APIs
     global global_app
     global_app = MakeraApp()
+    if is_kiosk():
+        global_app._user_data_dir = os.environ.get("CARVERA_DATA_DIR", "/var/lib/carvera")
     global_app.simulation = simulation
     if simulation is not None:
         global_app._user_data_dir = os.environ["KIVY_HOME"]

@@ -235,6 +235,10 @@ class Controller:
     # Execute a single command
     # ----------------------------------------------------------------------
     def executeCommand(self, line):
+        from .runtime_profile import maintenance_active
+
+        if maintenance_active:
+            return False
         # if self.sio_status != False or self.sio_diagnose != False:      #wait for the ? or * command
         #    time.sleep(0.5)
         if self.stream and line:
@@ -281,6 +285,10 @@ class Controller:
         ``1`` as separate writes races with other commands and leaves orphaned
         ``1`` bytes in the firmware command buffer (seen as ``111…$J …``).
         """
+        from .runtime_profile import maintenance_active
+
+        if maintenance_active and chars not in ((ord("?"),), (0x19,), (0x18,), (ord("!"),)):
+            return
         if not self.stream or not chars:
             return
         try:
@@ -295,6 +303,10 @@ class Controller:
 
     def executeFileCommand(self, line):
         """Send an upload/download initiation command through the active protocol."""
+        from .runtime_profile import maintenance_active
+
+        if maintenance_active:
+            return False
         if self.stream and line:
             try:
                 if isinstance(line, str) and not line.endswith("\n"):
@@ -1549,6 +1561,10 @@ class Controller:
         self.clearRun()
 
     def open(self, conn_type, address):
+        from .runtime_profile import may_connect
+
+        if not may_connect():
+            return False
         # init connection
         method = "USB serial" if conn_type == CONN_USB else "WiFi"
         # Single user-visible connect log (monitorSerial emits one MDI Received line).
