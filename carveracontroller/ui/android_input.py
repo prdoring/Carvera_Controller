@@ -26,8 +26,8 @@ class AndroidInput:
 
     def poll(self):
         state = json.loads(self.api.drain())
-        for pointer, action, travel in state["edges"]:
-            self.edges[str(pointer)].append((action, travel))
+        for pointer, action, travel, *sample in state["edges"]:
+            self.edges[str(pointer)].append((action, travel, sample))
         if state["slop"]:
             gestures.touch_slop = state["slop"]
             gestures.hold_timeout = state["hold_ms"] / 1000
@@ -46,15 +46,20 @@ class AndroidInput:
         interrupted = self.poll()
         for phase, motion in events:
             if interrupted:
+                motion.ud["carvera_native_cancelled"] = True
                 gestures.cancel_touch(motion)
             if motion.device != "sdl" or phase not in ("begin", "end"):
                 continue
             queue = self.edges[str(motion.id)]
             if queue:
-                action, travel = queue.popleft()
+                edge = queue.popleft()
+                action, travel = edge[:2]
+                if len(edge) > 2 and len(edge[2]) == 3 and action in ("down", "up"):
+                    motion.ud["carvera_native_" + action] = tuple(edge[2])
                 if travel > gestures.touch_slop:
                     motion.ud["carvera_dragged"] = True
                 if action == "cancel" or (phase == "end" and action != "up") or (phase == "begin" and action != "down"):
+                    motion.ud["carvera_native_cancelled"] = True
                     gestures.cancel_touch(motion)
             if not queue:
                 self.edges.pop(str(motion.id), None)

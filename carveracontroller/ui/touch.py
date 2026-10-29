@@ -59,14 +59,16 @@ class Gesture:
 
     def __init__(self, touch, hold=None):
         self.touch = touch
-        self.start = tuple(touch.pos)
+        # Hold timers run between dispatches, outside the widget's coordinates.
+        self.start = (touch.sx * Window.width, touch.sy * Window.height)
         self.cancelled = False
         self.held = False
         self._event = Clock.schedule_once(lambda dt: self._hold(hold), hold_timeout) if hold else None
         _gestures.add(self)
 
     def move(self):
-        if (math.dist(self.start, self.touch.pos) > touch_slop or self.touch.ud.get(TOUCH_CANCELLED)
+        pos = (self.touch.sx * Window.width, self.touch.sy * Window.height)
+        if (math.dist(self.start, pos) > touch_slop or self.touch.ud.get(TOUCH_CANCELLED)
                 or self.touch.ud.get("carvera_dragged")):
             self.cancel()
 
@@ -346,12 +348,19 @@ class TouchPostprocessor:
     """Cancel button activation after dragging, before release is dispatched."""
 
     def process(self, events):
+        from .scrolling import replay_swipe
+
+        beginnings = {touch.uid for phase, touch in events if phase == "begin"}
+        replayed = {touch.uid for phase, touch in events if phase == "end" and touch.uid in beginnings
+                    and touch.ud.get("carvera_dragged") and replay_swipe(touch)}
+        events = [(phase, touch) for phase, touch in events if touch.uid not in replayed]
         for phase, touch in events:
             if not touch.is_touch:
                 continue
             pos = (touch.sx * Window.width, touch.sy * Window.height)
             if phase == "begin":
-                touch.ud["carvera_start"] = pos
+                native = touch.ud.get("carvera_native_down")
+                touch.ud["carvera_start"] = (native[0] * Window.width, native[1] * Window.height) if native else pos
                 touch.ud.setdefault("carvera_dragged", False)
             else:
                 start = touch.ud.get("carvera_start", pos)

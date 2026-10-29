@@ -30,6 +30,7 @@ from kivy.uix.textinput import TextInput
 from carveracontroller.translation import tr
 
 from . import theme
+from .scrolling import configure_scroll_view
 from .touch import JogStepSpinner, JogTouchButton, TapBehavior
 
 
@@ -111,6 +112,7 @@ def fit_form_grid(grid):
 
 
 def fit_scroll_view(view):
+    configure_scroll_view(view)
     if getattr(view, "_mobile_scroll_bound", False):
         return
     view._mobile_scroll_bound = True

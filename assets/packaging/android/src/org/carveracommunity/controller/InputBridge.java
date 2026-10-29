@@ -122,20 +122,28 @@ public final class InputBridge {
                 interrupted = true;
             }
             if (action == MotionEvent.ACTION_CANCEL) {
-                for (int i = 0; i < event.getPointerCount(); i++) addEdge(event.getPointerId(i), "cancel");
+                for (int i = 0; i < event.getPointerCount(); i++) addEdge(event, i, "cancel");
             } else if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
                 int i = event.getActionIndex();
                 starts.put(event.getPointerId(i), new float[]{event.getX(i), event.getY(i), 0});
-                addEdge(event.getPointerId(i), "down");
+                addEdge(event, i, "down");
             } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP) {
-                addEdge(event.getPointerId(event.getActionIndex()), "up");
+                addEdge(event, event.getActionIndex(), "up");
             }
         }
     }
 
-    private static void addEdge(int id, String action) {
+    private static void addEdge(MotionEvent event, int index, String action) {
+        int id = event.getPointerId(index);
         float[] start = starts.get(id);
-        edges.put(new JSONArray().put(id).put(action).put(start == null ? 0 : (int) Math.ceil(start[2])));
+        int width = Math.max(1, decorView.getWidth());
+        int height = Math.max(1, decorView.getHeight());
+        try {
+            edges.put(new JSONArray().put(id).put(action).put(start == null ? 0 : (int) Math.ceil(start[2]))
+                .put(event.getX(index) / width).put(1 - event.getY(index) / height).put(event.getEventTime()));
+        } catch (org.json.JSONException error) {
+            throw new IllegalStateException(error);
+        }
         if (!action.equals("down")) starts.remove(id);
     }
 

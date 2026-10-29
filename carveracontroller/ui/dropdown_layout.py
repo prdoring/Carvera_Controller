@@ -23,8 +23,11 @@ class DropdownLayout:
         dropdown.bind(on_dismiss=self.detach, pos=self.keep_above_footer, size=self.keep_above_footer)
 
     def open(self, anchor):
+        from .android_layout import fit_scroll_view
+
         self.anchor = anchor
         dropdown = self.dropdown
+        fit_scroll_view(dropdown)
         dropdown.container.padding = dp(6)
         dropdown.container.spacing = dp(4)
         dropdown.bar_width = dp(8)

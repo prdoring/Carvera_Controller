@@ -55,7 +55,7 @@
             rgba: (0, 0, 0, 0) if not self.background_color[3] or self.disabled else (.72, .79, .78, .32)
         Line:
             points: [self.x + dp(7), self.top - dp(1), self.right - dp(7), self.top - dp(1)]
-            width: .7
+            width: 1
 
 <ToggleButton>:
     background_color: theme.SELECTED if self.state == 'down' else theme.CONTROL
@@ -171,7 +171,7 @@
             rgba: (*theme.BORDER[:3], .5)
         Line:
             points: [self.x + dp(12), self.y, self.right - dp(12), self.y]
-            width: .5
+            width: 1
 
 <SettingTitle>:
     color: theme.SECONDARY
@@ -269,4 +269,4 @@
             rgba: theme.ACCENT if self.state == 'down' else theme.MUTED
         Line:
             points: [self.x + dp(8), self.center_y, self.right - dp(8), self.center_y] if self.parent and self.parent.sizable_from in ('top', 'bottom') else [self.center_x, self.y + dp(8), self.center_x, self.top - dp(8)]
-            width: dp(1)
+            width: 1
