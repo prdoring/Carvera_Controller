@@ -276,3 +276,26 @@ def test_display_uses_advertised_refresh_and_actual_connector(monkeypatch):
     assert calls[-1] == ["wlr-randr", "--output", "HDMI-A-2", "--mode", "1920x1200@59.951000Hz"]
     with pytest.raises(ValueError, match="does not advertise"):
         display.apply("1920x1080")
+
+
+def test_first_boot_applies_hostname_and_installs_login_key(monkeypatch, tmp_path):
+    monkeypatch.syspath_prepend(str(ASSETS / "runtime"))
+    provision = load("provision")
+    boot = tmp_path / "boot/firmware"
+    boot.mkdir(parents=True)
+    (tmp_path / "etc").mkdir()
+    (tmp_path / "etc/hosts").write_text("127.0.0.1 localhost\n127.0.1.1 carvera-pi\n")
+    (tmp_path / "home/carvera-admin").mkdir(parents=True)
+    (tmp_path / "var/lib/carvera").mkdir(parents=True)
+    key = "ssh-ed25519 AAAA laptop"
+    (boot / "carvera-provision.json").write_text(json.dumps({"hostname": "workshop-panel", "authorized_keys": [key]}))
+    monkeypatch.setattr(provision, "BOOT", boot)
+    monkeypatch.setattr(provision, "Path", lambda path: tmp_path / str(path).lstrip("/"))
+    calls = []
+    monkeypatch.setattr(provision.subprocess, "run", lambda args, **_kwargs: calls.append(args))
+    provision.main()
+    assert ["hostname", "workshop-panel"] in calls
+    assert (tmp_path / "etc/hostname").read_text() == "workshop-panel\n"
+    assert (tmp_path / "home/carvera-admin/.ssh/authorized_keys").read_text() == key + "\n"
+    assert not (boot / "carvera-provision.json").exists()
+    assert (tmp_path / "var/lib/carvera/provisioned").exists()

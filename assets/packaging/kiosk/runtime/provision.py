@@ -26,6 +26,7 @@ def main():
     if not keys or any(not re.fullmatch(r"(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp256) [A-Za-z0-9+/=]+(?: [^\r\n]*)?", key) for key in keys):
         raise ValueError("Invalid SSH public key")
     Path("/etc/hostname").write_text(hostname + "\n")
+    subprocess.run(["hostname", hostname], check=True)
     hosts = Path("/etc/hosts")
     content = "\n".join(line for line in hosts.read_text().splitlines() if not line.startswith("127.0.1.1"))
     hosts.write_text(content + f"\n127.0.1.1 {hostname}\n")
