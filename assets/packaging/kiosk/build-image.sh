@@ -15,5 +15,6 @@ mkdir -p /export/laptop/novnc
 cp -aL /usr/share/novnc/. /export/laptop/novnc/
 cp /project/kiosk/laptop-requirements.txt /export/laptop/
 cp /project/kiosk/kiosk.py /export/laptop/
+cp /project/kiosk/README.md /export/README.md
 cd /export
 sha256sum *.xz *.tar.gz > SHA256SUMS
