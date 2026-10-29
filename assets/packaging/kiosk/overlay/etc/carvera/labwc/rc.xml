@@ -5,6 +5,5 @@
     <windowRule identifier="*" serverDecoration="no" />
   </windowRules>
   <keyboard><default /></keyboard>
-  <mouse />
   <touch mouseEmulation="no" />
 </labwc_config>
