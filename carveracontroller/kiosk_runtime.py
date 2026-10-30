@@ -17,6 +17,8 @@ from kivy.uix.vkeyboard import VKeyboard
 
 from . import runtime_profile
 from .kiosk_state import activity, read_json, require_idle, write_json
+from .kiosk_touch import install as install_touch
+from .kiosk_touch import prepare_recovery, uninstall
 
 
 class KioskRuntime:
@@ -33,6 +35,8 @@ class KioskRuntime:
         self._keyboards = set()
         self._recovery_process = None
         self.panel = None
+        self.touch = install_touch(Window)
+        prepare_recovery(Path(app.user_data_dir) / "recovery")
         self.renderer = glGetString(GL_RENDERER).decode("utf-8")
         Window.bind(children=self.keyboard_changed)
         self.event = Clock.schedule_interval(self.tick, 0.5)
@@ -58,6 +62,7 @@ class KioskRuntime:
         status = activity(self.app)
         status["renderer"] = self.renderer
         status["display"] = list(Window.size)
+        status["touch"] = dict(self.touch.events) if self.touch is not None else {}
         from .__version__ import __version__
 
         status["version"] = __version__
@@ -124,6 +129,7 @@ class KioskRuntime:
         if self.panel is not None:
             self.panel.dismiss()
         Window.unbind(children=self.keyboard_changed)
+        uninstall(Window, self.touch)
         for keyboard in self._keyboards:
             keyboard.unbind(size=self.keyboard_changed)
         if self._recovery_process is not None and self._recovery_process.poll() is None:

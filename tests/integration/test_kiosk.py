@@ -1,13 +1,103 @@
 """Linux kiosk checks with simulated machine hardware."""
 
+import ctypes
 import os
+import subprocess
 import sys
+from collections import deque
+from types import SimpleNamespace
 
 import pytest
 
 from .conftest import pump_frames
 
 pytestmark = pytest.mark.skipif(os.environ.get("CARVERA_PROFILE") != "kiosk", reason="Dedicated kiosk run")
+
+
+def test_touch_bridge_preserves_mouse_keyboard_and_storage_access():
+    from carveracontroller.kiosk_touch import TouchInput
+
+    events = iter([("fingerdown", 5, 0.2, 0.4, 1), ("mousemotion", 10, 20),
+                   ("fingerup", 5, 0.2, 0.4, 1), ("keydown", 65), False])
+    storage = SimpleNamespace(poll=lambda: next(events), title="original")
+    queue = deque()
+    bridge = TouchInput(storage, queue)
+    assert bridge.poll() == ("mousemotion", 10, 20)
+    assert bridge.poll() == ("keydown", 65)
+    assert bridge.poll() is False
+    assert [queue.pop()[0], queue.pop()[0]] == ["fingerdown", "fingerup"]
+    bridge.title = "changed"
+    assert storage.title == bridge.title == "changed"
+    assert bridge.events == {"fingerdown": 1, "fingermotion": 0, "fingerup": 1}
+
+
+def test_recovery_loads_touch_module_without_the_application(tmp_path):
+    from carveracontroller.kiosk_touch import prepare_recovery
+
+    home = tmp_path / "recovery"
+    home.mkdir()
+    (home / "config.ini").write_text("[graphics]\nmaxfps=30\n")
+    prepare_recovery(home)
+    assert "maxfps = 30" in (home / "config.ini").read_text()
+    environment = dict(os.environ, KIVY_HOME=str(home), CARVERA_PROFILE="kiosk")
+    environment.pop("PYTHONPATH", None)
+    code = (
+        "import sys; from kivy.core.window import Window; "
+        "assert Window._win._carvera_touch_bridge; "
+        "assert 'carveracontroller' not in sys.modules; Window.close()"
+    )
+    subprocess.run([sys.executable, "-c", code], cwd=tmp_path, env=environment,
+                   capture_output=True, text=True, check=True, timeout=30)
+
+
+def test_native_sdl_fingers_reach_linux_touch_widgets(kivy_app):
+    from kivy.core.window import Window
+    from kivy.uix.widget import Widget
+
+    class Finger(ctypes.Structure):
+        _fields_ = [("type", ctypes.c_uint32), ("timestamp", ctypes.c_uint32),
+                    ("touch_id", ctypes.c_int64), ("finger_id", ctypes.c_int64),
+                    ("x", ctypes.c_float), ("y", ctypes.c_float),
+                    ("dx", ctypes.c_float), ("dy", ctypes.c_float),
+                    ("pressure", ctypes.c_float), ("window_id", ctypes.c_uint32)]
+
+    class Event(ctypes.Union):
+        _fields_ = [("finger", Finger), ("padding", ctypes.c_uint8 * 56)]
+
+    sdl = ctypes.CDLL("libSDL2-2.0.so.0")
+    sdl.SDL_PushEvent.argtypes = [ctypes.POINTER(Event)]
+    sdl.SDL_PushEvent.restype = ctypes.c_int
+    received = []
+
+    class Sink(Widget):
+        def on_touch_down(self, touch):
+            received.append(("down", touch.id, touch.sx, touch.sy))
+            return True
+
+        def on_touch_move(self, touch):
+            received.append(("move", touch.id, touch.sx, touch.sy))
+            return True
+
+        def on_touch_up(self, touch):
+            received.append(("up", touch.id, touch.sx, touch.sy))
+            return True
+
+    sink = Sink(size_hint=(None, None), size=Window.size)
+    Window.add_widget(sink)
+    try:
+        for kind, finger_id, x in [(0x700, 501, 0.2), (0x700, 502, 0.6),
+                                    (0x702, 501, 0.3), (0x701, 501, 0.3), (0x701, 502, 0.6)]:
+            event = Event()
+            event.finger = Finger(kind, 0, 1, finger_id, x, 0.4, 0, 0, 1, 0)
+            assert sdl.SDL_PushEvent(ctypes.byref(event)) == 1
+            Window.mainloop()
+            pump_frames(2)
+        assert [(kind, fid) for kind, fid, *_ in received] == [
+            ("down", 501), ("down", 502), ("move", 501), ("up", 501), ("up", 502),
+        ]
+        assert received[0][2:] == pytest.approx((0.2, 0.6))
+    finally:
+        Window.remove_widget(sink)
 
 
 def test_kiosk_shares_touch_layout_without_android_services(kivy_app):

@@ -32,6 +32,6 @@ FROM image-tools AS image
 COPY assets/packaging/kiosk /project/kiosk
 COPY --from=application /output /project/kiosk/payload
 COPY scripts/kiosk.py /project/kiosk/kiosk.py
-COPY carveracontroller/kiosk_state.py carveracontroller/runtime_profile.py /project/kiosk/runtime/
+COPY carveracontroller/kiosk_state.py carveracontroller/runtime_profile.py carveracontroller/kiosk_touch.py /project/kiosk/runtime/
 RUN chmod +x /project/kiosk/build-image.sh
 ENTRYPOINT ["/project/kiosk/build-image.sh"]

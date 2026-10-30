@@ -25,6 +25,7 @@ chroot "$target" "/opt/carvera/releases/$version/venv/bin/python" -m pip install
 chroot "$target" python3 -m venv /opt/carvera/recovery-venv
 chroot "$target" /opt/carvera/recovery-venv/bin/python -m pip install \
     --no-index --find-links "/opt/carvera/releases/$version/wheels" Kivy==2.3.1
+python3 "$source/runtime/kiosk_touch.py" "$target/var/lib/carvera/recovery"
 ln -s "releases/$version" "$target/opt/carvera/current"
 rsync -a --chown=0:0 --chmod=D755,F644 "$source/overlay/" "$target/"
 chmod 0755 "$target/opt/carvera/maintenance/"*.sh "$target/usr/local/sbin/carvera-maint" "$target/usr/local/sbin/carvera-recover"
