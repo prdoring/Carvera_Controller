@@ -46,7 +46,7 @@ The kiosk is included on this fork’s main branch.
 
 ### Before you start
 
-On your computer, install **Python 3.11+**, **Git**, **Docker Desktop** with Linux containers, **Raspberry Pi Imager**, and the **OpenSSH client tools** (ssh, scp, and ssh-keygen). Start Docker Desktop before building.
+On your computer, install **Raspberry Pi Imager**, **Python 3.11+**, and the **OpenSSH client tools** (ssh, scp, and ssh-keygen).
 
 You also need an SSH key pair for laptop access. If you do not already have one, run the following and accept the default file location:
 
@@ -56,26 +56,28 @@ ssh-keygen -t ed25519
 
 The card setup below uses the public key at `~/.ssh/id_ed25519.pub`. Keep the private key on your computer.
 
-### 1. Build the image
+### 1. Download the image and setup tools
 
-~~~bash
-git clone --branch main https://github.com/prdoring/Carvera_Controller.git Carvera_Controller-kiosk
-cd Carvera_Controller-kiosk
-python scripts/kiosk.py build --version 1.0.0.dev1
-~~~
+**The first prebuilt release has not been published yet.** It will be available at [Pi Kiosk v1.0.0](https://github.com/prdoring/Carvera_Controller/releases/tag/kiosk-v1.0.0). Until then, you can [build an image from source](docs/development.md#raspberry-pi-kiosk-image).
 
-The first build can be slow because it builds ARM software under emulation. Output goes to `dist/kiosk`, including the compressed SD image, app bundle, checksums, and laptop helper. The example version labels the kiosk build, not the machine firmware.
+When the release is available, download these files from its **Assets** section:
 
-Run the remaining helper commands from this checkout.
+| File | Purpose |
+| --- | --- |
+| `carvera-kiosk-pi4-1.0.0.img.xz` | SD card image for the Raspberry Pi 4 |
+| `carvera-kiosk-laptop-1.0.0.zip` | Card setup and laptop maintenance tools |
+| `SHA256SUMS` | Checksums for verifying the downloads |
+
+Extract the laptop ZIP and open a terminal in its **laptop** folder, beside **kiosk.py**. Keep the folder’s contents together. Run the helper commands below from that folder. Git and Docker are only needed if you build the image yourself.
 
 ### 2. Flash and configure the card
 
-In Raspberry Pi Imager, choose a custom image and select the generated `.img.xz`. Flash a spare card and keep your existing card for rollback. Skip Imager’s OS customization.
+In Raspberry Pi Imager, choose a custom image and select the downloaded `.img.xz`. Flash a spare card and keep your existing card for rollback. Skip Imager’s OS customization.
 
 Before ejecting the card, configure its **bootfs** partition. Replace `E:/` with its actual drive or mount path, and change the public-key path, Wi-Fi name, and country to match your setup:
 
 ~~~powershell
-python scripts/kiosk.py prepare-card --boot-dir E:/ --public-key ~/.ssh/id_ed25519.pub --hostname carvera-pi --ssid Workshop --country US
+python kiosk.py prepare-card --boot-dir E:/ --public-key ~/.ssh/id_ed25519.pub --hostname carvera-pi --ssid Workshop --country US
 ~~~
 
 The helper prompts for your Wi-Fi password. For Ethernet, omit `--ssid` and `--country`. To import preferences from an exported Android app backup, add `--settings backup.tar.gz`.
@@ -96,15 +98,15 @@ The controller starts disconnected. Tap **Connect** and select USB or a network 
 
 ## Laptop maintenance
 
-Use the same hostname or IP address you used for SSH:
+From the extracted laptop folder, use the same hostname or IP address you used for SSH:
 
 ~~~bash
-python scripts/kiosk.py diagnose --host carvera-admin@carvera-pi.local
-python scripts/kiosk.py logs --host carvera-admin@carvera-pi.local
-python scripts/kiosk.py backup --host carvera-admin@carvera-pi.local preferences.tar.gz
+python kiosk.py diagnose --host carvera-admin@carvera-pi.local
+python kiosk.py logs --host carvera-admin@carvera-pi.local
+python kiosk.py backup --host carvera-admin@carvera-pi.local preferences.tar.gz
 ~~~
 
-The backup command saves preferences to your computer. The exported `dist/kiosk/laptop` folder also provides the helper for use without the source checkout.
+The backup command saves preferences to your computer.
 
 See the [kiosk guide](https://github.com/prdoring/Carvera_Controller/blob/main/assets/packaging/kiosk/README.md) for screen-sharing setup, Wi-Fi recovery, app deployment, and rollback. Updates require maintenance mode and an idle machine. Full OS updates use a replacement card image.
 
@@ -173,6 +175,10 @@ poetry run python scripts/build.py --os android --version 2.2.0-DEV
 Install the resulting `dist/carveracontroller-community-2.2.0-DEV.apk` on the device. USB connections need USB host support, a data cable or adapter, and device permission.
 
 The [Windows and Android guide](docs/windows-android-development.md#android-build-command) covers build prerequisites, installation, and signing. Back up preferences before replacing an existing app; a different signing key can prevent an in-place update.
+
+## Build a kiosk image
+
+To build from source, see [Raspberry Pi kiosk image](docs/development.md#raspberry-pi-kiosk-image). This requires Git and Docker Desktop with Linux containers.
 
 ## Development and support
 
