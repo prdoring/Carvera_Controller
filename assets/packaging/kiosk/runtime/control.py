@@ -139,7 +139,9 @@ def export_snapshot(destination):
 
 def backup(destination, owner=None):
     destination = Path(destination)
-    with tempfile.TemporaryDirectory(prefix=".settings-", dir=destination.parent) as directory:
+    # Keep admin exports on the same filesystem, outside the user-writable folder.
+    staging_parent = ADMIN if owner is not None else destination.parent
+    with tempfile.TemporaryDirectory(prefix=".settings-", dir=staging_parent) as directory:
         temporary = Path(directory) / "settings.tar.gz"
         export_snapshot(temporary)
         os.chmod(temporary, 0o600)

@@ -96,21 +96,26 @@ def test_restore_rejects_archive_links(tmp_path):
 
 
 def test_backup_stages_privately_on_destination_filesystem(control, monkeypatch):
-    destination = control.ADMIN / "preferences.tar.gz"
+    exports = control.ADMIN / "exports"
+    exports.mkdir()
+    destination = exports / "preferences.tar.gz"
     original_replace = control.os.replace
+    account = SimpleNamespace(pw_uid=control.os.getuid(), pw_gid=control.os.getgid())
+    monkeypatch.setattr(control.pwd, "getpwnam", lambda _name: account)
 
     def replace(source, target):
-        assert source.parent.parent == destination.parent
+        assert source.parent.parent == control.ADMIN
         assert source.parent.stat().st_mode & 0o777 == 0o700
         assert source.stat().st_mode & 0o777 == 0o600
         original_replace(source, target)
 
     monkeypatch.setattr(control.os, "replace", replace)
     (control.DATA / "makera.ini").write_text("[user]\nvalue=before\n")
-    assert control.backup(destination) == str(destination)
+    assert control.backup(destination, owner="carvera-admin") == str(destination)
     with tarfile.open(destination) as source:
         assert source.extractfile("makera.ini").read() == b"[user]\nvalue=before\n"
-    assert list(control.ADMIN.iterdir()) == [destination]
+    assert list(control.ADMIN.iterdir()) == [exports]
+    assert list(exports.iterdir()) == [destination]
 
 
 def bundle(path, *, content=b"wheel", expected=None, extra=None):

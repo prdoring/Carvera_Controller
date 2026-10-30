@@ -12,6 +12,7 @@ def verify(root):
     paths += list((root / "etc/systemd/system").glob("carvera-*.service"))
     paths += [root / "usr/local/sbin" / name for name in ("carvera-maint", "carvera-recover")]
     paths += [root / "etc/sudoers.d/carvera"]
+    paths += [root / "var/lib/carvera-maint"]
     for path in paths:
         info = path.lstat()
         if path.is_symlink() or info.st_uid != 0 or info.st_mode & 0o022:
