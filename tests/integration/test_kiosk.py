@@ -115,6 +115,44 @@ def test_kiosk_shares_touch_layout_without_android_services(kivy_app):
     assert kivy_app._kiosk.renderer
 
 
+@pytest.mark.parametrize("state", ["Idle", "Run", "Pause", "Hold"])
+def test_kiosk_footer_keeps_desktop_icons_and_touch_targets(kivy_app, connected_idle_state, state):
+    from carveracontroller.CNC import CNC
+
+    app = kivy_app
+    original = app.state, app.playing, app.selected_remote_filename
+    app.root.config_loaded = True
+    CNC.vars["state"] = app.state = state
+    app.playing = state in ("Run", "Pause")
+    app.selected_remote_filename = "fixture.cnc"
+    expected = {
+        "Files": "data/file.png",
+        "Resume" if state == "Pause" else "Job": "data/start.png" if state == "Pause" else "data/config_start.png",
+        "Pause": "data/suspend.png",
+        "Abort": "data/abort.png",
+        "Hold": "data/feedhold2.png" if state == "Hold" else "data/feedhold1.png",
+    }
+    try:
+        app._touch_layout.update()
+        pump_frames(12)
+        footer = app.root.ids.main_file_button.parent
+        actions = {widget.android_label: widget for widget in footer.children if getattr(widget, "android_label", "")}
+        for caption, icon in expected.items():
+            button = actions[caption]
+            assert button.icon == icon
+            assert not button.text
+            assert button.opacity == 1
+            assert button.width >= app.touch_target and button.height >= app.touch_target
+            assert button.x >= footer.x and button.right <= footer.right
+            assert button.y >= footer.y and button.top <= footer.top
+        assert actions["Stop"].text == "Stop"
+        assert actions["Stop"].width >= app.touch_target
+        assert actions["Stop"].right <= footer.right
+    finally:
+        app.state, app.playing, app.selected_remote_filename = original
+        app._touch_layout.update()
+
+
 def test_virtual_keyboard_uses_shared_touch_layout(kivy_app):
     from kivy.core.window import Window
     from kivy.uix.vkeyboard import VKeyboard
@@ -171,6 +209,7 @@ def test_file_selection_does_not_open_keyboard(kivy_app, connected_idle_state, s
     finally:
         popup._mobile_search_sheets[source].dismiss(animation=False)
         rv.layout_manager.focus = False
+        rv.layout_manager.clear_selection()
         rv.data, rv.browser_state = original
         popup.dismiss(force=True, animation=False)
         pump_frames(10)

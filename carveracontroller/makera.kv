@@ -19,6 +19,7 @@
 #:import ZPROBE_TOOL_NUMBER carveracontroller.CNC.ZPROBE_TOOL_NUMBER
 #:import PROBE_3D_TOOL_NUMBER carveracontroller.CNC.PROBE_3D_TOOL_NUMBER
 #:import theme carveracontroller.ui.theme
+#:import is_kiosk carveracontroller.runtime_profile.is_kiosk
 #:include ui/theme.kv
 #:include ui/GcodeColorSchemePanel.kv
 #:include addons/tooltips/Tooltips.kv
@@ -4757,7 +4758,7 @@
                 Label:
                     text: tr._('SettingPage')
         BottomBar:
-            height: max(dp(50), sp(16) * 1.4 + dp(20))
+            height: max(dp(50), sp(16) * 1.4 + dp(20), app.touch_target + dp(6) if is_kiosk() else 0)
             size_hint_y: None
             orientation: 'horizontal'
             canvas.before:

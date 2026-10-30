@@ -27,6 +27,7 @@ from kivy.uix.switch import Switch
 from kivy.uix.tabbedpanel import TabbedPanel, TabbedPanelHeader
 from kivy.uix.textinput import TextInput
 
+from carveracontroller.runtime_profile import is_kiosk
 from carveracontroller.translation import tr
 
 from . import theme
@@ -352,12 +353,17 @@ class AndroidTouchLayout:
             self._window_content = content
             self._update()
 
+    def _action_width(self, button):
+        if is_kiosk() and button.icon:
+            return max(self.app.touch_target, dp(50))
+        return max(self.app.touch_target, _text_width(button.android_label, button.font_name, sp(16)) + dp(16))
+
     def size_controls(self, root):
         target = self.app.touch_target
         if root == self.app.root:
             browse = root.ids.get("main_file_button")
             if browse is not None:
-                required = sum(max(target, _text_width(button.android_label, button.font_name, sp(16)) + dp(16))
+                required = sum(self._action_width(button)
                                for button in browse.parent.children if getattr(button, "android_label", "")
                                and (not button.disabled or button.android_label == tr._("Stop")))
                 required += root.ids.main_page_button.width + dp(16)
@@ -379,9 +385,10 @@ class AndroidTouchLayout:
                 else:
                     continue
             if getattr(widget, "android_label", ""):
-                widget.text = widget.android_label
-                widget.icon = ""
-                widget.width = max(target, _text_width(widget.text, widget.font_name, sp(16)) + dp(16))
+                if not is_kiosk() or not widget.icon:
+                    widget.text = widget.android_label
+                    widget.icon = ""
+                widget.width = self._action_width(widget)
                 style_action(widget, "danger" if widget.android_label in (tr._("Stop"), tr._("Abort")) else "secondary")
             if isinstance(widget, (ButtonBehavior, TextInput, Slider, Switch, SettingItem, TapBehavior)):
                 if not hasattr(widget, "_mobile_minimum_dp"):
