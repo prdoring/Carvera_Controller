@@ -1508,6 +1508,9 @@ class Controller:
             CNC.vars["sl_vacuum"] = int(d["V"][1])
         if "G" in d:
             CNC.vars["sw_light"] = int(d["G"][0])
+            CNC.vars["extout_state"] = d["G"][3] if len(d["G"]) >= 5 else None
+            CNC.vars["extout_power"] = d["G"][4] if len(d["G"]) >= 5 else None
+            CNC.vars["extout_report_time"] = time.monotonic()
         if "T" in d:
             CNC.vars["sw_tool_sensor_pwr"] = int(d["T"][0])
         if "R" in d:

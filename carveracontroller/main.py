@@ -140,6 +140,7 @@ from carveracontroller.serial_listeners import dispatch_serial_line
 from carveracontroller.ui import theme
 from carveracontroller.ui.editing import EditingTextInput as TextInput
 from carveracontroller.ui.editing import is_complete_number
+from carveracontroller.ui.vacuum_power import VacuumPowerControl
 
 
 # Custom Property to monitor CNC.vars["sw_light"] changes
@@ -1493,16 +1494,6 @@ class ConfigPopup(ModalView):
     def get_original(self, section, key):
         return self._widget_snapshot.get((section, key))
 
-    def open_vacuum_power(self):
-        self.open()
-        for widget in self._all_setting_items():
-            if widget.key == "switch.vacuum.default_on_value":
-                interface = self.settings_panel.interface
-                interface.content.current_uid = widget.panel.uid
-                interface.menu.selected_uid = widget.panel.uid
-                Clock.schedule_once(lambda _dt, setting=widget: setting.dispatch("on_release"), 0)
-                break
-
     def on_dismiss(self):
         app = App.get_running_app()
         makera = app.root
@@ -1945,8 +1936,20 @@ class FeedDropDown(ToolTipDropDown):
 class SpindleDropDown(ToolTipDropDown):
     opened = False
 
+    def open(self, widget, *args, **kwargs):
+        result = super().open(widget, *args, **kwargs)
+        self.opened = True
+        self.ids.vacuum_power.start()
+        return result
+
+    def dismiss(self, *args, **kwargs):
+        self.opened = False
+        self.ids.vacuum_power.stop()
+        return super().dismiss(*args, **kwargs)
+
     def on_dismiss(self):
         self.opened = False
+        self.ids.vacuum_power.stop()
 
 
 class ToolDropDown(ToolTipDropDown):
@@ -4429,7 +4432,7 @@ class Makera(RelativeLayout):
                 self.controller.posUpdate = False
 
             # change diagnose status
-            self.controller.diagnosing = self.diagnose_popup.showing
+            self.controller.diagnosing = self.diagnose_popup.showing or self.spindle_drop_down.opened
             # update diagnose if needed
             if self.controller.diagnoseUpdate:
                 Clock.schedule_once(self.updateDiagnose, 0)
