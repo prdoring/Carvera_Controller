@@ -137,3 +137,19 @@ This utility scans the python and kivvy code for new strings and updates the map
 ## Collected Data & Privacy
 
 See [the privacy page](../PRIVACY.md) for more details.
+
+## Raspberry Pi kiosk image
+
+Use Python 3.11 or newer, Git, and Docker Desktop with Linux containers. Start Docker Desktop, then run:
+
+~~~bash
+git clone --branch main https://github.com/prdoring/Carvera_Controller.git Carvera_Controller-kiosk
+cd Carvera_Controller-kiosk
+python scripts/kiosk.py build --version 1.0.0
+~~~
+
+The first build can be slow because it builds ARM software under emulation. Output goes to `dist/kiosk`: the compressed SD image, app bundle, checksums, version information, and a `laptop` folder containing the setup helper and screen-sharing files. The version labels the kiosk build, not the machine firmware.
+
+To follow the [installation instructions](../README.md#install-the-kiosk), use your generated image and open a terminal in `dist/kiosk/laptop`. You do not need a release ZIP when using your own build.
+
+For application-only builds, image details, and validation steps, see the [kiosk guide](https://github.com/prdoring/Carvera_Controller/blob/main/assets/packaging/kiosk/README.md).
