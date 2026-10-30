@@ -117,6 +117,8 @@ def test_kiosk_shares_touch_layout_without_android_services(kivy_app):
 
 @pytest.mark.parametrize("state", ["Idle", "Run", "Pause", "Hold"])
 def test_kiosk_footer_keeps_desktop_icons_and_touch_targets(kivy_app, connected_idle_state, state):
+    from kivy.resources import resource_find
+
     from carveracontroller.CNC import CNC
 
     app = kivy_app
@@ -127,10 +129,10 @@ def test_kiosk_footer_keeps_desktop_icons_and_touch_targets(kivy_app, connected_
     app.selected_remote_filename = "fixture.cnc"
     expected = {
         "Files": "data/file.png",
-        "Resume" if state == "Pause" else "Job": "data/start.png" if state == "Pause" else "data/config_start.png",
+        "Resume" if state == "Pause" else "Job": "data/start.png" if state == "Pause" else "data/cut_job.png",
         "Pause": "data/suspend.png",
         "Abort": "data/abort.png",
-        "Hold": "data/feedhold2.png" if state == "Hold" else "data/feedhold1.png",
+        "Hold": "data/feedhold2.png" if state == "Hold" else "data/feed_hold.png",
     }
     try:
         app._touch_layout.update()
@@ -140,6 +142,7 @@ def test_kiosk_footer_keeps_desktop_icons_and_touch_targets(kivy_app, connected_
         for caption, icon in expected.items():
             button = actions[caption]
             assert button.icon == icon
+            assert resource_find(button.icon) is not None
             assert not button.text
             assert button.opacity == 1
             assert button.width >= app.touch_target and button.height >= app.touch_target

@@ -4795,7 +4795,7 @@
                     size_hint_x: None
                     width: '3dp'
                 IconButton:
-                    icon: 'data/start.png' if app.state == 'Pause' else 'data/config_start.png'
+                    icon: 'data/start.png' if app.state == 'Pause' else 'data/cut_job.png'
                     android_label: tr._('Resume') if app.state == 'Pause' else tr._('Job')
                     icon_size: 25
                     tooltip_txt: tr._('Start File')
@@ -4826,7 +4826,7 @@
                     size_hint_x: None
                     width: '3dp'
                 IconButton:
-                    icon: 'data/feedhold2.png' if app.state == 'Hold' else 'data/feedhold1.png'
+                    icon: 'data/feedhold2.png' if app.state == 'Hold' else 'data/feed_hold.png'
                     android_label: tr._('Hold')
                     icon_size: 24
                     tooltip_txt: tr._('Pause File Without MDI')
