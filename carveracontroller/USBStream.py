@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import logging
 import sys
+import threading
 import time
+from collections.abc import Callable
 
 import serial
 
@@ -26,16 +30,35 @@ class USBStream:
         self.log_sent_receive = log_sent_receive
         self._send_log_buffer = b""
         self._recv_log_buffer = b""
+        self._read_buffer = bytearray()
+        self._write_lock = threading.Lock()
+        self.initial_baud = 115200
+        self.download_finished: Callable[[], None] | None = None
         # Set by Controller when the communication protocol is selected.
         self.uses_framed_transfer = False
 
     # ----------------------------------------------------------------------
     def send(self, data):
-        if self.serial is None:
-            return
         if isinstance(data, str):
             data = data.encode("utf-8", errors="replace")
-        self.serial.write(data)
+        with self._write_lock:
+            port = self.serial
+            if port is None:
+                return
+            if (
+                sys.platform.startswith("linux")
+                and not is_android()
+                and self.uses_framed_transfer
+                and port.baudrate > 460800
+            ):
+                # Allow the mill to receive control frames between USB bursts.
+                for offset in range(0, len(data), 8):
+                    port.write(data[offset : offset + 8])
+                    if offset + 8 < len(data):
+                        port.flush()
+                        time.sleep(0.001)
+            else:
+                port.write(data)
         if not self.log_sent_receive:
             return
         if data == b"?":
@@ -56,7 +79,11 @@ class USBStream:
     def recv(self):
         if self.serial is None:
             return b""
-        data = self.serial.read(max(1, min(self.serial.in_waiting, 4096)))
+        if self._read_buffer:
+            data = bytes(self._read_buffer[:4096])
+            del self._read_buffer[:4096]
+        else:
+            data = self.serial.read(max(1, min(self.serial.in_waiting, 4096)))
         if self.log_sent_receive and data:
             self._recv_log_buffer += data
             while b"\n" in self._recv_log_buffer:
@@ -71,6 +98,8 @@ class USBStream:
 
     # ----------------------------------------------------------------------
     def open(self, address, baud=115200):
+        self._read_buffer.clear()
+        self.initial_baud = int(baud)
         self._address = address.replace("\\", "\\\\")
         self.serial = self._serial_for_address(
             self._address,
@@ -134,6 +163,7 @@ class USBStream:
         baud = int(baud)
         old = self.serial
         self.serial = None
+        self._read_buffer.clear()
         self._send_log_buffer = b""
         self._recv_log_buffer = b""
         if old is not None:
@@ -194,6 +224,7 @@ class USBStream:
         except:
             pass
         self.serial = None
+        self._read_buffer.clear()
         self._send_log_buffer = b""
         self._recv_log_buffer = b""
         return True
@@ -208,7 +239,12 @@ class USBStream:
     def waiting_for_recv(self):
         if self.serial is None:
             return 0
-        return self.serial.in_waiting
+        return len(self._read_buffer) + self.serial.in_waiting
+
+    def reset_input_buffer(self):
+        self._read_buffer.clear()
+        if self.serial is not None:
+            self.serial.reset_input_buffer()
 
     # ----------------------------------------------------------------------
     def is_link_up(self):
@@ -235,12 +271,22 @@ class USBStream:
     def getc(self, size, timeout=1):
         if self.serial is None:
             return None
+        if sys.platform.startswith("linux") and not is_android() and self.uses_framed_transfer:
+            # File frames request header bytes individually. Keep available bytes
+            # here so each header byte does not need another serial read.
+            if len(self._read_buffer) < size:
+                needed = size - len(self._read_buffer)
+                self._read_buffer.extend(self.serial.read(max(needed, min(self.serial.in_waiting, 4096))))
+            data = bytes(self._read_buffer[:size])
+            del self._read_buffer[:size]
+            return data or None
         return self.serial.read(size) or None
 
     def putc(self, data, timeout=1):
-        if self.serial is None:
-            return None
-        return self.serial.write(data) or None
+        with self._write_lock:
+            if self.serial is None:
+                return None
+            return self.serial.write(data) or None
 
     def upload(self, filename, local_md5, callback):
         stream = open(filename, "rb")
@@ -258,6 +304,17 @@ class USBStream:
         else:
             result = self.modem.recv_legacy(stream, md5=local_md5, retry=10, callback=callback)
         stream.close()
+        if (
+            result is not None
+            and result >= 0
+            and sys.platform.startswith("linux")
+            and not is_android()
+            and self.uses_framed_transfer
+            and self.serial is not None
+            and self.serial.baudrate != self.initial_baud
+            and self.download_finished is not None
+        ):
+            self.download_finished()
         return result
 
     def cancel_process(self):

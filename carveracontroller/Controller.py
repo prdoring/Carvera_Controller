@@ -104,6 +104,7 @@ class Controller:
 
     def __init__(self, cnc, callback, log_sent_receive=False):
         self.usb_stream = USBStream(log_sent_receive)
+        self.usb_stream.download_finished = self._finish_usb_download
         self.wifi_stream = WIFIStream(log_sent_receive)
 
         # Reconnection properties
@@ -2064,6 +2065,34 @@ class Controller:
         finally:
             self._baud_switch_in_progress = False
             self.resumeStream()
+
+    def _finish_usb_download(self):
+        """Verify USB status after the firmware leaves file-transfer mode."""
+        if self.connection_type != CONN_USB or self.stream != self.usb_stream:
+            return
+        baud = self.usb_stream.serial.baudrate
+        self._baud_switch_in_progress = True
+        try:
+            time.sleep(0.05)
+            self.usb_stream.reset_input_buffer()
+            self.comms.reset_parser()
+            if self._await_status_response(timeout_s=0.5):
+                return
+            # File-transfer polling does not refresh the firmware's temporary
+            # baud timer. A long download can end at the initial connection rate.
+            if not self.usb_stream.reopen_at_baud(self.usb_stream.initial_baud):
+                raise RuntimeError("Failed to restore the initial USB baud rate")
+            self.stream = self.usb_stream
+            self.comms.reset_parser()
+            if not self._await_status_response(timeout_s=1.5):
+                raise RuntimeError("No USB status after download")
+            self.request_baud_upgrade(baud)
+        except Exception:
+            logger.exception("USB status unavailable after file download")
+            self.close_manual()
+            raise
+        finally:
+            self._baud_switch_in_progress = False
 
     def _recover_baud_after_failed_upgrade(self, attempted_baud):
         """Best-effort restore of 115200 after a failed high-baud switch."""
