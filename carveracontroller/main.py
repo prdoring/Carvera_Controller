@@ -2229,6 +2229,12 @@ class CNCWorkspace(Widget):
 class SelectableRecycleBoxLayout(FocusBehavior, LayoutSelectionBehavior, RecycleBoxLayout):
     """Adds selection and focus behaviour to the view."""
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if is_kiosk():
+            # Touch selection does not need a keyboard; text editors request their own.
+            self.is_focusable = False
+
 
 class TopDataView(BoxLayout, ToolTipButton):
     pass

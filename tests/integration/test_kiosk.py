@@ -135,6 +135,47 @@ def test_virtual_keyboard_uses_shared_touch_layout(kivy_app):
     assert kivy_app.android_keyboard_height == 0
 
 
+@pytest.mark.parametrize("source", ["local", "remote"])
+def test_file_selection_does_not_open_keyboard(kivy_app, connected_idle_state, source):
+    from kivy.core.window import Window
+    from kivy.uix.vkeyboard import VKeyboard
+
+    from tests.unit.test_touch import dispatch, finger
+
+    app = kivy_app
+    app.state = "Idle"
+    app.root.config_loaded = True
+    popup = app.root.file_popup
+    rv = getattr(popup, source + "_rv")
+    original = list(rv.data), rv.browser_state
+    popup.popup_manager.current = source + "_page"
+    popup.open(animation=False)
+    rv.browser_state = ""
+    rv.data = [{"filename": "fixture.cnc", "filedate": "2026-10-29 12:00",
+                "filesize": "1 KB", "intsize": 1024, "is_dir": False, "rv_key": 0}]
+    pump_frames(20)
+    try:
+        row = next(row for row in rv.view_adapter.views.values() if row.parent is not None)
+        touch = finger(*row.to_window(*row.center))
+        dispatch("begin", touch)
+        dispatch("end", touch)
+        pump_frames(12, sleep=.02)
+        assert rv.curr_selected_file.endswith("fixture.cnc")
+        assert not any(isinstance(child, VKeyboard) for child in Window.children)
+        assert app.android_keyboard_height == 0
+
+        popup._mobile_search_buttons[source].dispatch("on_release")
+        pump_frames(12)
+        assert getattr(popup, "ti_" + source + "_search").focus
+        assert any(isinstance(child, VKeyboard) for child in Window.children)
+    finally:
+        popup._mobile_search_sheets[source].dismiss(animation=False)
+        rv.layout_manager.focus = False
+        rv.data, rv.browser_state = original
+        popup.dismiss(force=True, animation=False)
+        pump_frames(10)
+
+
 def test_maintenance_waits_for_idle_and_restores_controls(kivy_app):
     from carveracontroller import runtime_profile
     from carveracontroller.kiosk_state import read_json, write_json
