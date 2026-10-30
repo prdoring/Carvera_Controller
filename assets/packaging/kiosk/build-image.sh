@@ -11,10 +11,5 @@ image=/work/image-carvera-kiosk-pi4/carvera-kiosk-pi4.img
 test -f "$image"
 xz -T2 -c "$image" > "/export/carvera-kiosk-pi4-$version.img.xz"
 cp /project/kiosk/payload/carvera-kiosk-app-*.tar.gz /project/kiosk/payload/bundle.json /export/
-mkdir -p /export/laptop/novnc
-cp -aL /usr/share/novnc/. /export/laptop/novnc/
-cp /project/kiosk/laptop-requirements.txt /export/laptop/
-cp /project/kiosk/kiosk.py /export/laptop/
 cp /project/kiosk/README.md /export/README.md
-cd /export
-sha256sum *.xz *.tar.gz > SHA256SUMS
+python3 /project/kiosk/package_release.py "$version" /export /project/kiosk/kiosk.py /usr/share/novnc

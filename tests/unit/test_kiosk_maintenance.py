@@ -95,6 +95,24 @@ def test_restore_rejects_archive_links(tmp_path):
         load("settings").restore_settings(source, tmp_path / "data")
 
 
+def test_backup_stages_privately_on_destination_filesystem(control, monkeypatch):
+    destination = control.ADMIN / "preferences.tar.gz"
+    original_replace = control.os.replace
+
+    def replace(source, target):
+        assert source.parent.parent == destination.parent
+        assert source.parent.stat().st_mode & 0o777 == 0o700
+        assert source.stat().st_mode & 0o777 == 0o600
+        original_replace(source, target)
+
+    monkeypatch.setattr(control.os, "replace", replace)
+    (control.DATA / "makera.ini").write_text("[user]\nvalue=before\n")
+    assert control.backup(destination) == str(destination)
+    with tarfile.open(destination) as source:
+        assert source.extractfile("makera.ini").read() == b"[user]\nvalue=before\n"
+    assert list(control.ADMIN.iterdir()) == [destination]
+
+
 def bundle(path, *, content=b"wheel", expected=None, extra=None):
     manifest = {"version": "1.0.0.dev1", "architecture": "aarch64", "python": "3.13",
                 "sha256": {"wheels/application.whl": expected or hashlib.sha256(content).hexdigest()}}

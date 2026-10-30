@@ -16,6 +16,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -138,16 +139,14 @@ def export_snapshot(destination):
 
 def backup(destination, owner=None):
     destination = Path(destination)
-    temporary = RUN / ("settings-" + secrets.token_hex(8) + ".tar.gz")
-    try:
+    with tempfile.TemporaryDirectory(prefix=".settings-", dir=destination.parent) as directory:
+        temporary = Path(directory) / "settings.tar.gz"
         export_snapshot(temporary)
         os.chmod(temporary, 0o600)
         if owner is not None:
             account = pwd.getpwnam(owner)
             os.chown(temporary, account.pw_uid, account.pw_gid)
         os.replace(temporary, destination)
-    finally:
-        temporary.unlink(missing_ok=True)
     return str(destination)
 
 
