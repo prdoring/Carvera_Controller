@@ -1,4 +1,5 @@
 import logging
+import sys
 import time
 
 import serial
@@ -55,7 +56,7 @@ class USBStream:
     def recv(self):
         if self.serial is None:
             return b""
-        data = self.serial.read()
+        data = self.serial.read(max(1, min(self.serial.in_waiting, 4096)))
         if self.log_sent_receive and data:
             self._recv_log_buffer += data
             while b"\n" in self._recv_log_buffer:
@@ -82,6 +83,7 @@ class USBStream:
             xonxoff=False,
             rtscts=False,
         )
+        self._set_low_latency(self.serial)
         # Toggle DTR to reset Arduino
         try:
             self.serial.setDTR(0)
@@ -100,6 +102,15 @@ class USBStream:
         self.serial.write(b"\n;\n")
 
         return True
+
+    @staticmethod
+    def _set_low_latency(port):
+        if not sys.platform.startswith("linux") or is_android():
+            return
+        try:
+            port.set_low_latency_mode(True)
+        except (AttributeError, OSError, ValueError):
+            logger.debug("USB serial driver does not support low-latency mode", exc_info=True)
 
     @staticmethod
     def _serial_for_address(address, baud, **kwargs):
@@ -156,6 +167,7 @@ class USBStream:
             except Exception:
                 pass
             ser.open()
+            self._set_low_latency(ser)
             try:
                 ser.dtr = False
             except Exception:

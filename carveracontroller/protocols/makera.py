@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from enum import Enum, auto
 
 from .base import CommunicationProtocol
@@ -41,6 +42,9 @@ _FILE_TRANSFER_TYPES = frozenset(
     }
 )
 
+# A maximum-size frame takes less than a second at the initial USB baud rate.
+_FRAME_TIMEOUT = 2.0
+
 
 class _RevPacketState(Enum):
     WAIT_HEADER = auto()
@@ -61,6 +65,7 @@ class MakeraProtocol(CommunicationProtocol):
         self._footer_buffer = bytearray(2)
         self._bytes_needed = 2
         self._expected_length = 0
+        self._frame_started = None
         # PTYPE_NORMAL_INFO payloads are fragments of a text line, not
         # complete outputs. Buffer until a newline completes the line.
         self._normal_info_line = bytearray()
@@ -85,6 +90,10 @@ class MakeraProtocol(CommunicationProtocol):
         return build_frame(PTYPE_FILE_START, payload)
 
     def feed(self, data: bytes) -> list[ParsedMessage]:
+        if self._frame_started is not None and time.monotonic() - self._frame_started >= _FRAME_TIMEOUT:
+            ready = self.ready
+            self.reset()
+            self.ready = ready
         messages: list[ParsedMessage] = []
         for byte in data:
             messages.extend(self._feed_byte(byte))
@@ -96,6 +105,7 @@ class MakeraProtocol(CommunicationProtocol):
             self._header_buffer[1] = byte
             checksum = (self._header_buffer[0] << 8) | self._header_buffer[1]
             if checksum == FRAME_HEADER:
+                self._frame_started = time.monotonic()
                 self._state = _RevPacketState.READ_LENGTH
                 self._bytes_needed = 2
                 self._packet_data.clear()
@@ -106,11 +116,12 @@ class MakeraProtocol(CommunicationProtocol):
             self._bytes_needed -= 1
             if self._bytes_needed == 0:
                 self._expected_length = (self._packet_data[0] << 8) | self._packet_data[1]
-                if 0 <= self._expected_length <= MAX_FRAME_DATA_LENGTH:
+                if 3 <= self._expected_length <= MAX_FRAME_DATA_LENGTH:
                     self._state = _RevPacketState.READ_DATA
                     self._bytes_needed = self._expected_length
                 else:
                     self._state = _RevPacketState.WAIT_HEADER
+                    self._frame_started = None
             return []
 
         if self._state == _RevPacketState.READ_DATA:
@@ -129,6 +140,7 @@ class MakeraProtocol(CommunicationProtocol):
                 return []
             checksum = (self._footer_buffer[0] << 8) | self._footer_buffer[1]
             self._state = _RevPacketState.WAIT_HEADER
+            self._frame_started = None
             if checksum != FRAME_END:
                 self._packet_data.clear()
                 return []
@@ -181,5 +193,6 @@ class MakeraProtocol(CommunicationProtocol):
         self._footer_buffer = bytearray(2)
         self._bytes_needed = 2
         self._expected_length = 0
+        self._frame_started = None
         self._normal_info_line.clear()
         self.ready = False

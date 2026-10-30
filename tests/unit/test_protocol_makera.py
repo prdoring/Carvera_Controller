@@ -1,3 +1,5 @@
+import pytest
+
 from carveracontroller.protocols.framing import (
     PTYPE_FILE_MD5,
     PTYPE_LOAD_ERROR,
@@ -134,3 +136,43 @@ def test_file_transfer_frames_ignored_on_control_channel():
     proto = MakeraProtocol()
     frame = build_frame(PTYPE_FILE_MD5, b"3bc28b19cfca32e413fd9029000117a3")
     assert proto.feed(frame) == []
+
+
+def test_incomplete_directory_reply_does_not_keep_swallowing_status(monkeypatch):
+    now = [0.0]
+    monkeypatch.setattr("carveracontroller.protocols.makera.time.monotonic", lambda: now[0])
+    session = ProtocolSession()
+    session.select("makera")
+    listing = build_frame(PTYPE_LOAD_INFO, b"example.nc 7000000 20261030120000\r\n" * 120)
+    assert session.feed(listing[:100]) == []
+    status = build_frame(PTYPE_STATUS_RES, b"<Idle|MPos:0,0,0>")
+    for _ in range(8):
+        now[0] += 0.2
+        assert session.feed(status) == []
+    now[0] = 2.1
+    messages = session.feed(status)
+    assert [message.text for message in messages] == ["<Idle|MPos:0,0,0>"]
+    assert session.ready and session.protocol.ready
+
+
+def test_large_fragmented_directory_reply_within_deadline(monkeypatch):
+    now = [0.0]
+    monkeypatch.setattr("carveracontroller.protocols.makera.time.monotonic", lambda: now[0])
+    proto = MakeraProtocol()
+    payload = b"x" * 8000
+    frame = build_frame(PTYPE_LOAD_INFO, payload)
+    assert proto.feed(frame[:100]) == []
+    now[0] = 0.9
+    assert proto.feed(frame[100:4000]) == []
+    now[0] = 1.8
+    assert [message.text for message in proto.feed(frame[4000:])] == [payload.decode()]
+    now[0] = 4.0
+    assert proto.feed(build_frame(PTYPE_LOAD_FINISH))[0].kind == MessageKind.LOAD_EOF
+
+
+@pytest.mark.parametrize("length", [0, 1, 2, 8201])
+def test_invalid_length_does_not_consume_following_status(length):
+    proto = MakeraProtocol()
+    assert proto.feed(b"\x86\x68" + length.to_bytes(2, "big")) == []
+    messages = proto.feed(build_frame(PTYPE_STATUS_RES, b"<Idle>"))
+    assert [message.text for message in messages] == ["<Idle>"]
