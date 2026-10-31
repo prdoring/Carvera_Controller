@@ -58,17 +58,20 @@ The card setup below uses the public key at `~/.ssh/id_ed25519.pub`. Keep the pr
 
 ### 1. Download the image and setup tools
 
-**The first prebuilt release has not been published yet.** It will be available at [Pi Kiosk v1.0.0](https://github.com/prdoring/Carvera_Controller/releases/tag/kiosk-v1.0.0). Until then, you can [build an image from source](docs/development.md#raspberry-pi-kiosk-image).
+Download [Pi Kiosk v1.0.0](https://github.com/prdoring/Carvera_Controller/releases/tag/kiosk-v1.0.0), the first prebuilt Raspberry Pi 4 kiosk release.
 
-When the release is available, download these files from its **Assets** section:
+Download these files from its **Assets** section:
 
 | File | Purpose |
 | --- | --- |
 | `carvera-kiosk-pi4-1.0.0.img.xz` | SD card image for the Raspberry Pi 4 |
 | `carvera-kiosk-laptop-1.0.0.zip` | Card setup and laptop maintenance tools |
+| `carvera-kiosk-app-1.0.0.tar.gz` | App update for an existing kiosk |
 | `SHA256SUMS` | Checksums for verifying the downloads |
 
-Extract the laptop ZIP and open a terminal in its **laptop** folder, beside **kiosk.py**. Keep the folder’s contents together. Run the helper commands below from that folder. Git and Docker are only needed if you build the image yourself.
+Compare the downloads with `SHA256SUMS` before using them. On Linux, run `sha256sum -c SHA256SUMS` beside all three downloads. On Windows, use `Get-FileHash <filename> -Algorithm SHA256` for each file and compare its hash.
+
+Extract the laptop ZIP and open a terminal in its **laptop** folder, beside **kiosk.py**. Keep `kiosk.py`, `laptop-requirements.txt`, `README.md`, and the complete `novnc` folder together. Run the helper commands below from that folder. Git and Docker are only needed if you build the image yourself.
 
 ### 2. Flash and configure the card
 
