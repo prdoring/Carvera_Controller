@@ -102,12 +102,20 @@ def allowed_member(name):
     return False
 
 
+def bounded_members(archive, size_limit, count_limit):
+    entries, total = [], 0
+    for entry in archive:
+        entries.append(entry)
+        total += entry.size
+        if entry.size < 0 or len(entries) > count_limit or total > size_limit:
+            raise ValueError("Archive exceeds supported limits")
+    return entries
+
+
 def unpack(bundle, destination=None):
     """Validate the complete archive before extracting any file."""
     with tarfile.open(bundle, "r:*") as archive:
-        entries = archive.getmembers()
-        if len(entries) > 4096 or sum(entry.size for entry in entries) > LIMIT:
-            raise ValueError("System bundle exceeds supported limits")
+        entries = bounded_members(archive, LIMIT, 4096)
         names = [entry.name for entry in entries]
         if len(names) != len(set(names)) or MANIFEST not in names:
             raise ValueError("Expected a system bundle with unique members")
@@ -569,7 +577,7 @@ def prepare_release(bundle, job=None):
 
 def updater_contents(bundle):
     with tarfile.open(bundle, "r:*") as archive:
-        members = archive.getmembers()
+        members = bounded_members(archive, 1024 * 1024, 4)
         names = [member.name for member in members]
         expected = {"updater-bundle.json", "system_update.py", "admin_accounts.py", "kiosk_state.py"}
         if (

@@ -109,6 +109,15 @@ def test_valid_bundle_extracts_only_after_all_checks(updater, tmp_path):
     assert (destination / "runtime/control.py").read_bytes() == b"# helper\n"
 
 
+def test_oversized_header_is_rejected_before_scanning_its_body(updater, tmp_path):
+    header = tarfile.TarInfo("system-bundle.json")
+    header.size = updater.LIMIT + 1
+    archive = tmp_path / "oversized.tar"
+    archive.write_bytes(header.tobuf() + b"\0" * 1024)
+    with pytest.raises(ValueError, match="supported limits"):
+        updater.unpack(archive)
+
+
 def test_normal_mode_requires_real_fresh_ack(updater, monkeypatch):
     monkeypatch.setattr(updater, "command", lambda *_a, **_k: SimpleNamespace(returncode=3))
     updater.write_json(updater.RUN / "maintenance.json", {"token": "one", "entered": time.monotonic()})
