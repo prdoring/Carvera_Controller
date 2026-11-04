@@ -85,6 +85,12 @@ def test_blockers_and_sleep(saver):
             status["flags"] = {flag: True}
             assert manager.blocked()
         status["flags"] = {}
+        motion = UnitTestTouch(50, 50)
+        EventLoop.touches.append(motion)
+        try:
+            assert manager.blocked()
+        finally:
+            EventLoop.touches.remove(motion)
         with patch.object(runtime_profile, "maintenance_active", True):
             assert manager.blocked()
     with patch.object(manager, "blocked", return_value=True):
