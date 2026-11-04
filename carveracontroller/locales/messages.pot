@@ -1818,3 +1818,69 @@ msgstr ""
 #: addons/probing/preview/ProbingPreviewPopup.kv:29
 msgid "Start"
 msgstr ""
+
+msgid "Allow system screensaver"
+msgstr ""
+
+msgid "Allow the operating system screensaver independently of the controller screensaver."
+msgstr ""
+
+msgid "Contour Map"
+msgstr ""
+
+msgid "Isometric Block"
+msgstr ""
+
+msgid "Nut & Bolt"
+msgstr ""
+
+msgid "Off"
+msgstr ""
+
+msgid "Orbit Lines"
+msgstr ""
+
+msgid "Preview"
+msgstr ""
+
+msgid "Preview screensaver"
+msgstr ""
+
+msgid "Preview your selections without saving. Tap anywhere to return."
+msgstr ""
+
+msgid "Random rotation"
+msgstr ""
+
+msgid "Random rotation shows all six designs, changing every 30 minutes."
+msgstr ""
+
+msgid "Screensaver"
+msgstr ""
+
+msgid "Screensaver unavailable"
+msgstr ""
+
+msgid "Show clock"
+msgstr ""
+
+msgid "Show the time and date, changing position periodically."
+msgstr ""
+
+msgid "Start after"
+msgstr ""
+
+msgid "Time without interaction before the screensaver starts. Jobs and machine operations keep it off."
+msgstr ""
+
+msgid "Toolpath Trace"
+msgstr ""
+
+msgid "Wait for the current operation to finish."
+msgstr ""
+
+msgid "Workshop Clock"
+msgstr ""
+
+msgid "{minutes} minutes"
+msgstr ""

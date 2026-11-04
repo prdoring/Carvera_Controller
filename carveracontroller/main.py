@@ -1851,6 +1851,7 @@ class SetRotationPopup(ModalView):
 
 class MakeraConfigPanel(SettingsWithSidebar):
     def __init__(self, *args, **kwargs):
+        from .ui.screensaver_settings import SettingScreensaver, SettingScreensaverPreview
         from .ui.settings_fields import (
             EditingSettingNumeric,
             EditingSettingOptions,
@@ -1867,6 +1868,8 @@ class MakeraConfigPanel(SettingsWithSidebar):
         self.register_type("gcodesnippet", custom_widgets.SettingGCodeSnippet)
         self.register_type("colorpicker", custom_widgets.SettingColorPicker)
         self.register_type("gamepad_bindings", SettingGamepadBindings)
+        self.register_type("screensaver", SettingScreensaver)
+        self.register_type("screensaver_preview", SettingScreensaverPreview)
 
     def create_json_panel(self, title, config, filename=None, data=None):
         panel = super().create_json_panel(title, config, filename, data)
@@ -3510,6 +3513,14 @@ class Makera(RelativeLayout):
 
         # Set default controller config values
         for setting in controller_config_definition:
+            if (
+                setting.get("key", "").startswith("screensaver_")
+                or setting.get("key") == "allow_screensaver"
+                or setting.get("title") == "Screensaver"
+            ):
+                setting["title"] = tr._(setting["title"])
+                if "desc" in setting:
+                    setting["desc"] = tr._(setting["desc"])
             if "default" in setting:
                 Config.setdefault(setting["section"], setting["key"], setting["default"])
                 setting.pop("default", None)
@@ -8480,6 +8491,8 @@ class MakeraApp(App):
         from .addons.probing.operations.ConfigUtils import ConfigUtils
 
         ConfigUtils.flush_saves()
+        if getattr(self, "_screensaver", None) is not None:
+            self._screensaver.stop()
         if getattr(self, "_kiosk", None) is not None:
             self._kiosk.stop()
         if getattr(self, "_interaction_profile", None) is not None:
@@ -8564,6 +8577,9 @@ class MakeraApp(App):
             from .kiosk_runtime import KioskRuntime
 
             self._kiosk = KioskRuntime(self)
+        from .ui.screensaver import Screensaver
+
+        self._screensaver = Screensaver(self)
         # Workaround for Android blank screen issue
         # https://github.com/kivy/python-for-android/issues/2720
         viewport_update_count = 0
@@ -8603,6 +8619,8 @@ class MakeraApp(App):
         from .addons.probing.operations.ConfigUtils import ConfigUtils
 
         ConfigUtils.flush_saves()
+        if getattr(self, "_screensaver", None) is not None:
+            self._screensaver._focus(Window, False)
         if getattr(self.root, "_settings_sender", None) is not None:
             self.root._settings_sender.cancel()
         cancel_all_touches()
@@ -8610,6 +8628,8 @@ class MakeraApp(App):
         return True
 
     def on_resume(self):
+        if getattr(self, "_screensaver", None) is not None:
+            self._screensaver._focus(Window, True)
         if self.android_touch:
             Metrics.fontscale = Metrics.get_fontscale(force_recompute=True)
             if self._touch_layout is not None:

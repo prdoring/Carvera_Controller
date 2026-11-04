@@ -1957,3 +1957,69 @@ msgstr "预览控件"
 
 msgid "Offline"
 msgstr "离线"
+
+msgid "Allow system screensaver"
+msgstr "允许系统屏幕保护"
+
+msgid "Allow the operating system screensaver independently of the controller screensaver."
+msgstr "允许操作系统屏幕保护独立于控制器屏幕保护运行。"
+
+msgid "Contour Map"
+msgstr "等高线图"
+
+msgid "Isometric Block"
+msgstr "等轴测工件"
+
+msgid "Nut & Bolt"
+msgstr "螺母与螺栓"
+
+msgid "Off"
+msgstr "关闭"
+
+msgid "Orbit Lines"
+msgstr "轨道线"
+
+msgid "Preview"
+msgstr "预览"
+
+msgid "Preview screensaver"
+msgstr "预览屏幕保护"
+
+msgid "Preview your selections without saving. Tap anywhere to return."
+msgstr "预览当前选择而不保存。轻触任意位置返回。"
+
+msgid "Random rotation"
+msgstr "随机轮换"
+
+msgid "Random rotation shows all six designs, changing every 30 minutes."
+msgstr "随机轮换全部六种图案，每 30 分钟切换一次。"
+
+msgid "Screensaver"
+msgstr "屏幕保护"
+
+msgid "Screensaver unavailable"
+msgstr "屏幕保护暂不可用"
+
+msgid "Show clock"
+msgstr "显示时钟"
+
+msgid "Show the time and date, changing position periodically."
+msgstr "显示时间和日期，并定期更换位置。"
+
+msgid "Start after"
+msgstr "启动等待时间"
+
+msgid "Time without interaction before the screensaver starts. Jobs and machine operations keep it off."
+msgstr "无操作达到设定时间后启动屏幕保护。加工任务和机床操作期间不启动。"
+
+msgid "Toolpath Trace"
+msgstr "刀路描绘"
+
+msgid "Wait for the current operation to finish."
+msgstr "请等待当前操作完成。"
+
+msgid "Workshop Clock"
+msgstr "车间时钟"
+
+msgid "{minutes} minutes"
+msgstr "{minutes} 分钟"
