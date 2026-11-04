@@ -3,13 +3,14 @@
 import math
 import random
 import time
+from bisect import bisect_right
 from datetime import datetime
 
 from kivy.base import EventLoop
 from kivy.clock import Clock
 from kivy.config import Config
 from kivy.core.window import Window
-from kivy.graphics import Color, Ellipse, Line, Rectangle
+from kivy.graphics import Color, Ellipse, Line, PopMatrix, PushMatrix, Rectangle, Rotate, Translate
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
 
@@ -31,8 +32,11 @@ class ScreensaverCanvas(Widget):
         self.cycle = -1
         self.clock_slot = -1
         self._clock_text = None
+        self._clock_minute = None
+        self._clock_due = 0.0
+        self._prepared = False
+        self._geometry_dirty = True
         self._lines = []
-        self._colors = []
         self.traces = []
         with self.canvas:
             Color(*theme.FIELD)
@@ -51,31 +55,69 @@ class ScreensaverCanvas(Widget):
         self.clock.size = (self.width * (0.82 if self.style == "clock" else 0.36), self.height * 0.2)
         self.clock_slot = -1
         self._clock_text = None
+        self._clock_minute = None
+        self._clock_due = 0.0
+        self._geometry_dirty = True
 
     def _new_pattern(self):
+        self._prepared = True
+        self._geometry_dirty = True
+        self._opacity = None
         self.art.canvas.clear()
-        self._lines, self._colors = [], []
-        paths = pattern(self.style, self.rng)
+        self._lines = []
+        if self.style == "clock":
+            return
         if self.style == "parts":
-            paths = [
-                ellipse(0, 0, 0.034, 0.034, count=6),
-                ellipse(0, 0, 0.018, 0.018, count=6),
-                [(-0.025, -0.012), (0.025, -0.012), (0.025, 0.012), (-0.025, 0.012), (-0.025, -0.012)],
-                [(0.025, -0.023), (0.045, -0.023), (0.045, 0.023), (0.025, 0.023), (0.025, -0.023)],
-                *[[(x, -0.012), (x + 0.008, 0.012)] for x in (-0.02, -0.01, 0, 0.01)],
-            ]
+            self._new_parts()
+            return
+        paths = pattern(self.style, self.rng)
         self.traces = [Trace(p) for p in paths]
-        self.total_length = sum(t.length for t in self.traces)
+        self._ends = []
+        self.total_length = 0.0
+        for trace in self.traces:
+            self.total_length += trace.length
+            self._ends.append(self.total_length)
         with self.art.canvas:
-            for _ in paths:
-                gray = Color(*theme.BORDER)
-                line = Line(points=[], width=1)
-                copper = Color(*theme.ACCENT)
-                traced = Line(points=[], width=1.3)
-                self._colors.append((gray, copper))
-                self._lines.append((line, traced))
-            self.dot_color = Color(*theme.ACCENT)
+            self._gray_color = Color(*theme.BORDER)
+            gray_lines = [Line(points=[], width=1) for _ in paths]
+            self._copper_color = Color(*theme.ACCENT)
+            copper_lines = [Line(points=[], width=1.3) for _ in paths]
+            self._lines = list(zip(gray_lines, copper_lines))
             self.dot = Ellipse(size=(0, 0))
+
+    def _new_parts(self):
+        self._part_paths = [
+            ellipse(0, 0, 0.034, 0.034, count=6),
+            ellipse(0, 0, 0.018, 0.018, count=6),
+            [(-0.025, -0.012), (0.025, -0.012), (0.025, 0.012), (-0.025, 0.012), (-0.025, -0.012)],
+            [(0.025, -0.023), (0.045, -0.023), (0.045, 0.023), (0.025, 0.023), (0.025, -0.023)],
+            *[[(x, -0.012), (x + 0.008, 0.012)] for x in (-0.02, -0.01, 0, 0.01)],
+        ]
+        self._part_lines = []
+        self._part_transforms = []
+        with self.art.canvas:
+            for start, end, color in ((0, 2, theme.ACCENT), (2, 8, theme.SECONDARY)):
+                PushMatrix()
+                translation = Translate()
+                rotation = Rotate(axis=(0, 0, 1))
+                ink = Color(*color)
+                self._part_transforms.append((translation, rotation, ink))
+                self._part_lines.extend(Line(points=[], width=1) for _ in self._part_paths[start:end])
+                PopMatrix()
+
+    def _cache_geometry(self):
+        self._geometry_dirty = False
+        if self.style == "parts":
+            for path, line in zip(self._part_paths, self._part_lines):
+                line.points = [coordinate * self.width for point in path for coordinate in point]
+        elif self.style != "clock":
+            self._pixel_paths = [self._pixels(trace.points) for trace in self.traces]
+            self._completed = [0, 0]
+            self._distances = [None, None]
+            self._tip = None
+            for pair in self._lines:
+                for line in pair:
+                    line.points = []
 
     def _pixels(self, points):
         return [coordinate for x, y in points for coordinate in (self.x + x * self.width, self.y + y * self.height)]
@@ -89,7 +131,14 @@ class ScreensaverCanvas(Widget):
             else:
                 x, y = self.rng.choice(((0.22, 0.9), (0.78, 0.9), (0.22, 0.1), (0.78, 0.1)))
             self.clock.center = (self.x + x * self.width, self.y + y * self.height)
+        if self.elapsed < self._clock_due:
+            return
+        self._clock_due = self.elapsed + 1
         now = datetime.now()
+        minute = (now.year, now.month, now.day, now.hour, now.minute)
+        if minute == self._clock_minute:
+            return
+        self._clock_minute = minute
         text = now.strftime("%H:%M\n%A, %d %B" if self.style == "clock" else "%H:%M\n%a %d %b")
         if self._clock_text != text:
             self._clock_text = text
@@ -105,46 +154,73 @@ class ScreensaverCanvas(Widget):
         cycle = int(self.elapsed // CYCLE_SECONDS)
         if cycle != self.cycle:
             self.cycle = cycle
-            self._new_pattern()
-        self._update_clock()
+            if not self._prepared or self.style not in ("clock", "parts"):
+                self._new_pattern()
+        if self._geometry_dirty:
+            self._cache_geometry()
+        if self.show_clock:
+            self._update_clock()
         clock_period = CYCLE_SECONDS if self.style not in ("clock", "parts") else 30
         clock_phase = self.elapsed % clock_period
         clock_fade = min(1, clock_phase * 2, (clock_period - clock_phase) * 2)
         self.clock.opacity = fade * clock_fade if self.show_clock else 0
         if self.style == "clock":
             return
+        if self.style == "parts":
+            self._move_parts(fade)
+            return
         phase = self.elapsed % CYCLE_SECONDS
         opacity = min(1, max(0, CYCLE_SECONDS - phase)) * fade
         gray_distance = self.total_length * min(1, phase / 2)
         copper_distance = self.total_length * max(0, min(1, (phase - 2) / 30))
-        self.dot.size = (0, 0)
-        for i, (trace, (gray, copper), (line, traced)) in enumerate(zip(self.traces, self._colors, self._lines)):
-            gray.a = copper.a = opacity
-            if self.style == "parts":
-                nut = i < 2
-                speed = 0.035 if nut else 0.027
-                t = self.elapsed * speed
-                bounce = lambda value: 1 - abs(value % 2 - 1)
-                cx = 0.1 + 0.8 * bounce(t + (0 if nut else 0.85))
-                cy = 0.2 + 0.6 * bounce(t * 0.79 + (0.2 if nut else 1.1))
-                angle = self.elapsed * (0.15 if nut else -0.12)
-                ca, sa = math.cos(angle), math.sin(angle)
-                points = [
-                    (cx + x * ca - y * sa, cy + (x * sa + y * ca) * self.width / self.height) for x, y in trace.points
-                ]
-                line.points = self._pixels(points)
-                gray.rgba = (*theme.ACCENT[:3], fade) if nut else (*theme.SECONDARY[:3], fade)
-                traced.points = []
-                continue
-            line.points = self._pixels(trace.prefix(gray_distance))
-            prefix = trace.prefix(copper_distance)
-            traced.points = self._pixels(prefix)
-            if 0 < copper_distance <= trace.length and prefix:
-                px, py = self._pixels([prefix[-1]])
-                self.dot.pos, self.dot.size = (px - 3, py - 3), (6, 6)
-                self.dot_color.a = opacity
-            gray_distance -= trace.length
-            copper_distance -= trace.length
+        if opacity != self._opacity:
+            self._gray_color.a = self._copper_color.a = opacity
+            self._opacity = opacity
+        self._draw_progress(gray_distance, 0)
+        self._draw_progress(copper_distance, 1)
+        if self._tip is not None:
+            px, py = self._tip
+            self.dot.pos, self.dot.size = (px - 3, py - 3), (6, 6)
+        else:
+            self.dot.size = (0, 0)
+
+    def _draw_progress(self, distance, layer):
+        if distance == self._distances[layer]:
+            return
+        self._distances[layer] = distance
+        completed = bisect_right(self._ends, distance)
+        for i in range(self._completed[layer], completed):
+            self._lines[i][layer].points = self._pixel_paths[i]
+        self._completed[layer] = completed
+        tip = self._pixel_paths[completed - 1][-2:] if completed else None
+        if completed < len(self.traces):
+            start = self._ends[completed - 1] if completed else 0
+            if distance > start:
+                pixels = self._pixels(self.traces[completed].prefix(distance - start))
+                self._lines[completed][layer].points = pixels
+                tip = pixels[-2:]
+        if layer == 1:
+            self._tip = tip
+
+    def _move_parts(self, fade):
+        for i, (translation, rotation, ink) in enumerate(self._part_transforms):
+            nut = i == 0
+            t = self.elapsed * (0.035 if nut else 0.027)
+            cx = 0.1 + 0.8 * (1 - abs((t + (0 if nut else 0.85)) % 2 - 1))
+            cy = 0.2 + 0.6 * (1 - abs((t * 0.79 + (0.2 if nut else 1.1)) % 2 - 1))
+            translation.xy = (self.x + cx * self.width, self.y + cy * self.height)
+            rotation.angle = math.degrees(self.elapsed * (0.15 if nut else -0.12)) % 360
+            if fade != self._opacity:
+                ink.a = fade
+        self._opacity = fade
+
+    def frame_delay(self):
+        if self.style != "clock":
+            return 1 / 20
+        phase = self.elapsed % 30
+        if self.show_clock and (phase < 0.5 or phase >= 29.5):
+            return 1 / 20
+        return min(1, 29.5 - phase) if phase < 29.5 else 1
 
 
 class Screensaver:
@@ -164,6 +240,7 @@ class Screensaver:
         self._focused = True
         self._preview = None
         self._animation = None
+        self._root_canvas = None
         self._restacking = False
         self._raise_event = Clock.create_trigger(self._raise_overlay, 0)
         self._bindings = {
@@ -235,7 +312,10 @@ class Screensaver:
         Window.add_widget(self.overlay)
         if old is not None:
             Window.remove_widget(old)
+        self._cover_root()
         self.visible_since = self.now()
+        self._last_frame = self.visible_since
+        self._schedule_frame(0)
 
     def show(self, style=None, show_clock=None):
         if self.blocked():
@@ -246,8 +326,6 @@ class Screensaver:
         cancel_all_touches()
         self._replace(self.rotation.next() if style == "random" else style, show_clock)
         self._prioritize_keyboard()
-        if self._animation is None:
-            self._animation = Clock.schedule_interval(self._frame, 1 / 20)
         return True
 
     def _prioritize_keyboard(self):
@@ -266,12 +344,27 @@ class Screensaver:
         return True
 
     def _frame(self, dt):
+        self._animation = None
         if self.overlay is not None:
-            age = self.now() - self.visible_since
+            now = self.now()
+            elapsed = now - self._last_frame
+            self._last_frame = now
+            age = now - self.visible_since
             fade = min(1, age * 2)
             if self._selection[0] == "random":
                 fade = min(fade, max(0, (ROTATION_SECONDS - age) * 2))
-            self.overlay.advance(dt, fade)
+            self.overlay.advance(elapsed, fade)
+            delay = self.overlay.frame_delay()
+            if age < 0.5 or (self._selection[0] == "random" and ROTATION_SECONDS - age <= 0.5):
+                delay = 1 / 20
+            elif self._selection[0] == "random":
+                delay = min(delay, ROTATION_SECONDS - age - 0.5)
+            self._schedule_frame(delay)
+
+    def _schedule_frame(self, delay):
+        if self._animation is not None:
+            self._animation.cancel()
+        self._animation = Clock.schedule_once(self._frame, delay)
 
     def hide(self):
         self._raise_event.cancel()
@@ -279,13 +372,42 @@ class Screensaver:
             overlay = self.overlay
             self.overlay = None
             Window.remove_widget(overlay)
+        self._restore_root()
         if self._animation is not None:
             self._animation.cancel()
             self._animation = None
         self._preview = None
         self.last_activity = self.now()
 
+    def _cover_root(self):
+        if self._root_canvas is not None:
+            return
+        root = self.app.root
+        if root.parent is not Window:
+            return
+        for group in (Window.canvas, Window.canvas.before, Window.canvas.after):
+            index = group.indexof(root.canvas)
+            if index >= 0:
+                # Keep widgets and machine-status callbacks attached; skip only their covered drawing.
+                self._root_canvas = (root, root.canvas, group, index)
+                group.remove(root.canvas)
+                return
+
+    def _restore_root(self):
+        saved = self._root_canvas
+        self._root_canvas = None
+        if saved is not None:
+            root, canvas, group, index = saved
+            if root.parent is Window and root.canvas is canvas and group.indexof(canvas) < 0:
+                group.insert(min(index, len(group.children)), canvas)
+
     def process(self, events):
+        if not events:
+            return events
+        if not self.visible and not self._swallowed:
+            if any(getattr(touch, "is_touch", False) for _, touch in events):
+                self.last_activity = self.now()
+            return events
         result = []
         # Consume every finger arriving in the same batch as the waking touch.
         waking = self.visible and any(getattr(touch, "is_touch", False) for _, touch in events)

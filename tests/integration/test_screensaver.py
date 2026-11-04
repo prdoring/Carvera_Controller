@@ -1,3 +1,6 @@
+import gc
+import weakref
+from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -5,6 +8,7 @@ import pytest
 from kivy.base import EventLoop
 from kivy.config import Config
 from kivy.core.window import Window
+from kivy.graphics import Callback
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.button import Button
 
@@ -271,3 +275,102 @@ def test_apply_saves_pending_selection_and_clock(saver):
         assert manager.settings() == (5, "parts", False)
     finally:
         popup.dismiss(force=True)
+
+
+@pytest.mark.parametrize("style", ("toolpath", "contours", "block", "orbits"))
+def test_completed_paths_are_cached_during_tracing(kivy_app, style):
+    view = ScreensaverCanvas(style, False, size=(1920, 1200))
+    view.advance(4)
+    gray = [list(pair[0].points) for pair in view._lines]
+    with patch.object(view, "_pixels", wraps=view._pixels) as conversions:
+        for _ in range(20):
+            view.advance(0.05)
+        assert conversions.call_count <= 20
+    assert [list(pair[0].points) for pair in view._lines] == gray
+    view.size = (960, 600)
+    view.advance(0)
+    assert [list(pair[0].points) for pair in view._lines] == [[value / 2 for value in path] for path in gray]
+
+
+def test_parts_move_without_rebuilding_vertices(kivy_app):
+    view = ScreensaverCanvas("parts", False, size=(1920, 1200))
+    geometry = [list(line.points) for line in view._part_lines]
+    initial_position = tuple(view._part_transforms[0][0].xy)
+    with patch.object(view, "_new_pattern", wraps=view._new_pattern) as patterns:
+        for _ in range(700):
+            view.advance(0.05)
+        patterns.assert_not_called()
+    assert [list(line.points) for line in view._part_lines] == geometry
+    assert tuple(view._part_transforms[0][0].xy) != initial_position
+    assert view._part_transforms[0][1].angle != 0
+
+
+def test_clock_reads_are_throttled_and_hidden_clock_does_no_work(kivy_app):
+    with patch("carveracontroller.ui.screensaver.datetime") as wall_clock:
+        wall_clock.now.return_value = datetime(2026, 11, 4, 12, 30)
+        view = ScreensaverCanvas("contours", True)
+        for _ in range(600):
+            view.advance(0.05)
+        assert wall_clock.now.call_count <= 31
+        wall_clock.now.reset_mock()
+        hidden = ScreensaverCanvas("contours", False)
+        for _ in range(50):
+            hidden.advance(0.05)
+        wall_clock.now.assert_not_called()
+
+
+def test_clock_uses_slow_callbacks_between_fades_and_stops_when_hidden(saver):
+    manager, clock = saver
+    with patch.object(manager, "blocked", return_value=False):
+        assert manager.preview({"screensaver_style": "clock"})
+        clock[0] += 1
+        manager._animation.cancel()
+        manager._frame(0)
+        assert manager._animation.timeout == 1
+        clock[0] += 28.6
+        manager._animation.cancel()
+        manager._frame(0)
+        assert manager._animation.timeout == 0.05
+        manager.hide()
+        assert manager._animation is None
+    events = []
+    assert manager.process(events) is events
+
+
+def test_rotation_releases_old_renderers(saver):
+    manager, _ = saver
+    references = []
+    with patch.object(manager, "blocked", return_value=False):
+        for style in STYLES * 5:
+            manager.preview({"screensaver_style": style})
+            manager.overlay.advance(5)
+            references.append(weakref.ref(manager.overlay))
+        manager.hide()
+    pump_frames(3)
+    gc.collect()
+    assert all(reference() is None for reference in references)
+
+
+def test_covered_controller_drawing_stops_and_restores_without_detaching_widgets(saver):
+    manager, _ = saver
+    root = manager.app.root
+    draws = []
+    with root.canvas.after:
+        callback = Callback(lambda *_: draws.append(True))
+    try:
+        Window.dispatch("on_draw")
+        assert draws
+        draws.clear()
+        with patch.object(manager, "blocked", return_value=False):
+            assert manager.preview({"screensaver_style": "contours"})
+        saved = manager._root_canvas
+        assert saved is not None and root.parent is Window
+        Window.dispatch("on_draw")
+        assert draws == []
+        manager.hide()
+        Window.dispatch("on_draw")
+        assert draws
+        assert saved[2].indexof(root.canvas) == saved[3]
+    finally:
+        manager.hide()
+        root.canvas.after.remove(callback)
