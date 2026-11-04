@@ -193,6 +193,41 @@ def main():
                 output.seek(offset)
                 with path.open("rb") as incoming:
                     shutil.copyfileobj(incoming, output)
+        # Exercise a handled rejection and the generator's failure/poweroff
+        # action before testing the valid package. Only disposable files change.
+        saved_request = (payload / "request.json").read_bytes()
+        (payload / "request.json").write_text(json.dumps({**request, "admin_public_keys": ["invalid key"]}))
+
+        def checksum_payload():
+            (payload / "payload.sha256").write_text(
+                "".join(
+                    hashlib.sha256(path.read_bytes()).hexdigest() + "  " + path.name + "\n"
+                    for path in sorted(payload.iterdir())
+                    if path.name != "payload.sha256"
+                )
+            )
+
+        checksum_payload()
+        boot_volume = f"{disk}@@{boot_start * 512}"
+        run(
+            "mcopy",
+            "-o",
+            "-i",
+            boot_volume,
+            payload / "request.json",
+            payload / "payload.sha256",
+            "::/kiosk-admin-bootstrap/",
+        )
+        boot(disk, kernel, initrd, staged.decode().strip(), Path("/tmp/carvera-migration-failure.log"))
+        rejected = json.loads(run("mtype", "-i", boot_volume, "::/kiosk-admin-migration-result.json").stdout)
+        assert rejected["phase"] == "failed", rejected
+        assert run("mtype", "-i", boot_volume, "::/cmdline.txt").stdout == original
+        with disk.open("r+b") as output, ext.open("rb") as incoming:
+            output.seek(root_start * 512)
+            shutil.copyfileobj(incoming, output)
+        (payload / "request.json").write_bytes(saved_request)
+        checksum_payload()
+        run("mcopy", "-o", "-i", boot_volume, "-s", *boot_tree.iterdir(), "::/")
         report = Path("/tmp/carvera-migration-boot.log")
         boot(disk, kernel, initrd, staged.decode().strip(), report)
         result = run("mtype", "-i", f"{disk}@@{boot_start * 512}", "::/kiosk-admin-migration-result.json").stdout
@@ -213,7 +248,7 @@ def main():
             checked = json.loads(run("mtype", "-i", f"{disk}@@{boot_start * 512}", "::/boot-check.json").stdout)
             assert checked["phase"] == expected_phase, checked
         print(
-            "PASS: Debian 13/systemd 257 dedicated migration, real account/SSH/sudo checks, revoked-key replay, normal boot, interrupted conversion recovery before provision/CPU/kiosk"
+            "PASS: Debian 13/systemd 257 handled failure/poweroff, dedicated migration, real account/SSH/sudo checks, revoked-key replay, normal boot, interrupted conversion recovery before provision/CPU/kiosk"
         )
 
 
