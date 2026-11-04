@@ -1,10 +1,40 @@
 import time
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 
 from carveracontroller.CNC import CNC
 from tests.integration.conftest import pump_frames
+
+
+def test_vacuum_feedback_does_not_move_slider_during_drag(kivy_app, connected_idle_state):
+    app = kivy_app
+    app.model = "CA1"
+    app.state = "Run"
+    dropdown = app.root.spindle_drop_down
+    dropdown.open(app.root.spindle_laser_data_view)
+    control = dropdown.ids.vacuum_power
+    slider = control.ids.power_slider
+    try:
+        app.root.controller.parseBigParentheses("{G:0,0,0,1,50}")
+        control.refresh()
+        touch = SimpleNamespace(pos=(slider.center_x, slider.center_y),
+                                is_mouse_scrolling=False, grab=lambda widget: None,
+                                grab_current=slider)
+        slider.on_touch_down(touch)
+        control.change_power(90)
+        control._send_power(0)
+        control._last_send = time.monotonic() - 1.1
+        control.refresh()
+        assert control.value == 90
+        touch.pos = (slider.value_pos[0], slider.center_y)
+        slider.on_touch_up(touch)
+        control.refresh()
+        assert control.value == 50
+    finally:
+        dropdown.dismiss()
+        pump_frames(10, sleep=.02)
 
 
 @pytest.mark.parametrize("model", ["C1", "CA1"])

@@ -1,8 +1,12 @@
 """Diagnose ({...}) status parsing, including RSSI."""
 
+from unittest.mock import Mock
+
+import pytest
+
 from carveracontroller.CNC import CNC
 from carveracontroller.Controller import Controller
-from carveracontroller.protocols.framing import PTYPE_DIAG_RES, build_frame
+from carveracontroller.protocols.framing import PTYPE_CTRL_SINGLE, PTYPE_DIAG_RES, build_frame
 from carveracontroller.protocols.session import ProtocolSession
 
 
@@ -40,3 +44,47 @@ def test_diagnose_external_output_power():
     ctrl.parseBigParentheses("{G:1}")
     assert CNC.vars["extout_state"] is None
     assert CNC.vars["extout_power"] is None
+
+
+@pytest.mark.parametrize("protocol", ["makera", "smoothie"])
+def test_diagnose_poll_waits_for_reply_and_retries_after_timeout(monkeypatch, protocol):
+    ctrl = Controller(CNC(), None, False)
+    ctrl.stream = Mock()
+    ctrl.comms.select(protocol)
+    now = [10.0]
+    monkeypatch.setattr("carveracontroller.Controller.time.monotonic", lambda: now[0])
+    expected = build_frame(PTYPE_CTRL_SINGLE, b"*") if protocol == "makera" else b"diagnose\n"
+
+    ctrl.viewDiagnoseReport(True)
+    ctrl.stream.send.assert_called_once_with(expected)
+    for _ in range(8):
+        now[0] += .2
+        ctrl.viewDiagnoseReport(True)
+    assert ctrl.stream.send.call_count == 1
+
+    now[0] += 1
+    ctrl.viewDiagnoseReport(True)
+    assert ctrl.stream.send.call_count == 2
+    ctrl.parseLine("{G:1,0,0,1,55}")
+    assert CNC.vars["extout_power"] == 55
+    ctrl.viewDiagnoseReport(True)
+    assert ctrl.stream.send.call_count == 3
+
+
+def test_late_diagnose_reply_updates_power_without_pending_poll():
+    ctrl = Controller(CNC(), None, False)
+    ctrl.sio_diagnose = True
+    ctrl.parseLine("{G:1,0,0,1,50}")
+    assert not ctrl.sio_diagnose
+    ctrl.parseLine("{G:1,0,0,1,90}")
+    assert CNC.vars["extout_power"] == 90
+
+
+@pytest.mark.parametrize("busy", ["loadNUM", "sendNUM"])
+def test_diagnose_does_not_poll_during_transfer(busy):
+    ctrl = Controller(CNC(), None, False)
+    ctrl.stream = Mock()
+    ctrl.comms.select("makera")
+    setattr(ctrl, busy, 1)
+    ctrl.viewDiagnoseReport(True)
+    ctrl.stream.send.assert_not_called()

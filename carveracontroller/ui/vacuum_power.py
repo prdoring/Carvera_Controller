@@ -6,9 +6,29 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import BooleanProperty, NumericProperty, StringProperty
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.slider import Slider
 
 from carveracontroller.CNC import CNC
 from carveracontroller.translation import tr
+
+
+class VacuumPowerSlider(Slider):
+    dragging = BooleanProperty(False)
+
+    def on_touch_down(self, touch):
+        if not self.disabled and self.collide_point(*touch.pos) and not touch.is_mouse_scrolling:
+            self.dragging = True
+        return super().on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        handled = super().on_touch_up(touch)
+        if touch.grab_current == self:
+            self.dragging = False
+        return handled
+
+    def on_disabled(self, _instance, disabled):
+        if disabled:
+            self.dragging = False
 
 
 class VacuumPowerControl(BoxLayout):
@@ -35,6 +55,8 @@ class VacuumPowerControl(BoxLayout):
         self._send_event.cancel()
         self._pending = None
         self.enabled = False
+        if "power_slider" in self.ids:
+            self.ids.power_slider.dragging = False
         if self._refresh_event is not None:
             self._refresh_event.cancel()
             self._refresh_event = None
@@ -52,7 +74,8 @@ class VacuumPowerControl(BoxLayout):
             self._send_event.cancel()
             self._pending = None
             self.caption = tr._("Off") if known and not CNC.vars.get("extout_state") else "—"
-        elif self._pending is None and time.monotonic() - self._last_send > 1:
+        elif (self._pending is None and not self.ids.power_slider.dragging
+              and time.monotonic() - self._last_send > 1):
             self._syncing = True
             try:
                 self.value = max(50, min(100, CNC.vars["extout_power"]))

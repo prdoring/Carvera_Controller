@@ -34,6 +34,7 @@ except ImportError:
 
 STREAM_POLL = 0.2  # s
 DIAGNOSE_POLL = 0.5  # s
+DIAGNOSE_TIMEOUT = 2.0  # s
 # Probe an idle transport on this cadence. A tight send loop must not ioctl every spin.
 LINK_CHECK_INTERVAL = 0.5  # s
 RX_BUFFER_SIZE = 128
@@ -182,6 +183,8 @@ class Controller:
         self.pausing = False
 
         self.diagnosing = False
+        self.sio_diagnose = False
+        self._diagnose_request_time = 0.0
 
         self.is_community_firmware = False
 
@@ -1745,8 +1748,16 @@ class Controller:
         if self.loadNUM == 0 and self.sendNUM == 0:
             if self.stream is None or not self.protocol_ready:
                 return
-            self.executeCommand("diagnose\n")
+            now = time.monotonic()
+            if self.sio_diagnose and now - self._diagnose_request_time < DIAGNOSE_TIMEOUT:
+                return
             self.sio_diagnose = sio_diagnose
+            self._diagnose_request_time = now
+            if self.comms.uses_framed_transfer:
+                # Makera handles this request while motion is filling the planner.
+                self.executeRealtime(ord("*"))
+            else:
+                self.executeCommand("diagnose\n")
 
     # ----------------------------------------------------------------------
     def hardReset(self):
@@ -2121,9 +2132,8 @@ class Controller:
             elif line[0] == "{":
                 if not self.sio_diagnose:
                     self.log.put((self.MSG_NORMAL, line))
-                else:
-                    self.parseBigParentheses(line)
-                    self.sio_diagnose = False
+                self.parseBigParentheses(line)
+                self.sio_diagnose = False
             elif line[0] == "[" in line:
                 # Log raw WCS parameters before parsing
                 self.log.put((self.MSG_NORMAL, line))
