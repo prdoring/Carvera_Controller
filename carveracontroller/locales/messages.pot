@@ -1884,3 +1884,460 @@ msgstr ""
 
 msgid "{minutes} minutes"
 msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:44
+msgid "Overview"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:44
+#: assets/packaging/kiosk/runtime/recovery.py:267
+msgid "Network"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:44
+#: assets/packaging/kiosk/runtime/recovery.py:327
+msgid "Display"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:44
+msgid "Maintenance"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:44
+msgid "Power"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:46
+msgid ""
+"Connect to this Wi-Fi network? Confirm it within 120 seconds or the previous "
+"network will return."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:47
+msgid ""
+"Preview this display mode? Keep it within 20 seconds or the previous mode "
+"will return."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:48
+msgid ""
+"Restart the controller? Its current connection will close. It will start "
+"disconnected."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:49
+msgid ""
+"Restart the Raspberry Pi? The controller and network access will be "
+"interrupted."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:51
+msgid ""
+"Shut down the Raspberry Pi? Wait for the display to turn off and disk "
+"activity to stop before removing power."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:54
+msgid ""
+"Install this application bundle? The controller will restart. Failed startup "
+"restores the previous application and preferences."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:57
+msgid ""
+"Restore the previous application and its saved preferences? Current "
+"preferences will be backed up. The controller will restart disconnected."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:60
+msgid ""
+"Restore these preferences? Current preferences will be backed up. The "
+"controller will restart disconnected."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:64
+msgid "Finding Wi-Fi networks…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:65
+msgid "Connecting to Wi-Fi…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:66
+msgid "Applying display preview…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:67
+msgid "Restarting the controller and checking startup…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:68
+msgid "Installing the application and checking startup…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:69
+msgid "Restoring the previous application and checking startup…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:70
+msgid "Restoring preferences and checking startup…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:71
+msgid "Backing up preferences…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:72
+msgid "Exporting diagnostics…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:73
+msgid "Exporting logs…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:147
+msgid "System"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:148
+msgid "Return to controller"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:174
+msgid "Keep change"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:177
+msgid "Revert now"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:186
+msgid "Reading system details…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:190
+msgid "Paste"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:191
+msgid "Hide keyboard"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:192
+#: assets/packaging/kiosk/runtime/recovery.py:291
+msgid "Connect Wi-Fi"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:254
+msgid "Kiosk status"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:257
+msgid "Refresh details"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:259
+msgid "Laptop access"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:259
+msgid ""
+"Compare the SSH identity on your laptop before trusting a new connection."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:269
+msgid ""
+"Select a WPA-personal network, or enter a hidden network name below. Open, "
+"enterprise and WPA3-only networks are not supported here."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:274
+msgid "Find Wi-Fi networks"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:279
+msgid "Wi-Fi network name"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:279
+msgid "Network name (SSID)"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:284
+msgid "Wi-Fi password"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:286
+msgid "8–63 bytes"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:290
+msgid "Show / hide password"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:304
+msgid "Use a network name of 1–32 bytes and a password of 8–63 bytes."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:313
+msgid "No Wi-Fi networks found. Try again or enter a hidden network."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:329
+msgid ""
+"Only modes advertised by the connected screen near 60 Hz can be applied. A "
+"preview reverts after 20 seconds unless kept."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:339
+msgid "Checking the connected display…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:348
+#, python-brace-format
+msgid "Available modes: {modes}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:350
+msgid "No supported display modes were reported. Check the display connection."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:355
+msgid "Diagnostics and preferences"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:356
+msgid ""
+"Files are saved for laptop retrieval. Preferences backups exclude G-code and "
+"application files."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:359
+msgid "Export diagnostics"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:360
+msgid "Export logs"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:361
+msgid "Back up preferences"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:364
+msgid "View technical details"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:366
+msgid "Application and preferences"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:368
+msgid ""
+"Use the laptop helper to stage .tar.gz files. Application bundles update the "
+"controller only; OS, services and System tools require a replacement image."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:371
+msgid "Refresh staged files"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:376
+msgid "Restore previous application"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:383
+msgid "Showing the 20 most recently staged files."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:388
+msgid ""
+"No staged files. Use the laptop helper to stage an application bundle or "
+"preferences backup."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:396
+msgid "Application"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:401
+msgid "Review application"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:401
+msgid "Review preferences"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:414
+#, python-brace-format
+msgid "Application: {version}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:424
+msgid ""
+"Restarting closes the machine connection. Reconnection is always a separate "
+"deliberate action."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:426
+msgid "Restart controller"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:428
+msgid "Raspberry Pi"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:428
+msgid ""
+"Confirm that the machine is idle and safe to leave without controller access."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:430
+msgid "Restart Pi"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:431
+msgid "Shut down Pi"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:439
+msgid "Technical details"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:454
+msgid ""
+"The machine must be idle. This action cannot stop or make a running machine "
+"safe."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:462
+msgid "Confirm system change"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:483
+msgid "Machine is idle — continue"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:522
+msgid "The previous operation did not finish."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:579
+#, python-brace-format
+msgid "Saved for laptop retrieval: {file}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:581
+msgid "Power operation requested. Wait for the Pi to finish."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:583
+#, python-brace-format
+msgid "Application {version} is ready. The controller is disconnected."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:587
+#, python-brace-format
+msgid "Preferences restored. Previous preferences saved as {file}."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:591
+msgid "Controller restarted and ready. Reconnect the mill when you are ready."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:593
+msgid "Keep or revert the change using the confirmation bar."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:594
+msgid "Completed."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:607
+msgid "System operation could not finish"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:641
+#, python-brace-format
+msgid "Keep or revert the change: {seconds} seconds remaining."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:658
+msgid "Unavailable"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:660
+#, python-brace-format
+msgid ""
+"Application: {app}\n"
+"Image: {image}\n"
+"Controller: {state}\n"
+"Temperature: {temperature}\n"
+"Memory: {memory}\n"
+"Storage: {storage}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:662
+#: assets/packaging/kiosk/runtime/recovery.py:663
+msgid "Unknown"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:670
+#, python-brace-format
+msgid ""
+"Network addresses: {addresses}\n"
+"Laptop login: {login}\n"
+"SSH identity: {identity}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:672
+#: assets/packaging/kiosk/runtime/recovery.py:683
+msgid "Not connected"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:678
+msgid "Wi-Fi"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:680
+msgid "Ethernet"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:687
+#, python-brace-format
+msgid "Saved mode: {mode}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:689
+#, python-brace-format
+msgid "Preview: {seconds} seconds remaining."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:701
+msgid ""
+"The controller is unavailable. Use Power → Restart controller to recover it."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:215
+msgid "Tab"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:216
+msgid "Caps"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:217
+msgid "Shift"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:218
+msgid "Enter"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:220
+msgid "Layout"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:221
+msgid "Hide"
+msgstr ""

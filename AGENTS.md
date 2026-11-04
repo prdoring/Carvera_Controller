@@ -65,7 +65,7 @@ Software checks supplement user approval; they do not replace it.
 | Inspect an identified Pi's existing status, logs and files without changing settings or opening a mill connection | Allowed within the task. Confirm the target and SSH identity first. |
 | Export a preferences backup using the supported helper | Allowed within the task; protect its contents and avoid overwriting a local backup. |
 | Start screen sharing or operate the live kiosk UI | Obtain explicit approval. Screen sharing can inject input. |
-| Enter/leave maintenance, deploy, roll back, restart/stop the controller, reboot/shut down the Pi, or change live kiosk settings | Obtain explicit approval for the target and operation, even if the controller appears disconnected. |
+| Enter/leave maintenance, deploy, roll back, restart/stop the controller, reboot/shut down the Pi, or change live kiosk settings | Obtain approval for the identified target and bounded administration task; that approval covers necessary commands within scope. Obtain operator readiness before interruption. |
 | Connect/reconnect/disconnect the controller from the mill, open a serial port, change baud rate, or send diagnostic commands to the mill | Obtain explicit approval. Never open a second mill connection. |
 | Jog, home, probe, calibrate, change tools, operate spindle/laser/vacuum/outputs, start/resume/pause/stop a job, or send G-code/MDI/macros | Obtain explicit approval for the specific operation or bounded test sequence. |
 | Change work coordinates, offsets, tool data, motion limits, overrides, machine configuration, firmware, or files on the mill | Obtain explicit approval; describe effects on subsequent operation. |
@@ -204,7 +204,24 @@ Wi-Fi changes must be confirmed within 120 seconds or roll back; plan how the
 user will find the new address and recover locally before applying them. The
 recovery UI has its own environment and must remain usable after a bad app update.
 
-Full OS/kernel changes use a replacement card image. Do not run an ad hoc
+Use `kiosk-admin` with its dedicated key for an approved whole-kiosk task. It has
+intentional full passwordless sudo; a key does not isolate chats sharing a laptop
+or SSH agent. Preserve the restricted `carvera-admin` role. Account/key rotation,
+network/access changes and destructive restoration still need explicit task scope.
+Do not repeatedly request approval for individual commands already covered by the
+agreed task. This never authorizes mill connections, commands, motion or firmware.
+Removing a key does not terminate existing sessions.
+
+See `docs/kiosk-administration.md` for v2 setup and existing-card migration without
+reflashing. The current-card workflow requires two independent matching full-card
+backups and operator readiness; do not require a spare-card rehearsal. The first
+legacy maintenance session must use a genuine `carvera-admin` connection. Never
+spoof `SUDO_USER`. System bundles have a distinct route and manifest, shared
+mutation lock and independent recovery UI. Recovery mode requires explicit
+physical-disconnection confirmation and must not override fresh busy status.
+Ordinary System rollback preserves accounts, access policy, data and the updater.
+
+Full OS/kernel changes need an explicit recovery plan or replacement image. Do not run an ad hoc
 distribution upgrade or enable unattended updates on the working kiosk. Flash a
 verified spare card and retain the old card for recovery. `prepare-card` writes
 to the selected boot partition; verify its image identity and actual drive before

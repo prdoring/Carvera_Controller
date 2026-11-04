@@ -21,6 +21,10 @@ settings, and network connections remain available.
 
 ## Build locally
 
+See the [administration guide](../../../docs/kiosk-administration.md) for fresh
+setup, migration without reflashing, backup/undo, System updates and recovery.
+The new image format is `carvera-kiosk-pi4-v2`; use matching laptop tools.
+
 Use Python 3.11 or newer, Git, and Docker Desktop with Linux containers. No Pi is
 needed for the build. The first ARM build is slow under emulation; later builds
 reuse dependencies. Run from the source checkout:
@@ -32,9 +36,9 @@ python scripts/kiosk.py build --version 1.0.0.dev1
 The equivalent existing build entry point is
 `python scripts/build.py --os kiosk --version 1.0.0.dev1`.
 
-Outputs in `dist/kiosk` include the compressed SD image, an application bundle,
-checksums, package/version information, and a `laptop` folder containing the
-maintenance helper and noVNC viewer. The image builder uses a pinned
+Outputs include the compressed image, controller, System and updater bundles,
+laptop ZIP/folder, checksums and version information. Use `build --system-only
+--version VERSION` for independent System builds. The image builder uses a pinned
 [rpi-image-gen release](https://github.com/raspberrypi/rpi-image-gen/tree/v2.9.0).
 Application dependencies follow `poetry.lock`; the image records installed OS
 package versions. OS package repositories can change between builds.
@@ -48,7 +52,7 @@ an 8 GB or larger card. Before ejecting the flashed card, prepare its `bootfs`
 partition from the laptop:
 
 ```powershell
-python scripts/kiosk.py prepare-card --boot-dir E:/ --public-key ~/.ssh/id_ed25519.pub --hostname carvera-pi --ssid Workshop --country US
+python scripts/kiosk.py prepare-card --boot-dir E:/ --public-key ~/.ssh/id_ed25519.pub --admin-public-key ~/.ssh/id_ed25519_carvera_kiosk_admin.pub --hostname carvera-pi --ssid Workshop --country US
 ```
 
 Select the actual drive, network name, country and SSH public-key file. The
@@ -113,10 +117,12 @@ is provided for matched performance comparisons. Wi-Fi changes roll back after
 find it, reconnect, run `configure network-confirm`, then leave maintenance.
 The touchscreen recovery screen can also set Wi-Fi and confirm the new network.
 
-The `carvera-admin` account has key-based SSH and fixed maintenance commands,
-without a general root shell. The touchscreen account can only recover Wi-Fi and
-restart the controller after an idle confirmation. The recovery UI has its own
-Kivy installation so an unsuccessful application update does not remove it.
+The `carvera-admin` account retains fixed maintenance commands. `kiosk-admin`
+has a dedicated key and full passwordless sudo; it can update the independent
+System application. The touchscreen account retains restricted recovery access.
+Root/password SSH stay disabled. Set and test the local TTY2 console fallback
+after administrator SSH works. See the administration guide for key setup,
+agent loading, migration checkpoints, rollback and the first legacy update.
 
 ## Application updates and rollback
 
@@ -138,10 +144,24 @@ The image retains the current and previous app releases, removing older app
 files after a successful update. `rollback --host ...` switches to the previous app and its saved preferences
 while in maintenance. `backup --host ... preferences.tar.gz` saves preferences
 to the laptop. App updates preserve G-code files and the rest of application
-data. Full OS/kernel updates require a replacement card image; this version
-does not provide unattended updates or OS A/B rollback.
+data. OS/kernel upgrades require a separately scoped administration/recovery plan
+or replacement image. System bundles do not provide unattended OS updates or OS
+A/B rollback. Use a unique unused version for every build.
 
 ## Local checks and hardware validation
+
+The file-backed boot tests run real Debian 13/systemd 257 without a Pi, network
+or physical drives. From the source checkout in PowerShell:
+
+```powershell
+docker build -t carvera-kiosk-boot-tests -f assets/packaging/kiosk/Dockerfile.boot-test .
+docker run --rm --init --network none --mount "type=bind,source=$PWD,target=/src,readonly" carvera-kiosk-boot-tests
+```
+
+They cover dedicated migration boot, real account/SSH/sudo validation, revoked-key
+replay, normal startup and recovery before provisioning/CPU/kiosk after an
+interrupted conversion. They do not validate the Pi's graphics, console, network
+or touchscreen. Obtain operator readiness for physical acceptance tests.
 
 ```powershell
 docker build -t carvera-kiosk-tests -f assets/packaging/kiosk/Dockerfile.test .

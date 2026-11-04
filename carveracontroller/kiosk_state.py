@@ -49,6 +49,7 @@ def activity(app):
         "busy": any(flags.values()) or (connected and state not in ("Idle", "Sleep")),
         "flags": flags,
         "maintenance": False,
+        "maintenance_protocol": 1,
     }
 
 

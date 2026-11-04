@@ -28,10 +28,16 @@ ARG KIOSK_VERSION
 ARG KIOSK_COMMIT
 RUN python assets/packaging/kiosk/build_bundle.py "${KIOSK_VERSION}" "${KIOSK_COMMIT}" /output
 
+FROM application AS system
+RUN python assets/packaging/kiosk/build_system_bundle.py "${KIOSK_VERSION}" "${KIOSK_COMMIT}" /output
+
 FROM image-tools AS image
 COPY assets/packaging/kiosk /project/kiosk
-COPY --from=application /output /project/kiosk/payload
+COPY docs/kiosk-administration.md /project/kiosk/kiosk-administration.md
+COPY --from=system /output /project/kiosk/payload
+COPY --from=system /src/carveracontroller /project/kiosk/application-source
 COPY scripts/kiosk.py /project/kiosk/kiosk.py
+COPY scripts/kiosk_admin.py /project/kiosk/kiosk_admin.py
 COPY carveracontroller/kiosk_state.py carveracontroller/runtime_profile.py carveracontroller/kiosk_touch.py /project/kiosk/runtime/
 RUN chmod +x /project/kiosk/build-image.sh
 ENTRYPOINT ["/project/kiosk/build-image.sh"]

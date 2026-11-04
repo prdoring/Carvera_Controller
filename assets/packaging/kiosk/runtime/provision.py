@@ -9,22 +9,37 @@ from pathlib import Path
 
 from network import profile as wifi_profile
 from settings import import_settings
+from admin_accounts import IMAGE_FORMAT, STATE, install, public_keys, read_json, request_identity
 
 BOOT = Path("/boot/firmware")
 
 
 def main():
-    subprocess.run(["ssh-keygen", "-A"], check=True)
     path = BOOT / "carvera-provision.json"
     if not path.exists():
-        return
+        if read_json(STATE / "access-complete.json"):
+            return
+        raise ValueError("Prepare this v2 image with the matching laptop tools and an administrator key")
+    if path.stat().st_size > 65536:
+        raise ValueError("Provisioning request is too large")
     value = json.loads(path.read_text(encoding="utf-8"))
+    identity, digest = request_identity(value)
+    completed = read_json(STATE / "access-complete.json")
+    if completed:
+        if (completed.get("id"), completed.get("digest")) != (identity, digest):
+            raise ValueError("This kiosk is already provisioned; setup cannot replace its keys")
+        path.unlink()
+        return
+    if value.get("format") != 2 or read_json(BOOT / "carvera-image.json").get("format") != IMAGE_FORMAT:
+        raise ValueError("Use the matching v2 laptop tools and supply an administrator public key")
+    public_keys(value.get("admin_public_keys"))
     hostname = value["hostname"]
-    keys = value["authorized_keys"]
+    keys, _fingerprints = public_keys(value.get("authorized_keys"))
     if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", hostname):
         raise ValueError("Invalid kiosk hostname")
     if not keys or any(not re.fullmatch(r"(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp256) [A-Za-z0-9+/=]+(?: [^\r\n]*)?", key) for key in keys):
         raise ValueError("Invalid SSH public key")
+    subprocess.run(["ssh-keygen", "-A"], check=True)
     Path("/etc/hostname").write_text(hostname + "\n")
     subprocess.run(["hostname", hostname], check=True)
     hosts = Path("/etc/hosts")
@@ -56,6 +71,7 @@ def main():
         import_settings(settings, Path("/var/lib/carvera"))
         settings.unlink()
         subprocess.run(["chown", "-R", "carvera:carvera", "/var/lib/carvera"], check=True)
+    install(value)
     path.unlink()
     Path("/var/lib/carvera/provisioned").touch()
 

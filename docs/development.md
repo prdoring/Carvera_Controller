@@ -145,10 +145,27 @@ Use Python 3.11 or newer, Git, and Docker Desktop with Linux containers. Start D
 ~~~bash
 git clone --branch main https://github.com/prdoring/Carvera_Controller.git Carvera_Controller-kiosk
 cd Carvera_Controller-kiosk
-python scripts/kiosk.py build --version 1.0.0
+python scripts/kiosk.py build --version 1.1.0.dev1
 ~~~
 
-The first build can be slow because it builds ARM software under emulation. Output goes to `dist/kiosk`: the compressed SD image, app bundle, checksums, version information, and a `laptop` folder containing the setup helper and screen-sharing files. The version labels the kiosk build, not the machine firmware.
+The first build can be slow because it builds ARM software under emulation.
+`dist/kiosk` contains the image, controller bundle, separate System bundle,
+administrator-only updater bundle, laptop ZIP/folder and `SHA256SUMS` covering
+all five artifacts. Image, controller, System and updater versions are reported
+separately; none is the mill firmware version.
+
+Use `build --system-only --version VERSION` for an independent System build and
+`build --app-only --version VERSION` for a controller build. Build a new version
+rather than replacing an installed one. System releases declare maintenance
+protocol compatibility and include recovery UI assets/environment independently
+of the active controller.
+
+The [administration guide](kiosk-administration.md) documents v2 provisioning,
+existing-card migration, full administration, recovery and updater repair.
+Test the laptop ZIP outside the repository, including a path containing spaces.
+Access and update changes need Linux account-policy tests and Debian 13/systemd
+257 boot tests with separate boot/root filesystems. Physical Pi validation is
+still required; simulation does not validate the console, touchscreen or CNC.
 
 To follow the [installation instructions](../README.md#install-the-kiosk), use your generated image and open a terminal in `dist/kiosk/laptop`. You do not need a release ZIP when using your own build.
 

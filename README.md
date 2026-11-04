@@ -58,20 +58,38 @@ The card setup below uses the public key at `~/.ssh/id_ed25519.pub`. Keep the pr
 
 ### 1. Download the image and setup tools
 
-Download [Pi Kiosk v1.0.0](https://github.com/prdoring/Carvera_Controller/releases/tag/kiosk-v1.0.0), the first prebuilt Raspberry Pi 4 kiosk release.
+Administrator-enabled images use format `carvera-kiosk-pi4-v2`. Build the current
+source until a matching release is published. The published
+[Pi Kiosk v1.0.0](https://github.com/prdoring/Carvera_Controller/releases/tag/kiosk-v1.0.0)
+uses the legacy format and restricted maintenance login; its tools do not support
+the administrator setup below. Keep the image and laptop ZIP from the same build.
 
 Download these files from its **Assets** section:
 
 | File | Purpose |
 | --- | --- |
-| `carvera-kiosk-pi4-1.0.0.img.xz` | SD card image for the Raspberry Pi 4 |
-| `carvera-kiosk-laptop-1.0.0.zip` | Card setup and laptop maintenance tools |
-| `carvera-kiosk-app-1.0.0.tar.gz` | App update for an existing kiosk |
+| `carvera-kiosk-pi4-VERSION.img.xz` | SD card image for the Raspberry Pi 4 |
+| `carvera-kiosk-laptop-VERSION.zip` | Card setup, migration and laptop tools |
+| `carvera-kiosk-app-VERSION.tar.gz` | Controller application update |
+| `carvera-kiosk-system-VERSION.tar.gz` | Independent System/recovery update |
+| `carvera-kiosk-updater-VERSION.tar.gz` | Administrator-only updater upgrade |
 | `SHA256SUMS` | Checksums for verifying the downloads |
 
-Compare the downloads with `SHA256SUMS` before using them. On Linux, run `sha256sum -c SHA256SUMS` beside all three downloads. On Windows, use `Get-FileHash <filename> -Algorithm SHA256` for each file and compare its hash.
+Compare every download you use with `SHA256SUMS`. On Linux, run `sha256sum -c
+SHA256SUMS` beside all five downloads. On Windows, use `Get-FileHash <filename>
+-Algorithm SHA256` for each file and compare its hash.
 
-Extract the laptop ZIP and open a terminal in its **laptop** folder, beside **kiosk.py**. Keep `kiosk.py`, `laptop-requirements.txt`, `README.md`, and the complete `novnc` folder together. Run the helper commands below from that folder. Git and Docker are only needed if you build the image yourself.
+Extract the laptop ZIP and open a terminal in its **laptop** folder, beside
+**kiosk.py**. Keep the complete folder together, including `kiosk_admin.py`,
+`bootstrap/`, guides and `novnc/`. Git and Docker are only needed to build.
+Keep the existing maintenance key and create a separate administrator key:
+
+```powershell
+ssh-keygen -t ed25519 -f "$HOME/.ssh/id_ed25519_carvera_kiosk_admin" -C carvera-kiosk-admin
+```
+
+Enter your own passphrase and load it in the laptop SSH agent. Keep private keys
+on the laptop. See [key and agent setup](docs/kiosk-administration.md#accounts-and-keys).
 
 ### 2. Flash and configure the card
 
@@ -80,7 +98,7 @@ In Raspberry Pi Imager, choose a custom image and select the downloaded `.img.xz
 Before ejecting the card, configure its **bootfs** partition. Replace `E:/` with its actual drive or mount path, and change the public-key path, Wi-Fi name, and country to match your setup:
 
 ~~~powershell
-python kiosk.py prepare-card --boot-dir E:/ --public-key ~/.ssh/id_ed25519.pub --hostname carvera-pi --ssid Workshop --country US
+python kiosk.py prepare-card --boot-dir E:/ --public-key ~/.ssh/id_ed25519.pub --admin-public-key ~/.ssh/id_ed25519_carvera_kiosk_admin.pub --hostname carvera-pi --ssid Workshop --country US
 ~~~
 
 The helper prompts for your Wi-Fi password. For Ethernet, omit `--ssid` and `--country`. To import preferences from an exported Android app backup, add `--settings backup.tar.gz`.
@@ -94,6 +112,11 @@ ssh carvera-admin@carvera-pi.local
 ~~~
 
 Compare the fingerprint with the touchscreen before accepting it. If the hostname does not resolve, use the IP address shown on the Pi. Once connected, type **exit** to return to your computer’s terminal.
+
+Also verify `kiosk-admin` with its dedicated key and `sudo -n id -u` (expected
+`0`). This account has full root authority. After SSH works, set a private console
+password and physically test TTY2 login and return to the kiosk on TTY1 using the
+[administration guide](docs/kiosk-administration.md#local-keyboard-fallback).
 
 ### 4. Connect the mill
 
@@ -111,7 +134,15 @@ python kiosk.py backup --host carvera-admin@carvera-pi.local preferences.tar.gz
 
 The backup command saves preferences to your computer.
 
-See the [kiosk guide](https://github.com/prdoring/Carvera_Controller/blob/main/assets/packaging/kiosk/README.md) for screen-sharing setup, Wi-Fi recovery, app deployment, and rollback. Updates require maintenance mode and an idle machine. Full OS updates use a replacement card image.
+For an **existing card**, follow [migration without reflashing](docs/kiosk-administration.md#migrate-an-existing-card):
+capture identity online, shut down safely, make two independent verified whole-card
+backups, stage on the identified boot partition and run the dedicated migration
+boot. Do not use `prepare-card` on an already provisioned installation.
+
+The [administration guide](docs/kiosk-administration.md) covers separate System
+updates, rollback, local-console recovery, keys and SSH-tunneled screen access.
+Updates require maintenance and operator readiness; broken-controller recovery
+requires physical disconnection. Failed storage retains an offline recovery path.
 
 ## Controller improvements
 

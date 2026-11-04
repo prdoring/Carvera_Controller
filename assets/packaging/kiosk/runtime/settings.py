@@ -27,6 +27,8 @@ def import_settings(archive, destination):
     pending = {}
     with tarfile.open(archive, "r:*") as source:
         for member in source:
+            if member.name in {"system-bundle.json", "updater-bundle.json"}:
+                raise ValueError("A system bundle is not a preferences backup")
             path = PurePosixPath(member.name)
             if not member.isfile() or member.size > 1024 * 1024 or ".." in path.parts or path.is_absolute():
                 report["skipped"].append(member.name)
@@ -76,13 +78,14 @@ def import_settings(archive, destination):
     return report
 
 
-def restore_settings(source, destination):
-    """Restore our own settings snapshot without translating preference values."""
-    destination = Path(destination)
+def validated_snapshot(source):
+    """Read and validate an exact preferences snapshot before changing files."""
     pending = {}
     archive = tarfile.open(fileobj=source, mode="r:*") if hasattr(source, "read") else tarfile.open(source, "r:*")
     with archive:
-        for member in archive:
+        for index, member in enumerate(archive):
+            if index >= 4096:
+                raise ValueError("Settings snapshot contains too many entries")
             path = PurePosixPath(member.name)
             if member.isdir():
                 continue
@@ -90,14 +93,32 @@ def restore_settings(source, destination):
                     or path.suffix not in (".ini", ".json") or member.size > 1024 * 1024
                     or path.parts[0] not in (".kivy", ".carveracontroller", "makera.ini", "settings-import.json")):
                 raise ValueError("Invalid settings snapshot")
+            if path.parts[0] in ("makera.ini", "settings-import.json") and len(path.parts) != 1:
+                raise ValueError("Invalid settings snapshot path")
             if path in pending:
                 raise ValueError("Duplicate settings snapshot member")
             pending[path] = archive.extractfile(member).read()
             if sum(map(len, pending.values())) > 16 * 1024 * 1024:
                 raise ValueError("Settings snapshot exceeds 16 MiB")
+            if path.suffix == ".json":
+                if not isinstance(json.loads(pending[path]), dict):
+                    raise ValueError("Settings JSON must contain an object")
+            else:
+                config = configparser.ConfigParser(interpolation=None)
+                config.read_string(pending[path].decode("utf-8"))
+    if not pending:
+        raise ValueError("No preferences were found in the snapshot")
+    return pending
+
+
+def restore_settings(source, destination):
+    """Restore our own settings snapshot without translating preference values."""
+    destination = Path(destination)
+    pending = validated_snapshot(source)
     for path in pending:
         target = destination / path
-        if not target.resolve().is_relative_to(destination.resolve()) or target.is_symlink():
+        if (not target.resolve().is_relative_to(destination.resolve()) or target.is_symlink()
+                or any(parent.is_symlink() for parent in target.parents if parent != destination.parent)):
             raise ValueError("Settings destinations must stay inside application data")
     retained = {str(path) for path in pending}
     for directory in (destination / ".kivy", destination / ".carveracontroller"):
@@ -116,9 +137,11 @@ def restore_settings(source, destination):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3 or sys.argv[1] not in ("restore", "backup"):
-        sys.exit("Use: settings.py restore|backup DATA_DIRECTORY")
+    if len(sys.argv) != 3 or sys.argv[1] not in ("restore", "backup", "validate"):
+        sys.exit("Use: settings.py restore|backup|validate DATA_DIRECTORY")
     if sys.argv[1] == "restore":
         restore_settings(sys.stdin.buffer, Path(sys.argv[2]))
+    elif sys.argv[1] == "validate":
+        validated_snapshot(sys.stdin.buffer)
     else:
         export_settings(Path(sys.argv[2]), sys.stdout.buffer)
