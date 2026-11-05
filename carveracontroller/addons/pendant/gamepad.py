@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import configparser
+import copy
 import json
 import logging
 from collections.abc import Callable
@@ -204,7 +205,7 @@ def split_trigger_id(input_id: str) -> tuple[str, str | None]:
 
 def default_bindings() -> dict:
     """Return the default gamepad binding configuration (Xbox 360 / Xbox One)."""
-    return preset_bindings(PRESETS[0][0])
+    return copy.deepcopy(PRESETS[0][1])
 
 
 class GamepadBindings:

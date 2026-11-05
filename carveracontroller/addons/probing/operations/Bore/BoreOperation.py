@@ -16,7 +16,7 @@ class BoreOperation(OperationsBase):
         self.requires_x = requires_x
         self.requires_y = requires_y
 
-    def generate(self, input_config: dict[str, float]):
+    def generate(self, input_config: dict[str, str]):
         config = copy.deepcopy(input_config)
 
         if not self.requires_x:
@@ -26,7 +26,7 @@ class BoreOperation(OperationsBase):
 
         return "M461" + self.config_to_gcode(config)
 
-    def get_missing_config(self, config: dict[str, float]):
+    def get_missing_config(self, config: dict[str, str]):
         if self.requires_x:
             definition = BoreParameterDefinitions.XAxisDistance
             if definition.code not in config or not config[definition.code].strip():

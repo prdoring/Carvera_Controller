@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.switch import Switch
 from kivy.uix.textinput import TextInput
@@ -20,7 +22,7 @@ class OutsideCornerSettings(ProbeSettingsDraft, BoxLayout):
         self.config = ConfigUtils.load_config(self.config_filename)
         self.config = self.order_config(self.config)
 
-    def setting_changed(self, key: str, value: float):
+    def setting_changed(self, key: str, value: str):
         param = getattr(OutsideCornerParameterDefinitions, key, None)
         if param is None:
             raise KeyError(f"Invalid key '{key}'")
@@ -29,7 +31,7 @@ class OutsideCornerSettings(ProbeSettingsDraft, BoxLayout):
         self.config = self.order_config(self.config)
         ConfigUtils.schedule_save(self.config, self.config_filename)
 
-    def order_config(self, config: dict[str, float]):
+    def order_config(self, config: Mapping[str, object]) -> dict[str, object]:
         order = ["X", "Y", "J", "D", "H", "F", "K", "L", "R", "C", "Q", "E", "S", "I"]
         temp_config = {}
         for key in order:
@@ -39,6 +41,8 @@ class OutsideCornerSettings(ProbeSettingsDraft, BoxLayout):
 
     def get_setting(self, key: str) -> str:
         param = getattr(OutsideCornerParameterDefinitions, key, None)
+        if param is None:
+            raise KeyError(f"Invalid key '{key}'")
         if param.code in self.config:
             return str(self.config[param.code])
         self.setting_changed(key, param.default)

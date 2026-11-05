@@ -73,7 +73,7 @@ class ProbingPopup(ModalView):
         cancel_jog()
         self.jog_expanded = not self.jog_expanded
 
-    controller: Controller
+    controller: Controller.Controller
 
     def __init__(self, controller, **kwargs):
         self.outside_corner_settings = None

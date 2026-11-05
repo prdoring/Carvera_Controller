@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import logging
 import os
-import platform
 import struct
+import sys
 import threading
 import time
 from collections.abc import Callable
 from enum import Enum
+from typing import TypeVar
 
 import hid
 
 logger = logging.getLogger(__name__)
+_EventValue = TypeVar("_EventValue")
 
 
 class _PendantPermissionError(Exception):
@@ -20,7 +22,7 @@ class _PendantPermissionError(Exception):
 
 # On Windows, the pendant is represented by two devices, meanwhile on Linux
 # the pendant is a single device. Let's abstract this away into the PendantHid class:
-if platform.system() == "Windows":
+if sys.platform == "win32":
 
     class PendantHid:
         def __init__(self, devices: list[hid.DeviceInfo]) -> None:
@@ -129,6 +131,8 @@ class Daemon:
           supposed to invoke it. E.g., in a way safe for GUI.
         """
         self._is_running = False
+        self._callbacks_enabled = True
+        self._callback_generation = 0
         self._pressed_buttons = set()
         self._active_axis = Axis.OFF
         self._step_size = StepSize.LEAD
@@ -162,15 +166,46 @@ class Daemon:
         self.on_permission_error: Callable[[Daemon], None] | None = None
 
     def start(self) -> None:
+        self._callbacks_enabled = True
         self._daemon_thread = threading.Thread(target=self._thread_loop, daemon=True)
         self._is_running = True
         self._daemon_thread.start()
 
     def stop(self) -> None:
+        self._callbacks_enabled = False
+        self._callback_generation += 1
         if not self._is_running:
             return
         self._is_running = False
         self._daemon_thread.join()
+
+    def _queue_notification(self, get_handler: Callable[[], Callable[[Daemon], None] | None]) -> None:
+        generation = self._callback_generation
+
+        def deliver() -> None:
+            if not self._callbacks_enabled or generation != self._callback_generation:
+                return
+            handler = get_handler()
+            if handler is not None:
+                handler(self)
+
+        self.callback_executor(deliver)
+
+    def _queue_event(
+        self,
+        get_handler: Callable[[], Callable[[Daemon, _EventValue], None] | None],
+        value: _EventValue,
+    ) -> None:
+        generation = self._callback_generation
+
+        def deliver() -> None:
+            if not self._callbacks_enabled or generation != self._callback_generation:
+                return
+            handler = get_handler()
+            if handler is not None:
+                handler(self, value)
+
+        self.callback_executor(deliver)
 
     @property
     def pressed_buttons(self) -> set[Button]:
@@ -233,6 +268,7 @@ class Daemon:
             if self._step_size == StepSize.PERCENT_100:
                 return 1.0
             return 0
+        return 0.0
 
     @property
     def wheel_steps_per_second(self) -> float:
@@ -272,7 +308,7 @@ class Daemon:
             raise ValueError(f"Invalid axis: {axis}")
         self._display_position[axis] = value
 
-    def set_display_feedrate(self, feedrate: int) -> None:
+    def set_display_feedrate(self, feedrate: float) -> None:
         """
         Sets the display feedrate.
         """
@@ -280,7 +316,7 @@ class Daemon:
             raise ValueError("Feedrate outside range")
         self._display_feedrate = int(feedrate)
 
-    def set_display_spindle_speed(self, speed: int) -> None:
+    def set_display_spindle_speed(self, speed: float) -> None:
         """
         Sets the display spindle speed.
         """
@@ -338,18 +374,18 @@ class Daemon:
                 with device as guarded_device:
                     connected = True
                     if self.on_connect is not None:
-                        self.callback_executor(lambda: self.on_connect(self))
+                        self._queue_notification(lambda: self.on_connect)
                     self._device_loop(guarded_device)
             except _PendantPermissionError as e:
                 logger.error("Pendant found but cannot be opened: permission denied on %s", e)
                 self._is_running = False
                 if self.on_permission_error is not None:
-                    self.callback_executor(lambda: self.on_permission_error(self))
+                    self._queue_notification(lambda: self.on_permission_error)
             except Exception as e:
                 logger.warning("Pendant error (will retry): %s", e)
             finally:
                 if connected and self.on_disconnect is not None:
-                    self.callback_executor(lambda: self.on_disconnect(self))
+                    self._queue_notification(lambda: self.on_disconnect)
 
     def _connect(self, poll_interval: float = 0.1) -> PendantHid | None:
         while self._is_running:
@@ -383,11 +419,11 @@ class Daemon:
 
             if self._wheel_steps_per_second == 0 and self._wheel_has_been_active:
                 if self.on_stop_jog is not None:
-                    self.callback_executor(lambda: self.on_stop_jog(self))
+                    self._queue_notification(lambda: self.on_stop_jog)
                 self._wheel_has_been_active = False  # Reset the flag after calling stop
 
             if self.on_update is not None:
-                self.callback_executor(lambda: self.on_update(self))
+                self._queue_notification(lambda: self.on_update)
             self._refresh_display(device)
 
     def _process_input_packet(self, data: bytes) -> None:
@@ -446,22 +482,20 @@ class Daemon:
         # internal state of the daemon so the callback can use the methods.
         for button in newly_pressed:
             if self.on_button_press is not None:
-                self.callback_executor(lambda b=button: self.on_button_press(self, b))
+                self._queue_event(lambda: self.on_button_press, button)
         for button in newly_released:
             if self.on_button_release is not None:
-                self.callback_executor(lambda b=button: self.on_button_release(self, b))
+                self._queue_event(lambda: self.on_button_release, button)
+
+        if has_axis_change or has_step_size_change:
+            if self._wheel_has_been_active and self.on_stop_jog is not None:
+                self._queue_notification(lambda: self.on_stop_jog)
+            self.reset_wheel_activity_tracking()
 
         if has_axis_change and self.on_axis_change is not None:
-            if self._wheel_has_been_active and self.on_stop_jog is not None:
-                self.callback_executor(lambda: self.on_stop_jog(self))
-            self._wheel_has_been_active = False  # Reset wheel activity tracking
-            self.callback_executor(lambda a=self._active_axis: self.on_axis_change(self, a))
-
+            self._queue_event(lambda: self.on_axis_change, self._active_axis)
         if has_step_size_change and self.on_step_size_change is not None:
-            if self._wheel_has_been_active and self.on_stop_jog is not None:
-                self.callback_executor(lambda: self.on_stop_jog(self))
-            self._wheel_has_been_active = False  # Reset wheel activity tracking
-            self.callback_executor(lambda s=self._step_size: self.on_step_size_change(self, s))
+            self._queue_event(lambda: self.on_step_size_change, self._step_size)
 
         # Track wheel movement for improved stopping detection (only in continuous mode)
         current_time = time.time()
@@ -500,7 +534,7 @@ class Daemon:
 
             if should_trigger_jog:
                 if self.on_jog is not None:
-                    self.callback_executor(lambda d=jog_delta: self.on_jog(self, d))
+                    self._queue_event(lambda: self.on_jog, jog_delta)
 
     def _refresh_display(self, device: PendantHid) -> None:
         """
@@ -555,7 +589,7 @@ if __name__ == "__main__":
     daemon.set_display_step_indicator(StepIndicator.STEP)
     daemon.set_display_machine_coords()
 
-    positions = {Axis.X: 0, Axis.Y: 0, Axis.Z: 0, Axis.A: 0}
+    positions = {Axis.X: 0.0, Axis.Y: 0.0, Axis.Z: 0.0, Axis.A: 0.0}
 
     def update_jog(daemon: Daemon, jog_steps: int):
         distance = jog_steps * daemon.step_size_value

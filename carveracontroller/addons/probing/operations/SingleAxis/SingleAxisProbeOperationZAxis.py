@@ -13,7 +13,7 @@ class SingleAxisProbeOperationZAxis(OperationsBase):
         self.title = title
         self.imagePath = image_path
 
-    def generate(self, input_config: dict[str, float]):
+    def generate(self, input_config: dict[str, str]):
         config = copy.deepcopy(input_config)
 
         # remove other axes for clarity
@@ -24,9 +24,9 @@ class SingleAxisProbeOperationZAxis(OperationsBase):
 
         return "M466" + self.config_to_gcode(config)
 
-    def get_missing_config(self, config: dict[str, float]):
+    def get_missing_config(self, config: dict[str, str]):
         print(config)
         definition = SingleAxisProbeParameterDefinitions.ZAxisDistance
-        if not definition.code in config or len(config[definition.code]) == 0:
+        if not config.get(definition.code, "").strip():
             return definition
         return None

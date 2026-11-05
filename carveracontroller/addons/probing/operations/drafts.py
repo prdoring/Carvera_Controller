@@ -1,10 +1,12 @@
 """Keep incomplete probe edits out of saved settings."""
 
+from typing import ClassVar
+
 from carveracontroller.ui.editing import is_complete_number
 
 
 class ProbeSettingsDraft:
-    parameter_definitions = None
+    parameter_definitions: ClassVar[type[object]]
 
     def __init__(self, **kwargs):
         self._draft_values = {}

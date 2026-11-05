@@ -355,7 +355,7 @@ def _import_dxf_probed_points(
 
 
 _RE_ANGLE_DXF_TEXT = re.compile(
-    r"(-?\d+(?:\.\d+)?)\s*(?:°|\u00b0|deg)\b",
+    r"(-?\d+(?:\.\d+)?)\s*(?:°|deg\b)",
     re.IGNORECASE,
 )
 
@@ -366,19 +366,22 @@ def _import_dxf_probed_angles(
     report: ImportReport,
     consumed: set[DXFEntity],
 ) -> None:
+    from ezdxf.entities import MText, Text
+
     n = 0
     for ent in entities:
         dtype = ent.dxftype()
-        if dtype not in ("TEXT", "MTEXT"):
+        if not isinstance(ent, (Text, MText)):
             report.warnings.append(f"Skipped non-text entity on PROBED_ANGLES: {dtype}")
             report.skipped += 1
             continue
         consumed.add(ent)
-        if dtype == "TEXT":
+        if isinstance(ent, Text):
             raw = str(ent.dxf.text)
             ins = ent.dxf.insert
         else:
-            raw = ent.plain_text() if hasattr(ent, "plain_text") else str(ent.text)
+            plain = ent.plain_text()
+            raw = "\n".join(plain) if isinstance(plain, list) else plain
             ins = ent.dxf.insert
         m = _RE_ANGLE_DXF_TEXT.search(raw)
         if not m:
@@ -529,17 +532,23 @@ def _add_polyline_entity(
     *,
     label: str | None = None,
 ) -> None:
+    from ezdxf.entities import LWPolyline, Polyline
+
     verts: list[tuple[float, float, float]] = []
     closed = False
-    if ent.dxftype() == "LWPOLYLINE":
+    if isinstance(ent, LWPolyline):
         closed = bool(ent.closed)
         for x, y, *_ in ent.get_points("xy"):
             verts.append((float(x), float(y), 0.0))
-    else:
+    elif isinstance(ent, Polyline):
         closed = ent.is_closed
         for v in ent.vertices:
             loc = v.dxf.location
             verts.append((float(loc.x), float(loc.y), float(loc.z)))
+    else:
+        report.warnings.append(f"Skipped non-polyline: {ent.dxftype()}")
+        report.skipped += 1
+        return
 
     if len(verts) < 2:
         report.warnings.append("Skipped polyline with fewer than 2 vertices")

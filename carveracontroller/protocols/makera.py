@@ -65,7 +65,7 @@ class MakeraProtocol(CommunicationProtocol):
         self._footer_buffer = bytearray(2)
         self._bytes_needed = 2
         self._expected_length = 0
-        self._frame_started = None
+        self._frame_started: float | None = None
         # PTYPE_NORMAL_INFO payloads are fragments of a text line, not
         # complete outputs. Buffer until a newline completes the line.
         self._normal_info_line = bytearray()

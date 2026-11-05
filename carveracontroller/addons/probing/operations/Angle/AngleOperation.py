@@ -17,7 +17,7 @@ class AngleOperation(OperationsBase):
         self.requires_y = requires_y
         self.invert_direction = invert_direction
 
-    def generate(self, input_config: dict[str, float]):
+    def generate(self, input_config: dict[str, str]):
         config = copy.deepcopy(input_config)
 
         if self.requires_x:
@@ -34,7 +34,7 @@ class AngleOperation(OperationsBase):
 
         return "M465" + self.config_to_gcode(config)
 
-    def get_missing_config(self, config: dict[str, float]):
+    def get_missing_config(self, config: dict[str, str]):
         if self.requires_x:
             definition = AngleParameterDefinitions.XAxisDistance
             if definition.code not in config or not config[definition.code].strip():

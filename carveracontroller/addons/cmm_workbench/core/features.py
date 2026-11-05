@@ -5,9 +5,10 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, Union
 
 from carveracontroller.CNC import CNC
+from carveracontroller.machine.state_values import finite_number
 
 from .gcode import PROBE_VAR_CENTER_X, PROBE_VAR_CENTER_Y, PROBE_VAR_DIA_X, PROBE_VAR_DIA_Y
 from .geometry import (
@@ -39,10 +40,11 @@ TangentLine = tuple[XY, XY]
 
 def mcs_xyz_to_wcs_xyz(mx: float, my: float, mz: float) -> tuple[float, float, float]:
     """Map a machine-space XYZ point into active work XYZ (same frame as offsets)."""
-    theta = math.radians(float(CNC.vars.get("rotation_angle", 0.0)))
-    wcox = float(CNC.vars.get("wcox", 0.0))
-    wcoy = float(CNC.vars.get("wcoy", 0.0))
-    wcoz = float(CNC.vars.get("wcoz", 0.0))
+    mx, my, mz = finite_number(mx), finite_number(my), finite_number(mz)
+    theta = math.radians(finite_number(CNC.vars.get("rotation_angle")))
+    wcox = finite_number(CNC.vars.get("wcox"))
+    wcoy = finite_number(CNC.vars.get("wcoy"))
+    wcoz = finite_number(CNC.vars.get("wcoz"))
     dx = mx - wcox
     dy = my - wcoy
     c = math.cos(theta)
@@ -232,7 +234,7 @@ def _normalized_var_keys(var_keys: list[str]) -> set[str]:
 
 def _wcs_axis_unit_delta_mcs(axis: Literal["x", "y"]) -> tuple[float, float]:
     """Unit displacement in MCS for +1 mm along WCS X or Y (matches firmware G38 rotation)."""
-    theta = math.radians(float(CNC.vars.get("rotation_angle", 0.0)))
+    theta = math.radians(finite_number(CNC.vars.get("rotation_angle")))
     c = math.cos(theta)
     s = math.sin(theta)
     if axis == "x":
@@ -522,7 +524,7 @@ class LabelGeom:
     kind: FeatureKind  # ANGLE (text at probe site)
 
 
-FeatureGeom = PointGeom | CircleGeom | SegmentGeom | PolylineGeom | LabelGeom | None
+FeatureGeom = Union[PointGeom, CircleGeom, SegmentGeom, PolylineGeom, LabelGeom, None]
 
 
 def resolve_geometry(

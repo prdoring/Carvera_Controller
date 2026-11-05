@@ -36,7 +36,7 @@ def build_m118_echo_tail(op: str, result_vars: Sequence[str] | None = None) -> s
         if not vars_:
             raise ValueError(f"Empty result_vars for {op}")
     else:
-        vars_ = VAR_SETS.get(op)
+        vars_ = VAR_SETS.get(op, [])
         if not vars_:
             raise ValueError(f"Unknown op for echo tail: {op}")
     var_list = " ".join(vars_)

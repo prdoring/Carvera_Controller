@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 from functools import partial
+from typing import TypedDict
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -23,6 +24,7 @@ from kivy.utils import get_hex_from_color
 from carveracontroller.addons.probing.operations.ConfigUtils import get_machine_config_hint
 from carveracontroller.CNC import CNC
 from carveracontroller.Controller import Controller
+from carveracontroller.machine.state_values import finite_number
 from carveracontroller.main import is_ios
 from carveracontroller.serial_listeners import (
     register_serial_listener,
@@ -81,6 +83,26 @@ if "CMMWorkbenchPreviewSketch" not in Factory.classes:
 _FEATURE_ROW_FOCUS_RGBA_ON = (0.18, 0.38, 0.58, 0.22)
 _FEATURE_ROW_FOCUS_RGBA_OFF = (0.18, 0.38, 0.58, 0.0)
 _HIDDEN_FEATURE_LABEL_COLOR = "5a5a5f"
+
+
+class _ProbeLabels(TypedDict):
+    segment_label: str
+    endpoint_a_label: str
+    endpoint_b_label: str
+    center_label: str
+    h_segment_label: str
+    h_endpoint_a_label: str
+    h_endpoint_b_label: str
+    v_segment_label: str
+    v_endpoint_a_label: str
+    v_endpoint_b_label: str
+    curve_label: str
+
+
+def _machine_state() -> str:
+    state = CNC.vars.get("state")
+    return state if isinstance(state, str) else "N/A"
+
 
 _SESSION_FILE_FILTERS = {
     "JSON": ["*.json"],
@@ -278,7 +300,7 @@ class CMMWorkbenchPopup(ModalView):
             set_status_text=lambda v: setattr(self, "probing_status_text", v),
             on_is_probing_changed=self._on_probe_is_probing_changed,
             controller_abort=self.controller.abortCommand,
-            get_machine_state=lambda: CNC.vars.get("state", "N/A"),
+            get_machine_state=_machine_state,
             get_status_revision=lambda: self.controller.status_revision,
             on_timeout=self._on_probe_timeout_toast,
             on_invalid_state=self._on_probe_invalid_state,
@@ -608,7 +630,13 @@ class CMMWorkbenchPopup(ModalView):
         def _ui(_dt):
             if not self._runner.is_token_valid(saved_token):
                 return
-            if self._append_probe_result(op, values, var_keys):
+            try:
+                added = self._append_probe_result(op, values, var_keys)
+            except ValueError:
+                self._runner.cancel()
+                self._toast(tr._("Probe returned incomplete data."))
+                return
+            if added:
                 self._runner.complete()
             else:
                 self._runner.cancel()
@@ -643,7 +671,7 @@ class CMMWorkbenchPopup(ModalView):
         if not raw:
             return DEFAULT_CIRCLE_CLASSIFY_TOLERANCE_MM
         try:
-            tol = float(raw)
+            tol = finite_number(raw)
         except ValueError:
             self._toast(tr._("Invalid circle tolerance."))
             return None
@@ -652,10 +680,10 @@ class CMMWorkbenchPopup(ModalView):
             return None
         return tol
 
-    def _m461_m462_probe_labels(self, op: str, preset: str) -> dict[str, str] | None:
+    def _m461_m462_probe_labels(self, op: str, preset: str) -> _ProbeLabels | None:
         """Labels for M461/M462 feature construction."""
         bore = op == "M461"
-        labels = {
+        labels: _ProbeLabels = {
             "segment_label": "",
             "endpoint_a_label": "",
             "endpoint_b_label": "",
@@ -701,10 +729,11 @@ class CMMWorkbenchPopup(ModalView):
 
     def _append_probe_result(self, op: str, vd: dict[str, float], var_keys: list[str] | None = None) -> bool:
         """Apply probe values to the session. Returns True when a feature was added."""
+        vd = {key: finite_number(value) for key, value in vd.items()}
         if op == "M466":
-            mx = float(CNC.vars.get("mx", 0.0))
-            my = float(CNC.vars.get("my", 0.0))
-            mz = float(CNC.vars.get("mz", 0.0))
+            mx = finite_number(CNC.vars.get("mx"))
+            my = finite_number(CNC.vars.get("my"))
+            mz = finite_number(CNC.vars.get("mz"))
             x_m = vd.get(PROBE_VAR_CENTER_X, mx)
             y_m = vd.get(PROBE_VAR_CENTER_Y, my)
             z_m = vd.get(PROBE_VAR_CENTER_Z, mz)
@@ -728,24 +757,22 @@ class CMMWorkbenchPopup(ModalView):
             if labels is None:
                 self._toast_need_probing_option()
                 return False
-            mx = float(CNC.vars.get("mx", 0.0))
-            my = float(CNC.vars.get("my", 0.0))
-            feat_kwargs: dict[str, object] = {
-                "preset": preset,
-                "mx": mx,
-                "my": my,
-                "source": op,
-                **labels,
-            }
+            mx = finite_number(CNC.vars.get("mx"))
+            my = finite_number(CNC.vars.get("my"))
+            tol = None
             if preset in ("CenterBore", "CenterBoss"):
                 tol = self._read_circle_classify_tolerance_mm(op)
                 if tol is None:
                     return False
-                feat_kwargs["tolerance_mm"] = tol
             feats, err = features_from_m461_m462(
                 vd,
                 var_keys or [],
-                **feat_kwargs,
+                preset=preset,
+                mx=mx,
+                my=my,
+                source=op,
+                tolerance_mm=tol,
+                **labels,
             )
             if err is not None:
                 self._toast(tr._(err))
@@ -768,9 +795,9 @@ class CMMWorkbenchPopup(ModalView):
             self._refresh_feature_ui()
             return True
         if op == "M465":
-            mx = float(CNC.vars.get("mx", 0.0))
-            my = float(CNC.vars.get("my", 0.0))
-            mz = float(CNC.vars.get("mz", 0.0))
+            mx = finite_number(CNC.vars.get("mx"))
+            my = finite_number(CNC.vars.get("my"))
+            mz = finite_number(CNC.vars.get("mz"))
             wx, wy, wz = mcs_xyz_to_wcs_xyz(mx, my, mz)
             f = CMMWorkbenchFeature.new_angle(
                 tr._("Angle (M465)"),

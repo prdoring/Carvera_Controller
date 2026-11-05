@@ -287,7 +287,7 @@ CRC_TABLE = [
 ]
 
 
-def crc16_ccitt(data: bytes, length: int = 0) -> int:
+def crc16_ccitt(data: bytes | bytearray, length: int = 0) -> int:
     """CRC-16/CCITT over ``data`` (or the first ``length`` bytes if length > 0)."""
     crc = 0
     if length == 0:
@@ -300,7 +300,7 @@ def crc16_ccitt(data: bytes, length: int = 0) -> int:
     return crc
 
 
-def build_frame(ptype: int, payload: bytes = b"") -> bytes:
+def build_frame(ptype: int, payload: bytes | bytearray = b"") -> bytes:
     """
     Build a Makera frame.
 
@@ -326,7 +326,7 @@ class ParsedFrame:
     raw: bytes
 
 
-def validate_packet_data(packet_data: bytes) -> ParsedFrame | None:
+def validate_packet_data(packet_data: bytes | bytearray) -> ParsedFrame | None:
     """
     Validate CRC on assembled packet body (length|type|payload|crc).
 

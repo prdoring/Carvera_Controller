@@ -19,7 +19,7 @@ class ProbeTipOperationBore(OperationsBase):
         self.requires_y = requires_y
         self.invert_direction = invert_direction
 
-    def generate(self, input_config: dict[str, float]):
+    def generate(self, input_config: dict[str, str]):
         config = copy.deepcopy(input_config)
 
         if self.requires_x:
@@ -31,7 +31,7 @@ class ProbeTipOperationBore(OperationsBase):
 
         return "M460.1" + self.config_to_gcode(config)
 
-    def get_missing_config(self, config: dict[str, float]):
+    def get_missing_config(self, config: dict[str, str]):
         if self.requires_x:
             definition = ProbeTipParameterDefinitions.XAxisDistance
             if definition.code not in config or not config[definition.code].strip():
@@ -60,7 +60,7 @@ class ProbeTipOperationBoss(OperationsBase):
         self.requires_y = requires_y
         self.invert_direction = invert_direction
 
-    def generate(self, input_config: dict[str, float]):
+    def generate(self, input_config: dict[str, str]):
         config = copy.deepcopy(input_config)
 
         if self.requires_x:
@@ -72,7 +72,7 @@ class ProbeTipOperationBoss(OperationsBase):
 
         return "M460.2" + self.config_to_gcode(config)
 
-    def get_missing_config(self, config: dict[str, float]):
+    def get_missing_config(self, config: dict[str, str]):
         if self.requires_x:
             definition = ProbeTipParameterDefinitions.XAxisDistance
             if definition.code not in config or not config[definition.code].strip():
@@ -101,7 +101,7 @@ class ProbeTipOperationAnchor(OperationsBase):
         self.requires_y = requires_y
         self.invert_direction = invert_direction
 
-    def generate(self, input_config: dict[str, float]):
+    def generate(self, input_config: dict[str, str]):
         config = copy.deepcopy(input_config)
 
         if self.requires_x:
@@ -113,7 +113,7 @@ class ProbeTipOperationAnchor(OperationsBase):
 
         return "M460.3" + self.config_to_gcode(config)
 
-    def get_missing_config(self, config: dict[str, float]):
+    def get_missing_config(self, config: dict[str, str]):
         if self.requires_x:
             definition = ProbeTipParameterDefinitions.XAxisDistance
             if definition.code not in config or not config[definition.code].strip():
