@@ -340,6 +340,12 @@ def test_finalization_holds_lock_and_publishes_completion_last(updater, monkeypa
 
 
 def test_low_storage_never_removes_working_release(updater, monkeypatch, tmp_path):
+    os_release = tmp_path / "os-release"
+    os_release.write_text('ID=debian\nVERSION_ID="13"\n')
+    path_type = updater.Path
+    monkeypatch.setattr(
+        updater, "Path", lambda *parts: os_release if parts == ("/etc/os-release",) else path_type(*parts)
+    )
     monkeypatch.setattr(updater.platform, "machine", lambda: "aarch64")
     monkeypatch.setattr(updater.sys, "version_info", (3, 13))
     monkeypatch.setattr(updater.shutil, "disk_usage", lambda _p: SimpleNamespace(free=0))

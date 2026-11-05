@@ -279,6 +279,7 @@ def test_screen_stop_requires_ownership_and_same_service_process(control, monkey
 
 
 def test_touchscreen_account_cannot_use_laptop_helper(control, monkeypatch):
+    monkeypatch.setattr(control.os, "geteuid", lambda: 0)
     monkeypatch.setattr(sys, "argv", ["control.py"])
     monkeypatch.setattr(sys, "stdin", io.StringIO('{"action":"deploy","value":"app.tar.gz"}'))
     monkeypatch.setenv("SUDO_USER", "carvera")
@@ -289,6 +290,7 @@ def test_touchscreen_account_cannot_use_laptop_helper(control, monkeypatch):
 def test_recovery_helper_rejects_deploy_even_with_idle_confirmation(control, monkeypatch):
     monkeypatch.setitem(sys.modules, "control", control)
     recovery = load("recovery_control")
+    monkeypatch.setattr(recovery.os, "geteuid", lambda: 0)
     monkeypatch.setattr(sys, "argv", ["recovery_control.py"])
     monkeypatch.setattr(sys, "stdin", io.StringIO('{"action":"deploy","confirmed_idle":true}'))
     monkeypatch.setenv("SUDO_USER", "carvera")

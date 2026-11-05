@@ -71,6 +71,16 @@ def test_ssh_policy_preserves_other_users_and_requires_keys(accounts):
 
 
 def test_effective_policy_parses_repeated_allowusers(accounts, monkeypatch):
+    runtime = SimpleNamespace(
+        mkdir=lambda **_kwargs: None,
+        is_symlink=lambda: False,
+        stat=lambda: SimpleNamespace(st_uid=0, st_mode=0o755),
+    )
+    def runtime_path(name):
+        assert name == "/run/sshd"
+        return runtime
+    monkeypatch.setattr(accounts, "Path", runtime_path)
+
     def run(*args):
         if "-T" in args:
             return SimpleNamespace(
