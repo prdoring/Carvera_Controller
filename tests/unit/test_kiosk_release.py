@@ -2,6 +2,8 @@
 
 import hashlib
 import importlib.util
+import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -64,7 +66,7 @@ def test_incomplete_viewer_is_rejected(tmp_path, tools):
         release.package_laptop("1.0.0", tmp_path / "output", helper, novnc)
 
 
-def test_checksums_cover_only_the_three_current_downloads(tmp_path):
+def test_checksums_cover_all_five_current_downloads(tmp_path):
     expected = {}
     for name in release.release_names("1.0.0"):
         data = name.encode()
@@ -74,6 +76,21 @@ def test_checksums_cover_only_the_three_current_downloads(tmp_path):
     release.write_checksums("1.0.0", tmp_path)
     actual = {line.split()[1]: line.split()[0] for line in (tmp_path / "SHA256SUMS").read_text().splitlines()}
     assert actual == expected
+
+
+def test_extracted_tools_work_outside_repository_in_path_with_spaces(tmp_path, tools):
+    _helper, novnc = tools
+    helper = SOURCE.parents[3] / "scripts/kiosk.py"
+    archive = release.package_laptop("1.1.0.dev1", tmp_path / "output", helper, novnc)
+    extracted = tmp_path / "Laptop tools with spaces"
+    with zipfile.ZipFile(archive) as package:
+        package.extractall(extracted)
+    laptop = extracted / "laptop"
+    for args in (("--help",), ("admin-migration", "--help"), ("system-update", "--help")):
+        result = subprocess.run([sys.executable, "kiosk.py", *args], cwd=laptop, capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+    assert (laptop / "bootstrap/admin_bootstrap.py").is_file()
+    assert (laptop / "ADMINISTRATION.md").is_file()
 
 
 def test_missing_download_prevents_checksums(tmp_path):

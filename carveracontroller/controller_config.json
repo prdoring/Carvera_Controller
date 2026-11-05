@@ -48,9 +48,45 @@
         "default": "214,153,99,255"
     },
     {
+        "type": "title",
+        "title": "Screensaver"
+    },
+    {
+        "type": "screensaver",
+        "title": "Start after",
+        "desc": "Time without interaction before the screensaver starts. Jobs and machine operations keep it off.",
+        "section": "carvera",
+        "key": "screensaver_timeout_minutes",
+        "default": "30"
+    },
+    {
+        "type": "screensaver",
+        "title": "Screensaver",
+        "desc": "Random rotation shows all six designs, changing every 30 minutes.",
+        "section": "carvera",
+        "key": "screensaver_style",
+        "default": "random"
+    },
+    {
         "type": "bool",
-        "title": "Allow Screensaver",
-        "desc": "Should the screensaver be allowed to run?",
+        "title": "Show clock",
+        "desc": "Show the time and date, changing position periodically.",
+        "section": "carvera",
+        "key": "screensaver_show_clock",
+        "default": "1"
+    },
+    {
+        "type": "screensaver_preview",
+        "title": "Preview screensaver",
+        "desc": "Preview your selections without saving. Tap anywhere to return.",
+        "section": "carvera",
+        "key": "screensaver_preview",
+        "default": ""
+    },
+    {
+        "type": "bool",
+        "title": "Allow system screensaver",
+        "desc": "Allow the operating system screensaver independently of the controller screensaver.",
         "section": "graphics",
         "key": "allow_screensaver",
         "default": "false"
@@ -81,8 +117,8 @@
     },
     {
         "type": "bool",
-        "title": "Show Firmware Compatibility Check",
-        "desc": "Warn if the connected machine's firmware doesn't allow full functionality",
+        "title": "Warn About Known Firmware Incompatibilities",
+        "desc": "Warn about documented firmware incompatibilities; unverified versions appear in the Firmware tab",
         "section": "carvera",
         "key": "show_firmware_check",
         "default": "true"

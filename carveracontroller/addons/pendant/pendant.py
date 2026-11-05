@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
@@ -23,6 +22,7 @@ from kivy.uix.spinner import Spinner
 
 from carveracontroller.CNC import CNC
 from carveracontroller.Controller import Controller
+from carveracontroller.machine.state_values import finite_number
 from carveracontroller.translation import tr
 from carveracontroller.ui.android_layout import _text_width
 
@@ -75,14 +75,14 @@ class Pendant:
         cnc: CNC,
         feed_override: OverrideController,
         spindle_override: OverrideController,
-        is_jogging_enabled: Callable[[], None],
+        is_jogging_enabled: Callable[[], bool],
         handle_run_pause_resume: Callable[[], None],
         handle_probe_z: Callable[[], None],
         open_probing_popup: Callable[[], None],
         report_connection: Callable[[], None],
         report_disconnection: Callable[[], None],
-        update_ui_on_button_press: Callable[[str], None] = None,
-        update_ui_on_jog_stop: Callable[[], None] = None,
+        update_ui_on_button_press: Callable[[str], None] | None = None,
+        update_ui_on_jog_stop: Callable[[], None] | None = None,
     ) -> None:
         self._controller = controller
         self._cnc = cnc
@@ -162,6 +162,11 @@ if WHB04_SUPPORTED:
 
             self._daemon.start()
 
+        def close(self) -> None:
+            self._daemon.stop()
+            self._handle_stop_jog(self._daemon)
+            self._report_disconnection()
+
         def _handle_connect(self, daemon: whb04.Daemon) -> None:
             daemon.set_display_step_indicator(whb04.StepIndicator.STEP)
             self._report_connection()
@@ -170,29 +175,27 @@ if WHB04_SUPPORTED:
             self._report_disconnection()
 
         def _handle_display_update(self, daemon: whb04.Daemon) -> None:
-            daemon.set_display_position(whb04.Axis.X, self._cnc.vars["wx"])
-            daemon.set_display_position(whb04.Axis.Y, self._cnc.vars["wy"])
-            daemon.set_display_position(whb04.Axis.Z, self._cnc.vars["wz"])
-            daemon.set_display_position(whb04.Axis.A, self._cnc.vars["wa"])
+            daemon.set_display_position(whb04.Axis.X, finite_number(self._cnc.vars["wx"]))
+            daemon.set_display_position(whb04.Axis.Y, finite_number(self._cnc.vars["wy"]))
+            daemon.set_display_position(whb04.Axis.Z, finite_number(self._cnc.vars["wz"]))
+            daemon.set_display_position(whb04.Axis.A, finite_number(self._cnc.vars["wa"]))
             # daemon.set_display_feedrate(self._cnc.vars["curfeed"])
             # rbeard-ewa fix unhandled exception for bad feedrate
             try:
-                raw_feed = float(self._cnc.vars.get("curfeed", 0))
+                raw_feed = finite_number(self._cnc.vars.get("curfeed", 0))
                 safe_feed = max(0.0, min(raw_feed, 9999.0))
                 daemon.set_display_feedrate(safe_feed)
             except ValueError:
                 pass
             # end of feedrate fix
             spindle_value = self._cnc.vars.get("curspindle", 0)
-            try:
-                raw_spindle = float(spindle_value)
-            except OverflowError:
-                # A finite integer can exceed float's range; clamp it by sign.
-                raw_spindle = 65535.0 if spindle_value > 0 else 0.0
-            except (TypeError, ValueError):
-                raw_spindle = 0.0
-            if not math.isfinite(raw_spindle):
-                raw_spindle = 0.0
+            if isinstance(spindle_value, int) and spindle_value > 65535:
+                raw_spindle = 65535.0
+            else:
+                try:
+                    raw_spindle = finite_number(spindle_value)
+                except ValueError:
+                    raw_spindle = 0.0
             safe_spindle = max(0.0, min(raw_spindle, 65535.0))
             daemon.set_display_spindle_speed(safe_spindle)
 
@@ -217,6 +220,7 @@ if WHB04_SUPPORTED:
                 self._controller.jog_mode = self._jog_mode
 
             # Detect direction change for continuous jog
+            distance: float
             if self._controller.jog_mode == self._controller.JOG_MODE_CONTINUOUS:
                 # Determine current direction (positive = CW, negative = CCW)
                 current_direction = 1 if steps > 0 else (-1 if steps < 0 else 0)
@@ -630,7 +634,10 @@ class GamepadPendant(Pendant):
     def _do_spindle_toggle(self) -> None:
         if self._cnc.vars.get("lasermode"):
             return
-        running = float(self._cnc.vars.get("curspindle", 0)) > 0.0
+        try:
+            running = finite_number(self._cnc.vars.get("curspindle")) > 0.0
+        except ValueError:
+            return
         self._controller.setSpindleSwitch(not running)
         if self._update_ui_on_button_press:
             self._update_ui_on_button_press("spindle_on_off")
@@ -730,7 +737,7 @@ class GamepadBindingsPopup(Popup):
         self._on_save = on_save
         self._manager = manager  # GamepadManager paused while popup is open
         self._bindings = json.loads(json.dumps(current_bindings))
-        self._listening_for = None  # (action, category) when in listen mode
+        self._listening_for: str | None = None
         self._listen_btn = None
         self._listen_label = None
         self._row_widgets = {}  # action -> (label_widget, bind_btn)

@@ -1,0 +1,102 @@
+name: Kiosk application release
+
+on:
+  push:
+    tags:
+      - 'kiosk-v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kiosk-app-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ./.github/actions/bootstrap-poetry
+        with:
+          os: linux
+          install-args: --only main,lint,test
+      - name: Install GUI test dependencies
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth libgl1 libgles2 libmtdev1 libhidapi-hidraw0
+      - name: Validate release tag and source
+        id: release
+        shell: bash
+        run: |
+          poetry run python -m scripts.kiosk_release prepare "$GITHUB_REF_NAME" > /tmp/kiosk-release.json
+          echo "version=$(python -c 'import json; print(json.load(open("/tmp/kiosk-release.json"))["version"])')" >> "$GITHUB_OUTPUT"
+      - name: Quality checks
+        run: |
+          poetry run ruff check carveracontroller tests scripts
+          poetry run ruff format --check carveracontroller/updates.py scripts/kiosk_release.py tests/unit/test_updates.py tests/unit/test_release_metadata.py tests/unit/test_kiosk_app_release.py tests/unit/test_language_default.py tests/integration/test_updates.py
+          poetry run mypy carveracontroller/updates.py --config-file pyproject.toml
+          poetry run mypy carveracontroller/machine --config-file pyproject.toml --strict
+          poetry run lint-imports --config pyproject.toml
+          xvfb-run -a -s '-screen 0 1920x1200x24 -nolisten tcp' poetry run python -m pytest tests/unit tests/integration/test_updates.py -q
+      - name: Build application bundle
+        run: python scripts/kiosk.py build --version '${{ steps.release.outputs.version }}' --app-only
+      - name: Verify application release
+        run: poetry run python -m scripts.kiosk_release verify "$GITHUB_REF_NAME"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kiosk-app-release
+          if-no-files-found: error
+          path: |
+            dist/kiosk/carvera-kiosk-app-${{ steps.release.outputs.version }}.tar.gz
+            dist/kiosk/carvera-kiosk-app-${{ steps.release.outputs.version }}.tar.gz.sha256
+            dist/kiosk/bundle-${{ steps.release.outputs.version }}.json
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: kiosk-app-release
+          path: release
+      - name: Publish application-only release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          version="${tag#kiosk-v}"
+          # A rerun must never replace a published release or a separately prepared draft.
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'This release already exists. Inspect it and use a new version.' >&2
+            exit 1
+          fi
+          cd release
+          sha256sum -c "carvera-kiosk-app-$version.tar.gz.sha256"
+          cat > /tmp/kiosk-notes.md <<'NOTES'
+          Application update for an existing Raspberry Pi 4 kiosk (ARM64, Python 3.13).
+
+          Download the app archive and its .sha256 file, verify the checksum, and use the laptop maintenance helper with the mill idle. Deployment preserves preferences and restores the previous application if startup fails. The controller remains disconnected afterward.
+
+          This release does not contain an SD image or laptop tools. It does not update the OS, system services, or installed maintenance tools. Those changes require separately supplied image or tool downloads.
+
+          See the kiosk guide: https://github.com/prdoring/Carvera_Controller/blob/main/assets/packaging/kiosk/README.md
+          NOTES
+          flags=()
+          if [[ "$version" == *'.dev'* || "$version" == *'rc'* ]]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --verify-tag --draft "${flags[@]}" \
+            --title "Kiosk application v$version" --notes-file /tmp/kiosk-notes.md --generate-notes
+          gh release upload "$tag" --repo "$GITHUB_REPOSITORY" \
+            "carvera-kiosk-app-$version.tar.gz" "carvera-kiosk-app-$version.tar.gz.sha256" "bundle-$version.json"
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false

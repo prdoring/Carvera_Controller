@@ -1818,3 +1818,1148 @@ msgstr ""
 #: addons/probing/preview/ProbingPreviewPopup.kv:29
 msgid "Start"
 msgstr ""
+
+msgid "Allow system screensaver"
+msgstr ""
+
+msgid "Allow the operating system screensaver independently of the controller screensaver."
+msgstr ""
+
+msgid "Contour Map"
+msgstr ""
+
+msgid "Isometric Block"
+msgstr ""
+
+msgid "Nut & Bolt"
+msgstr ""
+
+msgid "Off"
+msgstr ""
+
+msgid "Orbit Lines"
+msgstr ""
+
+msgid "Preview"
+msgstr ""
+
+msgid "Preview screensaver"
+msgstr ""
+
+msgid "Preview your selections without saving. Tap anywhere to return."
+msgstr ""
+
+msgid "Random rotation"
+msgstr ""
+
+msgid "Random rotation shows all six designs, changing every 30 minutes."
+msgstr ""
+
+msgid "Screensaver"
+msgstr ""
+
+msgid "Screensaver unavailable"
+msgstr ""
+
+msgid "Show clock"
+msgstr ""
+
+msgid "Show the time and date, changing position periodically."
+msgstr ""
+
+msgid "Start after"
+msgstr ""
+
+msgid "Time without interaction before the screensaver starts. Jobs and machine operations keep it off."
+msgstr ""
+
+msgid "Toolpath Trace"
+msgstr ""
+
+msgid "Wait for the current operation to finish."
+msgstr ""
+
+msgid "Workshop Clock"
+msgstr ""
+
+msgid "{minutes} minutes"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:44
+msgid "Overview"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:44
+#: assets/packaging/kiosk/runtime/recovery.py:267
+msgid "Network"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:44
+#: assets/packaging/kiosk/runtime/recovery.py:327
+msgid "Display"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:44
+msgid "Maintenance"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:44
+msgid "Power"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:46
+msgid ""
+"Connect to this Wi-Fi network? Confirm it within 120 seconds or the previous "
+"network will return."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:47
+msgid ""
+"Preview this display mode? Keep it within 20 seconds or the previous mode "
+"will return."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:48
+msgid ""
+"Restart the controller? Its current connection will close. It will start "
+"disconnected."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:49
+msgid ""
+"Restart the Raspberry Pi? The controller and network access will be "
+"interrupted."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:51
+msgid ""
+"Shut down the Raspberry Pi? Wait for the display to turn off and disk "
+"activity to stop before removing power."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:54
+msgid ""
+"Install this application bundle? The controller will restart. Failed startup "
+"restores the previous application and preferences."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:57
+msgid ""
+"Restore the previous application and its saved preferences? Current "
+"preferences will be backed up. The controller will restart disconnected."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:60
+msgid ""
+"Restore these preferences? Current preferences will be backed up. The "
+"controller will restart disconnected."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:64
+msgid "Finding Wi-Fi networks…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:65
+msgid "Connecting to Wi-Fi…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:66
+msgid "Applying display preview…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:67
+msgid "Restarting the controller and checking startup…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:68
+msgid "Installing the application and checking startup…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:69
+msgid "Restoring the previous application and checking startup…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:70
+msgid "Restoring preferences and checking startup…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:71
+msgid "Backing up preferences…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:72
+msgid "Exporting diagnostics…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:73
+msgid "Exporting logs…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:147
+msgid "System"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:148
+msgid "Return to controller"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:174
+msgid "Keep change"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:177
+msgid "Revert now"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:186
+msgid "Reading system details…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:190
+msgid "Paste"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:191
+msgid "Hide keyboard"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:192
+#: assets/packaging/kiosk/runtime/recovery.py:291
+msgid "Connect Wi-Fi"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:254
+msgid "Kiosk status"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:257
+msgid "Refresh details"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:259
+msgid "Laptop access"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:259
+msgid ""
+"Compare the SSH identity on your laptop before trusting a new connection."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:269
+msgid ""
+"Select a WPA-personal network, or enter a hidden network name below. Open, "
+"enterprise and WPA3-only networks are not supported here."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:274
+msgid "Find Wi-Fi networks"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:279
+msgid "Wi-Fi network name"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:279
+msgid "Network name (SSID)"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:284
+msgid "Wi-Fi password"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:286
+msgid "8–63 bytes"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:290
+msgid "Show / hide password"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:304
+msgid "Use a network name of 1–32 bytes and a password of 8–63 bytes."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:313
+msgid "No Wi-Fi networks found. Try again or enter a hidden network."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:329
+msgid ""
+"Only modes advertised by the connected screen near 60 Hz can be applied. A "
+"preview reverts after 20 seconds unless kept."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:339
+msgid "Checking the connected display…"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:348
+#, python-brace-format
+msgid "Available modes: {modes}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:350
+msgid "No supported display modes were reported. Check the display connection."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:355
+msgid "Diagnostics and preferences"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:356
+msgid ""
+"Files are saved for laptop retrieval. Preferences backups exclude G-code and "
+"application files."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:359
+msgid "Export diagnostics"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:360
+msgid "Export logs"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:361
+msgid "Back up preferences"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:364
+msgid "View technical details"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:366
+msgid "Application and preferences"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:368
+msgid ""
+"Use the laptop helper to stage .tar.gz files. Application bundles update the "
+"controller only; OS, services and System tools require a replacement image."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:371
+msgid "Refresh staged files"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:376
+msgid "Restore previous application"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:383
+msgid "Showing the 20 most recently staged files."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:388
+msgid ""
+"No staged files. Use the laptop helper to stage an application bundle or "
+"preferences backup."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:396
+msgid "Application"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:401
+msgid "Review application"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:401
+msgid "Review preferences"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:414
+#, python-brace-format
+msgid "Application: {version}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:424
+msgid ""
+"Restarting closes the machine connection. Reconnection is always a separate "
+"deliberate action."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:426
+msgid "Restart controller"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:428
+msgid "Raspberry Pi"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:428
+msgid ""
+"Confirm that the machine is idle and safe to leave without controller access."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:430
+msgid "Restart Pi"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:431
+msgid "Shut down Pi"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:439
+msgid "Technical details"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:454
+msgid ""
+"The machine must be idle. This action cannot stop or make a running machine "
+"safe."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:462
+msgid "Confirm system change"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:483
+msgid "Machine is idle — continue"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:522
+msgid "The previous operation did not finish."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:579
+#, python-brace-format
+msgid "Saved for laptop retrieval: {file}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:581
+msgid "Power operation requested. Wait for the Pi to finish."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:583
+#, python-brace-format
+msgid "Application {version} is ready. The controller is disconnected."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:587
+#, python-brace-format
+msgid "Preferences restored. Previous preferences saved as {file}."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:591
+msgid "Controller restarted and ready. Reconnect the mill when you are ready."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:593
+msgid "Keep or revert the change using the confirmation bar."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:594
+msgid "Completed."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:607
+msgid "System operation could not finish"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:641
+#, python-brace-format
+msgid "Keep or revert the change: {seconds} seconds remaining."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:658
+msgid "Unavailable"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:660
+#, python-brace-format
+msgid ""
+"Application: {app}\n"
+"Image: {image}\n"
+"Controller: {state}\n"
+"Temperature: {temperature}\n"
+"Memory: {memory}\n"
+"Storage: {storage}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:662
+#: assets/packaging/kiosk/runtime/recovery.py:663
+msgid "Unknown"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:670
+#, python-brace-format
+msgid ""
+"Network addresses: {addresses}\n"
+"Laptop login: {login}\n"
+"SSH identity: {identity}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:672
+#: assets/packaging/kiosk/runtime/recovery.py:683
+msgid "Not connected"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:678
+msgid "Wi-Fi"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:680
+msgid "Ethernet"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:687
+#, python-brace-format
+msgid "Saved mode: {mode}"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:689
+#, python-brace-format
+msgid "Preview: {seconds} seconds remaining."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/recovery.py:701
+msgid ""
+"The controller is unavailable. Use Power → Restart controller to recover it."
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:215
+msgid "Tab"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:216
+msgid "Caps"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:217
+msgid "Shift"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:218
+msgid "Enter"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:220
+msgid "Layout"
+msgstr ""
+
+#: assets/packaging/kiosk/runtime/system_ui.py:221
+msgid "Hide"
+msgstr ""
+
+#: main.py:3710 main.py:3781
+#, python-format
+msgid "Installed: v%s"
+msgstr ""
+
+#: main.py:3739 main.py:3741
+msgid "Checking for updates..."
+msgstr ""
+
+#: main.py:3757 main.py:3799
+msgid "Unable to check for firmware updates."
+msgstr ""
+
+#: main.py:3772
+msgid "Firmware: not connected or not identified."
+msgstr ""
+
+#: main.py:3774
+#, python-format
+msgid "Community firmware: v%s"
+msgstr ""
+
+#: main.py:3775
+msgid ""
+"The reference setup is a Carvera Air with 2.2.0c. This is not a complete "
+"compatibility certification."
+msgstr ""
+
+#: main.py:3777
+#, python-format
+msgid ""
+"Firmware: v%s. Community firmware was not identified; some features may be "
+"unavailable."
+msgstr ""
+
+#: main.py:3778
+msgid ""
+"Feature availability depends on the machine's reported firmware and "
+"capabilities."
+msgstr ""
+
+#: main.py:3781
+msgid "Firmware not identified"
+msgstr ""
+
+#: main.py:3796 main.py:3813
+#, python-format
+msgid "Available: v%s | Installed: v%s"
+msgstr ""
+
+#: main.py:3808
+#, python-format
+msgid "Unable to check for updates. Installed: v%s"
+msgstr ""
+
+#: main.py:3815
+msgid ""
+"Unversioned development build; automatic update comparison is unavailable."
+msgstr ""
+
+#: main.py:3817
+#, python-format
+msgid "No newer release with a package for this installation. Installed: v%s"
+msgstr ""
+
+#: makera.kv:2461
+msgid "Updates"
+msgstr ""
+
+#: makera.kv:2523
+msgid "Open release page"
+msgstr ""
+
+#: makera.kv:2529
+msgid ""
+"Kiosk updates use the laptop maintenance helper with the mill idle. App "
+"bundles do not update the OS, system services, or maintenance tools; those "
+"changes need separately supplied image or tool downloads."
+msgstr ""
+
+#: makera.kv:2529
+msgid ""
+"Download the package for your platform from this fork's release page. "
+"Installation is a separate action."
+msgstr ""
+
+msgid "Warn About Known Firmware Incompatibilities"
+msgstr ""
+
+msgid "Warn about documented firmware incompatibilities; unverified versions appear in the Firmware tab"
+msgstr ""
+
+#: kiosk_runtime.py:68
+msgid ""
+"System settings could not open. Install the matching kiosk image and System "
+"tools."
+msgstr ""
+
+#: kiosk_runtime.py:84
+msgid ""
+"System settings could not open.\n"
+"Install the matching kiosk image and System tools."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery.py:89
+msgid ""
+"System helper did not return a result. Check that the matching kiosk image "
+"is installed."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery.py:92
+msgid "The system operation failed. Refresh details before retrying."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery.py:677
+msgid "Keep or revert pending changes before returning to the controller."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery.py:681
+msgid "Maintenance is controlled from the laptop. Finish it there first."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery_control.py:27
+#: ../assets/packaging/kiosk/runtime/system_operations.py:537
+msgid ""
+"This request has already been attempted. Refresh system details before "
+"retrying."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery_control.py:29
+#: ../assets/packaging/kiosk/runtime/system_operations.py:539
+msgid "Another system operation is in progress"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery_control.py:71
+msgid ""
+"The operation is still being checked. Refresh its status before attempting "
+"another action."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery_control.py:85
+msgid ""
+"The system worker did not return a result. Refresh details before retrying."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery_control.py:87
+msgid "The system operation failed"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery_control.py:100
+msgid "Invalid system worker request"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery_control.py:112
+#: ../assets/packaging/kiosk/runtime/recovery_control.py:121
+msgid "Use the installed touchscreen recovery helper"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/recovery_control.py:124
+msgid "System request is too large"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:41
+msgid "Invalid system request"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:44
+#: ../assets/packaging/kiosk/runtime/system_operations.py:524
+msgid "Unknown system action"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:46
+msgid "Confirm that the machine is idle before making changes"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:48
+msgid "Invalid operation identity"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:161
+msgid ""
+"Maintenance is controlled from the laptop. Finish it there before making "
+"changes here."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:176
+msgid "Maintenance is controlled from the laptop. Finish it there."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:178
+msgid "Keep or revert the display preview before returning to the controller"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:200
+msgid "Choose 1920×1200 or 1920×1080"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:202
+msgid "Finish the current display preview first"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:206
+msgid "The saved display mode is invalid"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:246
+msgid "The display preview expired and was reverted"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:345
+msgid "Staged files must be regular files no larger than 512 MiB"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:350
+#: ../assets/packaging/kiosk/runtime/system_operations.py:433
+msgid "Staged file exceeds 512 MiB"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:359
+msgid "Staged archive exceeds supported limits"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:362
+#: ../assets/packaging/kiosk/runtime/system_operations.py:365
+msgid "Invalid bundle metadata"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:375
+#: ../assets/packaging/kiosk/runtime/system_operations.py:438
+msgid "The staged file changed. Refresh and review it again."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:419
+msgid "Select a staged file and review its details first"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:428
+msgid "Invalid staged file"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:489
+msgid "Keep or revert the pending Wi-Fi change first"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/system_operations.py:491
+msgid "Keep or revert the display preview first"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:42
+msgid "Another maintenance operation is in progress"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:48
+msgid "Specify a plain file name"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:51
+msgid "Symbolic links are not accepted"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:65
+msgid "Could not determine controller service state"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:73
+msgid "The machine or controller is busy; maintenance is blocked"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:75
+msgid "A maintenance session already exists; leave it before starting another"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:79
+msgid ""
+"Confirm the machine is idle before maintenance with the controller stopped"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:112
+msgid "Enter maintenance before making changes"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:114
+msgid "Maintenance expired; leave and enter again"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:122
+msgid "Keep or revert the display preview before leaving maintenance"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:125
+msgid ""
+"Confirm the new Wi-Fi network or wait for its 120-second rollback before "
+"leaving maintenance"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:139
+msgid "Settings backup failed"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:174
+msgid "Bundle exceeds 512 MiB"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:177
+msgid "This image requires an aarch64 Python 3.13 application bundle"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:179
+msgid "Invalid application version"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:181
+msgid "Bundle manifest does not match its files"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:216
+msgid "Controller startup did not reach a healthy maintenance state"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:224
+msgid "Settings restore failed"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:265
+msgid "The selected file is not a valid preferences snapshot"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:313
+msgid "Upload a regular application bundle file"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:318
+msgid "This version already exists; build a new version"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:343
+msgid "No previous application is available"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:380
+msgid "Provide a Wi-Fi network name and password"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:387
+msgid "NetworkManager did not create a recovery checkpoint"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:402
+msgid "No pending network change"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:404
+msgid "The network confirmation expired; the previous network was restored"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:421
+msgid ""
+"Screen-sharing port 5900 is occupied by another process; it will be left "
+"alone"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:425
+msgid "Screen sharing did not start"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:435
+msgid "This screen session belongs to another viewer"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:438
+msgid "The screen service was replaced; it will be left running"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:473
+msgid "Choose performance or schedutil"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:480
+msgid "Choose native 1920x1200 or comparison mode 1920x1080"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:499
+msgid ""
+"This helper accepts a JSON request on standard input, without command "
+"arguments"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:501
+msgid "Run through the installed maintenance helper"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:504
+msgid "Invalid maintenance request"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:510
+msgid "Unknown maintenance action"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/control.py:512
+msgid "This helper is restricted to the laptop maintenance account"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:65
+msgid "Settings archive exceeds 16 MiB"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:67
+msgid "No supported settings were found in the archive"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:72
+msgid "Settings destinations must not be symbolic links"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:86
+msgid "Settings snapshot contains too many entries"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:93
+msgid "Invalid settings snapshot"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:95
+msgid "Invalid settings snapshot path"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:97
+msgid "Duplicate settings snapshot member"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:100
+msgid "Settings snapshot exceeds 16 MiB"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:103
+msgid "Settings JSON must contain an object"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:108
+msgid "No preferences were found in the snapshot"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:120
+msgid "Settings destinations must stay inside application data"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/settings.py:124
+msgid "Settings directories must not be symbolic links"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/display.py:27
+msgid "This kiosk profile requires one connected display"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/display.py:39
+msgid "Unsupported display size"
+msgstr ""
+
+#: ui/kiosk_legacy.py:44
+msgid "This image does not support that System action."
+msgstr ""
+
+#: ui/kiosk_legacy.py:47
+msgid ""
+"The previous request has an unknown outcome. Inspect and finish maintenance "
+"from the laptop."
+msgstr ""
+
+#: ui/kiosk_legacy.py:52
+msgid "Controller activity is unavailable or stale."
+msgstr ""
+
+#: ui/kiosk_legacy.py:56
+msgid ""
+"Maintenance is already active. Finish it from the laptop before making "
+"changes here."
+msgstr ""
+
+#: ui/kiosk_legacy.py:58
+msgid "Resolve the previous Wi-Fi attempt before connecting again."
+msgstr ""
+
+#: ui/kiosk_legacy.py:60
+msgid ""
+"The network confirmation is unavailable or expired. Refresh the controller "
+"status."
+msgstr ""
+
+#: ui/kiosk_legacy.py:62
+msgid "Keep the Wi-Fi change or wait for its rollback before restarting."
+msgstr ""
+
+#: ui/kiosk_legacy.py:66
+msgid "Confirm that the machine is idle before making changes."
+msgstr ""
+
+#: ui/kiosk_legacy.py:86
+msgid ""
+"The request timed out. Its outcome is unknown; refresh status before another "
+"action."
+msgstr ""
+
+#: ui/kiosk_legacy.py:94
+msgid "The System action failed. Refresh status before retrying."
+msgstr ""
+
+#: ui/kiosk_legacy.py:106
+msgid ""
+"The helper returned an unknown result. Refresh status before another action."
+msgstr ""
+
+#: ui/kiosk_system.py:184
+msgid "Keep new network"
+msgstr ""
+
+#: ui/kiosk_system.py:185
+msgid "Emergency stop"
+msgstr ""
+
+#: ui/kiosk_system.py:220
+msgid "A System action is still pending. Wait for its result before closing."
+msgstr ""
+
+#: ui/kiosk_system.py:258
+msgid ""
+"Enter a WPA-personal network or hidden SSID. Open, enterprise and WPA3-only "
+"networks are not supported here."
+msgstr ""
+
+#: ui/kiosk_system.py:275
+msgid ""
+"Restart closes the controller connection and this screen. The controller "
+"starts disconnected."
+msgstr ""
+
+#: ui/kiosk_system.py:402
+msgid ""
+"The previous request has an unknown outcome. Inspect and finish maintenance "
+"from the laptop. Closing this screen does not resolve it."
+msgstr ""
+
+#: ui/kiosk_system.py:408
+#, python-brace-format
+msgid "Keep the network if it works. Confirmation closes in {seconds} seconds."
+msgstr ""
+
+#: ui/kiosk_system.py:412
+msgid ""
+"Wi-Fi confirmation has closed. The image should roll back an unconfirmed "
+"network. Maintenance may remain active; refresh status and use a deliberate "
+"controller restart or finish from the laptop. Closing this screen does not "
+"leave maintenance."
+msgstr ""
+
+#: ui/kiosk_system.py:416
+msgid ""
+"This image supports Wi-Fi and controller restart here. Independent emergency "
+"recovery is unchanged. Display, power and system-tool updates need newer "
+"installed tools."
+msgstr ""
+
+#: ui/kiosk_system.py:432
+msgid ""
+"Connect to this Wi-Fi network? Keep it before confirmation closes or the "
+"image will restore the previous network."
+msgstr ""
+
+#: ui/kiosk_system.py:435
+msgid ""
+"Keep this Wi-Fi network and finish its maintenance session? Confirm that "
+"this is the network you want to use."
+msgstr ""
+
+#: ui/kiosk_system.py:438
+msgid ""
+"Restart the controller? Its connection and this screen will close. It will "
+"start disconnected."
+msgstr ""
+
+#: ui/kiosk_system.py:504
+msgid "Restart requested. Startup and completion have not been verified."
+msgstr ""
+
+#: ui/kiosk_system.py:508
+msgid "Wi-Fi request completed. Check the network before continuing."
+msgstr ""
+
+#: ui/kiosk_system.py:553
+msgid "Unavailable or stale"
+msgstr ""
+
+#: ui/kiosk_system.py:555
+#, python-brace-format
+msgid ""
+"Application: {application}\n"
+"Image: {image}\n"
+"Controller: {state}\n"
+"Maintenance: {maintenance}\n"
+"Temperature: {temperature}\n"
+"Storage free / total: {storage}\n"
+"\n"
+"Network addresses: {addresses}\n"
+"Laptop login: {login}\n"
+"SSH identity: {identity}"
+msgstr ""
+
+#: ui/kiosk_system.py:558
+msgid "Active"
+msgstr ""
+
+#: ui/kiosk_system.py:560
+msgid "Inactive"
+msgstr ""
+
+#: ui/kiosk_system.py ui/kiosk_legacy.py
+msgid "Applying the System action…"
+msgstr ""
+
+msgid "Use the laptop helper to stage application bundles or preferences. Application bundles update the controller. System tools use a separate administrator update; OS updates require a replacement image."
+msgstr ""

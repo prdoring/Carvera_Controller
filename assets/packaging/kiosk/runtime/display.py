@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Select an advertised 60 Hz mode on the single connected display."""
 
+import json
 import re
 import subprocess
 import sys
@@ -19,14 +20,24 @@ def parse_outputs(text):
     return outputs
 
 
-def apply(mode):
-    if mode not in ("1920x1200", "1920x1080"):
-        raise ValueError("Unsupported display size")
+def connected_output():
     result = subprocess.run(["wlr-randr"], capture_output=True, text=True, check=True)
     outputs = parse_outputs(result.stdout)
     if len(outputs) != 1:
         raise ValueError("This kiosk profile requires one connected display")
-    output = outputs[0]
+    return outputs[0]
+
+
+def available():
+    output = connected_output()
+    return [mode for mode in ("1920x1200", "1920x1080") if any(
+        f"{item['width']}x{item['height']}" == mode and 59 <= item["refresh"] <= 61 for item in output["modes"])]
+
+
+def apply(mode):
+    if mode not in ("1920x1200", "1920x1080"):
+        raise ValueError("Unsupported display size")
+    output = connected_output()
     width, height = map(int, mode.split("x"))
     matches = [item for item in output["modes"] if item["width"] == width and item["height"] == height
                and 59 <= item["refresh"] <= 61]
@@ -38,4 +49,7 @@ def apply(mode):
 
 
 if __name__ == "__main__":
-    apply(sys.argv[1] if len(sys.argv) == 2 else Path("/etc/carvera/display-mode").read_text().strip())
+    if sys.argv[1:] == ["--list"]:
+        print(json.dumps({"modes": available()}))
+    else:
+        apply(sys.argv[1] if len(sys.argv) == 2 else Path("/etc/carvera/display-mode").read_text().strip())

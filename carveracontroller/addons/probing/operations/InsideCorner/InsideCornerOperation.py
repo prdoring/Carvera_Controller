@@ -18,7 +18,7 @@ class InsideCornerOperation(OperationsBase):
         self.x_is_negative_move = x_is_negative_move
         self.y_is_negative_move = y_is_negative_move
 
-    def generate(self, input_config: dict[str, float]):
+    def generate(self, input_config: dict[str, str]):
         config = copy.deepcopy(input_config)
 
         super().apply_direction(SingleAxisProbeParameterDefinitions.XAxisDistance.code, config, self.x_is_negative_move)
@@ -27,7 +27,7 @@ class InsideCornerOperation(OperationsBase):
 
         return "M463" + self.config_to_gcode(config)
 
-    def get_missing_config(self, config: dict[str, float]):
+    def get_missing_config(self, config: dict[str, str]):
         required_definitions = {
             name: value
             for name, value in InsideCornerParameterDefinitions.__dict__.items()

@@ -32,6 +32,12 @@ SERVICE = "carvera-controller.service"
 ADMIN = Path("/var/lib/carvera-maint")
 
 
+def transfer_directory():
+    if os.environ.get("SUDO_USER") == "kiosk-admin":
+        return Path("/home/kiosk-admin/transfers")
+    return ADMIN
+
+
 @contextlib.contextmanager
 def locked():
     RUN.mkdir(mode=0o755, parents=True, exist_ok=True)
@@ -46,14 +52,15 @@ def locked():
 def admin_path(name, directory):
     if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,120}", name):
         raise ValueError("Specify a plain file name")
-    target = ADMIN / directory / name
-    if ADMIN.is_symlink() or target.parent.is_symlink() or target.is_symlink():
+    parent = transfer_directory()
+    target = parent / directory / name
+    if parent.is_symlink() or target.parent.is_symlink() or target.is_symlink():
         raise ValueError("Symbolic links are not accepted")
     return target
 
 
-def command(*args, check=True):
-    result = subprocess.run(args, text=True, capture_output=True, check=False, timeout=300)
+def command(*args, check=True, timeout=300):
+    result = subprocess.run(args, text=True, capture_output=True, check=False, timeout=timeout)
     if check and result.returncode:
         raise RuntimeError(result.stderr.strip() or f"{args[0]} failed")
     return result
@@ -118,6 +125,8 @@ def require_maintenance():
 
 
 def leave():
+    if read_json(RUN / "display-checkpoint.json"):
+        raise ValueError("Keep or revert the display preview before leaving maintenance")
     checkpoint = read_json(RUN / "network-checkpoint.json")
     if checkpoint and time.monotonic() < checkpoint.get("expires", 0):
         raise ValueError("Confirm the new Wi-Fi network or wait for its 120-second rollback before leaving maintenance")
@@ -132,7 +141,7 @@ def export_snapshot(destination):
     with os.fdopen(descriptor, "wb") as output:
         result = subprocess.run([
             "runuser", "-u", "carvera", "--", "python3", str(BASE / "maintenance/settings.py"), "backup", str(DATA),
-        ], stdout=output, stderr=subprocess.PIPE, check=False)
+        ], stdout=output, stderr=subprocess.PIPE, check=False, timeout=60)
     if result.returncode:
         raise RuntimeError(result.stderr.decode("utf-8", errors="replace").strip() or "Settings backup failed")
 
@@ -217,7 +226,7 @@ def wait_ready(token):
 def restore_snapshot(snapshot):
     result = subprocess.run([
         "runuser", "-u", "carvera", "--", "python3", str(BASE / "maintenance/settings.py"), "restore", str(DATA),
-    ], input=Path(snapshot).read_bytes(), capture_output=True, check=False)
+    ], input=Path(snapshot).read_bytes(), capture_output=True, check=False, timeout=60)
     if result.returncode:
         raise RuntimeError(result.stderr.decode("utf-8", errors="replace").strip() or "Settings restore failed")
 
@@ -237,15 +246,14 @@ def activate(release, restore=None):
         os.chmod(RUN / "maintenance.request", 0o644)
         STATUS.unlink(missing_ok=True)
         point_current(release)
-        command("systemctl", "stop", "carvera-recovery.service")
         command("systemctl", "start", SERVICE)
         wait_ready(lease["token"])
     except Exception:
         command("systemctl", "stop", SERVICE, check=False)
         point_current(previous)
         restore_snapshot(snapshot)
-        command("systemctl", "stop", "carvera-recovery.service", check=False)
-        command("systemctl", "start", SERVICE, check=False)
+        command("systemctl", "start", SERVICE)
+        wait_ready(lease["token"])
         raise
     previous_link = BASE / "previous"
     previous_link.unlink(missing_ok=True)
@@ -253,6 +261,38 @@ def activate(release, restore=None):
     shutil.copy2(snapshot, BASE / "previous-settings.tar.gz")
     prune_releases()
     return {"current": str(release), "previous": str(previous)}
+
+
+def restore_preferences(snapshot):
+    lease = require_maintenance()
+    result = subprocess.run([
+        "runuser", "-u", "carvera", "--", "python3", str(BASE / "maintenance/settings.py"), "validate", str(DATA),
+    ], input=Path(snapshot).read_bytes(), capture_output=True, check=False, timeout=30)
+    if result.returncode:
+        raise ValueError("The selected file is not a valid preferences snapshot")
+    saved = admin_path("before-restore-" + secrets.token_hex(8) + ".tar.gz", "exports")
+    with tempfile.TemporaryDirectory(prefix="restore-", dir=ADMIN) as directory:
+        original = Path(directory) / "preferences.tar.gz"
+        backup(original)
+        exported = Path(directory) / "export.tar.gz"
+        shutil.copyfile(original, exported)
+        os.chmod(exported, 0o600)
+        account = pwd.getpwnam("carvera-admin")
+        os.chown(exported, account.pw_uid, account.pw_gid)
+        os.replace(exported, saved)
+        command("systemctl", "stop", SERVICE)
+        try:
+            restore_snapshot(snapshot)
+            STATUS.unlink(missing_ok=True)
+            command("systemctl", "start", SERVICE)
+            wait_ready(lease["token"])
+        except Exception:
+            command("systemctl", "stop", SERVICE, check=False)
+            restore_snapshot(original)
+            command("systemctl", "start", SERVICE)
+            wait_ready(lease["token"])
+            raise
+    return {"restored": True, "backup": saved.name}
 
 
 def prune_releases():
@@ -267,9 +307,12 @@ def prune_releases():
 
 
 def deploy(bundle):
+    return deploy_file(admin_path(bundle, "uploads"))
+
+
+def deploy_file(bundle):
     require_maintenance()
     prune_releases()
-    bundle = admin_path(bundle, "uploads")
     staging = BASE / "releases" / ("staging-" + secrets.token_hex(6))
     descriptor = os.open(bundle, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(descriptor, "rb") as incoming:
@@ -310,7 +353,12 @@ def rollback():
 
 
 def diagnostics():
-    result = {"controller": read_json(STATUS), "maintenance": read_json(RUN / "maintenance.json")}
+    result = {"controller": read_json(STATUS), "maintenance": read_json(RUN / "maintenance.json"),
+              "image": read_json(Path("/boot/firmware/carvera-image.json")),
+              "system": read_json(BASE / "system-current/system-bundle.json"),
+              "updater": read_json(BASE / "updater/updater-bundle.json"),
+              "updater_version": 1, "maintenance_protocol": 1,
+              "transfers": {name: str(transfer_directory() / name) for name in ("uploads", "exports")}}
     for label, path in {
         "os": "/etc/os-release",
         "model": "/proc/device-tree/model",
@@ -364,6 +412,8 @@ def network_confirm():
     checkpoint = read_json(RUN / "network-checkpoint.json")
     if not checkpoint:
         raise ValueError("No pending network change")
+    if checkpoint.get("expires", 0) <= time.monotonic():
+        raise ValueError("The network confirmation expired; the previous network was restored")
     command("gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager",
             "--object-path", "/org/freedesktop/NetworkManager", "--method",
             "org.freedesktop.NetworkManager.CheckpointDestroy", checkpoint["path"])
@@ -375,17 +425,20 @@ def network_confirm():
 def screen_start():
     service = "carvera-screen.service"
     if active(service):
-        return {"owned": False}
+        raise ValueError("A screen session is already active; it was left alone. Close that viewer before starting another.")
     with socket.socket() as probe:
         try:
-            probe.bind(("127.0.0.1", 5900))
+            probe.bind(("127.0.0.1", 5901))
         except OSError as error:
-            raise ValueError("Screen-sharing port 5900 is occupied by another process; it will be left alone") from error
+            raise ValueError("Screen-sharing port 5901 is occupied by another process; it will be left alone") from error
     command("systemctl", "start", service)
     pid = command("systemctl", "show", "--property=MainPID", "--value", service).stdout.strip()
     if not pid.isdigit() or int(pid) == 0:
         raise RuntimeError("Screen sharing did not start")
-    value = {"token": secrets.token_hex(16), "pid": pid}
+    invocation = command("systemctl", "show", "--property=InvocationID", "--value", service).stdout.strip()
+    if not re.fullmatch(r"[a-f0-9]{32}", invocation):
+        raise RuntimeError("Screen sharing did not report its service identity")
+    value = {"token": secrets.token_hex(16), "pid": pid, "invocation": invocation}
     write_json(RUN / "screen.json", value)
     return {"owned": True, "token": value["token"]}
 
@@ -396,14 +449,24 @@ def screen_stop(token):
     if not owner or not secrets.compare_digest(str(token), owner["token"]):
         raise ValueError("This screen session belongs to another viewer")
     pid = command("systemctl", "show", "--property=MainPID", "--value", service).stdout.strip()
-    if pid != owner["pid"]:
+    invocation = command("systemctl", "show", "--property=InvocationID", "--value", service).stdout.strip()
+    if pid != owner["pid"] or invocation != owner.get("invocation"):
         raise ValueError("The screen service was replaced; it will be left running")
     command("systemctl", "stop", service)
+    for family, address in ((socket.AF_INET, "127.0.0.1"), (socket.AF_INET6, "::1")):
+        with socket.socket(family) as connection:
+            connection.settimeout(0.2)
+            if connection.connect_ex((address, 5901)) == 0:
+                raise RuntimeError("A screen listener remains; unrelated processes were left alone")
     (RUN / "screen.json").unlink()
     return {"screen_stopped": True}
 
 
 def dispatch(args):
+    if args.action == "health":
+        manifest = read_json(Path(__file__).resolve().parent.parent / "system-bundle.json")
+        return {"system_version": manifest.get("version"), "maintenance_protocol": 1,
+                "transfers": {name: str(transfer_directory() / name) for name in ("uploads", "exports")}}
     if args.action in ("status", "diagnose"):
         return diagnostics()
     if args.action == "enter":
@@ -416,7 +479,7 @@ def dispatch(args):
         return rollback()
     if args.action == "backup":
         destination = admin_path(args.value or "carvera-settings.tar.gz", "exports")
-        backup(destination, owner="carvera-admin")
+        backup(destination, owner=os.environ.get("SUDO_USER", "carvera-admin"))
         return str(destination)
     if args.action == "logs":
         return command("journalctl", "--no-pager", "-n", "500", "-u", SERVICE,
@@ -466,14 +529,18 @@ def main():
         raise ValueError("Invalid maintenance request")
     args = SimpleNamespace(action=request.get("action"), value=request.get("value"),
                            confirm_machine_idle=request.get("confirm_machine_idle") is True)
-    actions = {"status", "diagnose", "enter", "leave", "deploy", "rollback", "backup", "screen-start",
+    actions = {"health", "status", "diagnose", "enter", "leave", "deploy", "rollback", "backup", "screen-start",
                "screen-stop", "restart", "reboot", "network", "network-confirm", "governor", "display", "logs"}
     if args.action not in actions:
         raise ValueError("Unknown maintenance action")
-    if os.environ.get("SUDO_USER") != "carvera-admin":
+    caller = os.environ.get("SUDO_USER")
+    if caller not in {"carvera-admin", "kiosk-admin"} and not (caller is None and args.action == "health"):
         raise ValueError("This helper is restricted to the laptop maintenance account")
-    with locked():
+    if args.action in {"health", "status", "diagnose", "logs"}:
         result = dispatch(args)
+    else:
+        with locked():
+            result = dispatch(args)
     print(json.dumps(result, indent=2))
 
 

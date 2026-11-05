@@ -1,7 +1,7 @@
 [Unit]
 Description=Carvera touchscreen session
-After=carvera-provision.service seatd.service
-Requires=seatd.service
+After=carvera-provision.service seatd.service carvera-system-recover.service
+Requires=seatd.service carvera-provision.service carvera-system-recover.service
 
 [Service]
 User=carvera

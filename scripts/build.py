@@ -145,6 +145,12 @@ def convert_version_to_4part(version_string: str, always_include_build: bool = F
     - "1.0.0-BETA2" -> "1.0.0.12"
     - "3.1.0-ALPHA" -> "3.1.0.20"
     """
+    # Canonical fork versions also accept PEP 440 development and RC spelling.
+    canonical = re.fullmatch(r"(\d+\.\d+\.\d+)(?:\.dev(\d+)|rc(\d+))", version_string)
+    if canonical:
+        suffix = "DEV" + canonical[2] if canonical[2] is not None else "RC" + canonical[3]
+        version_string = canonical[1] + "-" + suffix
+
     # Split version and suffix
     if "-" in version_string:
         version_parts = version_string.split("-", 1)
@@ -277,7 +283,7 @@ def codegen_version_string(package_version: str, project_path: str, root_path: s
 
     # Update the __version__.py file used by the project
     with open(project_path.joinpath("__version__.py").resolve(), "w") as f:
-        f.write(f"__version__ = '{version_for_files}'\n")
+        f.write(f"__version__ = '{version_for_files}'\n__release_version__ = '{package_version}'\n")
 
     # Update the value of `version` in` pyproject.toml
     pyproject_path = root_path.joinpath("pyproject.toml").resolve()
@@ -321,9 +327,9 @@ def restore_codegen_files(root_path, project_path):
 
 
 def version_type(version_string):
-    if not re.match(r"^v?\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$", version_string):
+    if not re.match(r"^v?\d+\.\d+\.\d+(?:\.dev\d+|rc\d+|-[A-Za-z0-9.-]+)?$", version_string):
         raise argparse.ArgumentTypeError(
-            "Must be in X.Y.Z[-SUFFIX] format (e.g., 1.2.3, v1.2.3, 2.0.0-RC1, or v2.0.0-RC1)"
+            "Use X.Y.Z, X.Y.Z.devN, X.Y.ZrcN or X.Y.Z-SUFFIX, with an optional v prefix"
         )
 
     # Remove 'v' prefix if present; keep full YYYY for date-based dev versions
@@ -511,7 +517,7 @@ def main():
         metavar="version",
         required=True,
         type=version_type,
-        help="Version string to use for build. Supports X.Y.Z[-SUFFIX] format (e.g., 1.2.3, 2.0.0-RC1, v2.0.0-BETA2).",
+        help="Build version, for example 1.0.0, 1.0.1.dev1, 1.0.1rc1 or 2.2.0-RC1.",
     )
 
     args = parser.parse_args()

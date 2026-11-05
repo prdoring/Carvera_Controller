@@ -1,0 +1,12 @@
+[Unit]
+Description=Recover an interrupted Carvera system update
+After=local-fs.target
+Before=carvera-kiosk.service carvera-cpu.service carvera-provision.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/carvera-system-update recover boot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

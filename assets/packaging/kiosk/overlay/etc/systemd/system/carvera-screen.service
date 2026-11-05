@@ -7,5 +7,5 @@ User=carvera
 Group=carvera
 Environment=XDG_RUNTIME_DIR=/run/carvera
 Environment=WAYLAND_DISPLAY=wayland-0
-ExecStart=/usr/bin/wayvnc 127.0.0.1 5900
+ExecStart=/usr/bin/wayvnc --config=/etc/carvera/wayvnc.conf
 Restart=no

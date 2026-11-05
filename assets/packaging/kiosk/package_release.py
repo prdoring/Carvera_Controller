@@ -16,6 +16,8 @@ def release_names(version):
         f"carvera-kiosk-pi4-{version}.img.xz",
         f"carvera-kiosk-laptop-{version}.zip",
         f"carvera-kiosk-app-{version}.tar.gz",
+        f"carvera-kiosk-system-{version}.tar.gz",
+        f"carvera-kiosk-updater-{version}.tar.gz",
     )
 
 
@@ -32,9 +34,25 @@ def package_laptop(version, output, helper, novnc):
         laptop = stage / "laptop"
         laptop.mkdir()
         shutil.copy2(helper, laptop / "kiosk.py")
+        extension = helper.parent / "kiosk_admin.py"
+        if not extension.exists():
+            extension = assets.parents[2] / "scripts/kiosk_admin.py"
+        shutil.copy2(extension, laptop / "kiosk_admin.py")
+        bootstrap = laptop / "bootstrap"
+        bootstrap.mkdir()
+        for name in ("admin_accounts.py", "admin_bootstrap.py", "system_update.py", "kiosk_state.py"):
+            source = assets / "runtime" / name
+            if not source.exists() and name == "kiosk_state.py":
+                source = assets.parents[2] / "carveracontroller/kiosk_state.py"
+            shutil.copyfile(source, bootstrap / name)
+        shutil.copyfile(assets / "admin-bootstrap.sh", bootstrap / "bootstrap.sh")
         shutil.copy2(assets / "laptop-requirements.txt", laptop / "laptop-requirements.txt")
         instructions = (assets / "laptop-README.md").read_text(encoding="utf-8")
         (laptop / "README.md").write_text(instructions.replace("@VERSION@", version), encoding="utf-8")
+        guide = assets / "kiosk-administration.md"
+        if not guide.exists():
+            guide = assets.parents[2] / "docs/kiosk-administration.md"
+        shutil.copyfile(guide, laptop / "ADMINISTRATION.md")
         shutil.copytree(novnc, laptop / "novnc", ignore=shutil.ignore_patterns(".git", "__pycache__"))
         files = sorted(path for path in laptop.rglob("*") if path.is_file())
         private_names = {

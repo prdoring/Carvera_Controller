@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import gettext
-import locale
 import os
 
 from kivy.lang import Observable
@@ -76,17 +75,7 @@ tr = TrProxy()
 
 
 def init(langname: str | None = None):
-    if langname is None or langname not in LANGS:
-        try:
-            default_locale = locale.getdefaultlocale()
-            if default_locale is not None and default_locale[0] is not None:
-                for lang_key in LANGS:
-                    if default_locale[0][0:2] in lang_key:
-                        langname = lang_key
-                        break
-        except:
-            pass
-    if langname is None:
+    if langname not in LANGS:
         langname = "en"
 
     global _translator

@@ -14,7 +14,7 @@ class SingleAxisProbeOperationXAxis(OperationsBase):
         self.imagePath = image_path
         self.x_is_negative_move = x_is_negative_move
 
-    def generate(self, input_config: dict[str, float]):
+    def generate(self, input_config: dict[str, str]):
         config = copy.deepcopy(input_config)
 
         # remove other axes for clarity
@@ -25,8 +25,8 @@ class SingleAxisProbeOperationXAxis(OperationsBase):
 
         return "M466" + self.config_to_gcode(config)
 
-    def get_missing_config(self, config: dict[str, float]):
+    def get_missing_config(self, config: dict[str, str]):
         definition = SingleAxisProbeParameterDefinitions.XAxisDistance
-        if not definition.code in config or len(config[definition.code]) == 0:
+        if not config.get(definition.code, "").strip():
             return definition
         return None

@@ -9,19 +9,19 @@ class OperationsBase:
         self.value = value
 
     @abstractmethod
-    def generate(self, config: dict[str, float]) -> str:
+    def generate(self, config: dict[str, str]) -> str:
         pass
 
     def config_to_gcode(self, config: dict[str, str]) -> str:
         return " " + " ".join([f"{key}{value}" for key, value in config.items() if value.strip() != ""])
 
-    def validate_required(self, required_definitions, config: dict[str, float]):
+    def validate_required(self, required_definitions, config: dict[str, str]):
         for name, definition in required_definitions.items():
-            if not definition.code in config or len(config[definition.code]) == 0:
+            if not config.get(definition.code, "").strip():
                 return definition
         return None
 
-    def apply_direction(self, key, config: dict[str, float], is_opposite: bool):
+    def apply_direction(self, key, config: dict[str, str], is_opposite: bool):
         if not is_opposite or key not in config:
             return
 
@@ -36,7 +36,7 @@ class OperationsBase:
             return
 
     @abstractmethod
-    def get_missing_config(self, config: dict[str, float]):
+    def get_missing_config(self, config: dict[str, str]):
         pass
 
 

@@ -11,11 +11,11 @@ class FourthAxisOperation(OperationsBase):
         self.title = title
         self.imagePath = image_path
 
-    def generate(self, input_config: dict[str, float]) -> str:
+    def generate(self, input_config: dict[str, str]) -> str:
         config = {k: str(v) for k, v in input_config.items()}
         return "M465.1 " + self.config_to_gcode(config)
 
-    def get_missing_config(self, config: dict[str, float]):
+    def get_missing_config(self, config: dict[str, str]):
         required = {
             name: value
             for name, value in FourthAxisParameterDefinitions.__dict__.items()

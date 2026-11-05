@@ -38,7 +38,7 @@ version = 0.0.0
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy==2.3.1,pyserial==3.5,pyquicklz==1.4.1,filetype==1.2.0,android
+requirements = python3,packaging==25.0,kivy==2.3.1,pyserial==3.5,pyquicklz==1.4.1,filetype==1.2.0,android
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes

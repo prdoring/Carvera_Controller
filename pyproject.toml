@@ -27,6 +27,7 @@ certifi = ">=2017.4.17"
 pyserial = "^3.5"
 pyquicklz = "^1.4.1"
 hid = "^1.0.7"
+packaging = ">=24.2,<26"
 ezdxf = "^1.3.0"
 
 [tool.poetry.group.dev.dependencies]
@@ -115,9 +116,8 @@ disallow_any_generics = false
 disable_error_code = [
     "var-annotated",
 ]
-# Addon packages expose Kivy plugin surfaces with runtime-bound ids and
-# controller objects. They are linted and tested, while package-level mypy
-# focuses on the controller application and shared modules.
+# Discovery starts with the application and shared modules. Imported addons
+# still have their typed interfaces checked through those application imports.
 exclude = [
     '^carveracontroller/addons/',
 ]

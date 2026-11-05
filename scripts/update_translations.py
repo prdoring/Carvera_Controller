@@ -21,6 +21,37 @@ PACKAGE_PATH = PROJECT_PATH.resolve()
 
 
 def generate_pot():
+    runtime = BUILD_PATH.parent / "assets/packaging/kiosk/runtime"
+    subprocess.run(
+        [
+            "xgettext",
+            "-j",
+            "-d",
+            "messages",
+            "-o",
+            POT_FILE,
+            "--from-code=UTF-8",
+            "--language=Python",
+            "--keyword=N_",
+            "--keyword=ValueError",
+            "--keyword=RuntimeError",
+            *[
+                os.path.relpath(runtime / name, PACKAGE_PATH)
+                for name in (
+                    "recovery.py",
+                    "recovery_control.py",
+                    "system_ui.py",
+                    "system_operations.py",
+                    "control.py",
+                    "settings.py",
+                    "display.py",
+                )
+            ],
+            "ui/kiosk_legacy.py",
+        ],
+        cwd=PACKAGE_PATH,
+        check=True,
+    )
     for py_file in Path("./carveracontroller").rglob("*.py"):
         # Get the relative path from the carveracontroller directory
         # Remove the "carveracontroller/" prefix since we're running from that directory

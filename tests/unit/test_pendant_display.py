@@ -1,6 +1,7 @@
 """Tests for defensive pendant display updates."""
 
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
@@ -47,3 +48,33 @@ def test_whb04_display_sanitizes_spindle_speed(spindle_vars, expected_speed):
     pendant._handle_display_update(daemon)
 
     assert daemon._display_spindle_speed == expected_speed
+
+
+def test_closing_whb04_stops_daemon_and_cancels_queued_callbacks():
+    queued, actions = [], []
+    daemon = whb04.Daemon(queued.append)
+    daemon.on_button_press = lambda *_: actions.append("button")
+    daemon._queue_event(lambda: daemon.on_button_press, whb04.Button.START_PAUSE)
+    pendant = pendant_module.WHB04.__new__(pendant_module.WHB04)
+    pendant._daemon = daemon
+    pendant._controller = Mock(continuous_jog_active=True)
+    pendant._update_ui_on_jog_stop = Mock()
+    pendant._report_disconnection = Mock()
+
+    pendant.close()
+    for callback in queued:
+        callback()
+
+    assert actions == []
+    pendant._controller.stopContinuousJog.assert_called_once()
+    pendant._update_ui_on_jog_stop.assert_called_once()
+    pendant._report_disconnection.assert_called_once()
+
+
+@pytest.mark.parametrize("value", [None, "invalid", float("nan")])
+def test_gamepad_does_not_toggle_spindle_with_unknown_speed(value):
+    pendant = pendant_module.GamepadPendant.__new__(pendant_module.GamepadPendant)
+    pendant._cnc = SimpleNamespace(vars={"curspindle": value})
+    pendant._controller = Mock()
+    pendant._do_spindle_toggle()
+    pendant._controller.setSpindleSwitch.assert_not_called()

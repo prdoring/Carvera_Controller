@@ -76,7 +76,7 @@ To run the iOS app, you first need to build its dependencies using the Local Pac
 
 ## Quality Checks
 
-The project uses [Ruff](https://docs.astral.sh/ruff/) (linting), [Mypy](https://mypy-lang.org/) (type checking), [import-linter](https://import-linter.readthedocs.io/) (architectural boundaries), and pytest for the repeatable quality gate. Ruff covers application code, tests, and project-owned Python scripts with rules for syntax/name errors, imports, bug-prone patterns, return consistency, comprehensions, and Python-version-aware modernization. Mypy checks the controller application and shared package modules with core type/name/attribute/call errors enabled, and runs a separate strict check for `carveracontroller/machine/`. Addon packages are linted and tested; package-level mypy does not include them because their Kivy plugin surfaces rely heavily on runtime-bound ids and controller objects. import-linter checks package architecture, including the rule that `machine` stays Kivy-free.
+The project uses [Ruff](https://docs.astral.sh/ruff/) (linting), [Mypy](https://mypy-lang.org/) (type checking), [import-linter](https://import-linter.readthedocs.io/) (architectural boundaries), and pytest for the repeatable quality gate. Ruff covers application code, tests, and project-owned Python scripts with rules for syntax/name errors, imports, bug-prone patterns, return consistency, comprehensions, and Python-version-aware modernization. Mypy starts with the controller application and shared modules, checks imported addon interfaces, and runs a separate strict check for `carveracontroller/machine/`. Its Python 3.9 target matches the oldest supported application runtime. Use the tools from `poetry.lock`; a newer checker can have different runtime support or diagnostics. import-linter checks package architecture, including the rule that `machine` stays Kivy-free.
 
 Run all configured hooks with pre-commit:
 
@@ -145,11 +145,65 @@ Use Python 3.11 or newer, Git, and Docker Desktop with Linux containers. Start D
 ~~~bash
 git clone --branch main https://github.com/prdoring/Carvera_Controller.git Carvera_Controller-kiosk
 cd Carvera_Controller-kiosk
-python scripts/kiosk.py build --version 1.0.0
+python scripts/kiosk.py build --version 1.1.0.dev1
 ~~~
 
-The first build can be slow because it builds ARM software under emulation. Output goes to `dist/kiosk`: the compressed SD image, app bundle, checksums, version information, and a `laptop` folder containing the setup helper and screen-sharing files. The version labels the kiosk build, not the machine firmware.
+The first build can be slow because it builds ARM software under emulation.
+`dist/kiosk` contains the image, controller bundle, separate System bundle,
+administrator-only updater bundle, laptop ZIP/folder and `SHA256SUMS` covering
+all five artifacts. Image, controller, System and updater versions are reported
+separately; none is the mill firmware version.
+
+Use `build --system-only --version VERSION` for an independent System build and
+`build --app-only --version VERSION` for a controller build. Build a new version
+rather than replacing an installed one. System releases declare maintenance
+protocol compatibility and include recovery UI assets/environment independently
+of the active controller.
+
+The [administration guide](kiosk-administration.md) documents v2 provisioning,
+existing-card migration, full administration, recovery and updater repair.
+Test the laptop ZIP outside the repository, including a path containing spaces.
+Access and update changes need Linux account-policy tests and Debian 13/systemd
+257 boot tests with separate boot/root filesystems. Physical Pi validation is
+still required; simulation does not validate the console, touchscreen or CNC.
 
 To follow the [installation instructions](../README.md#install-the-kiosk), use your generated image and open a terminal in `dist/kiosk/laptop`. You do not need a release ZIP when using your own build.
 
 For application-only builds, image details, and validation steps, see the [kiosk guide](https://github.com/prdoring/Carvera_Controller/blob/main/assets/packaging/kiosk/README.md).
+
+## Fork application releases
+
+Fresh installations default to English. An explicitly saved supported language
+choice is preserved.
+
+Fork release tags use `kiosk-vX.Y.Z`, `kiosk-vX.Y.Z.devN`, or `kiosk-vX.Y.ZrcN`.
+Push an explicit tag on a reviewed, tested commit to run the kiosk application
+release workflow. Ordinary branch pushes do not publish updates. Never reuse a
+published version. The workflow builds an ARM64 Python 3.13 app bundle, checks
+its source revision, version metadata, wheel hashes and archive checksum, then
+publishes a release assembled as a draft. Development and RC tags publish as
+prereleases. An existing release or draft stops publication rather than replacing
+its assets; inspect failed runs and use a new tag for a retry.
+
+Automated releases contain the app archive, its `.sha256` file and versioned
+bundle metadata. They do not contain an SD image or laptop tools. Full kiosk
+releases are prepared separately with the existing image/laptop packager and
+its `SHA256SUMS` for the image, app, System, updater and laptop tools; app-only
+publication must not replace that list.
+Changes to the OS, system services or installed maintenance/recovery tools need
+separately supplied image or tool downloads; deploying an app bundle cannot
+install them.
+
+The shared controller checks published `kiosk-v` releases in this fork, never
+community controller versions or inherited tags. Stable builds see stable
+releases; development and RC builds also see prereleases. Only a release with
+an asset for the installed platform/architecture can light the main update dot.
+Kiosk releases also need either the archive's `.sha256` file or a full release's
+`SHA256SUMS`. Other platform packages may be attached using the existing build
+output names; the app-only workflow does not build them. Numeric Android package
+versions remain separate from the canonical controller release version.
+
+Firmware updates retain their own tab marker. The Firmware tab describes the
+reported firmware and the CA1/2.2.0c reference setup without certifying every
+machine or feature. Controller release numbers do not establish firmware
+compatibility. Actual firmware capability checks still determine feature access.

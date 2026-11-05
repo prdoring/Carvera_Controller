@@ -55,10 +55,16 @@ def jog():
     button = JogTouchButton(size_hint=(None, None), size=(100, 100), jog_command="X1")
     root.add_widget(button)
     Window.add_widget(root)
+    previous_touches = set(EventLoop.touches)
     with patch("carveracontroller.ui.touch.App.get_running_app", return_value=SimpleNamespace(root=root)):
-        yield button, controller, root
-        cancel_all_touches()
-    Window.remove_widget(root)
+        try:
+            yield button, controller, root
+        finally:
+            cancel_all_touches()
+            for motion in list(EventLoop.touches):
+                if motion not in previous_touches:
+                    EventLoop.post_dispatch_input("end", motion)
+            Window.remove_widget(root)
 
 
 def dispatch(phase, motion):

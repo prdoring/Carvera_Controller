@@ -208,7 +208,11 @@ from kivy.config import ConfigParser
 from kivy.lang import Builder
 
 from . import Utils, custom_widgets
-from .__version__ import __version__
+from . import __version__ as version_info
+from .updates import RELEASES_URL, ReleaseCheck
+
+__version__ = version_info.__version__
+__release_version__ = getattr(version_info, "__release_version__", __version__)
 from .addons.camera.CameraView import ADJUST_DEFAULT
 from .addons.camera.Z1Camera import (
     DEFAULT_RESOLUTION,
@@ -1851,6 +1855,7 @@ class SetRotationPopup(ModalView):
 
 class MakeraConfigPanel(SettingsWithSidebar):
     def __init__(self, *args, **kwargs):
+        from .ui.screensaver_settings import SettingScreensaver, SettingScreensaverPreview
         from .ui.settings_fields import (
             EditingSettingNumeric,
             EditingSettingOptions,
@@ -1867,6 +1872,8 @@ class MakeraConfigPanel(SettingsWithSidebar):
         self.register_type("gcodesnippet", custom_widgets.SettingGCodeSnippet)
         self.register_type("colorpicker", custom_widgets.SettingColorPicker)
         self.register_type("gamepad_bindings", SettingGamepadBindings)
+        self.register_type("screensaver", SettingScreensaver)
+        self.register_type("screensaver_preview", SettingScreensaverPreview)
 
     def create_json_panel(self, title, config, filename=None, data=None):
         panel = super().create_json_panel(title, config, filename, data)
@@ -3225,6 +3232,10 @@ class Makera(RelativeLayout):
 
         self.temp_dir = tempfile.mkdtemp()
         self.ctl_version = ctl_version
+        self._release_check = ReleaseCheck(UrlRequest)
+        self._fw_request = None
+        self._update_generation = 0
+        self._release_url = RELEASES_URL
         self.file_popup = FilePopup()
 
         self.cnc = CNC()
@@ -3510,6 +3521,14 @@ class Makera(RelativeLayout):
 
         # Set default controller config values
         for setting in controller_config_definition:
+            if (
+                setting.get("key", "").startswith("screensaver_")
+                or setting.get("key") == "allow_screensaver"
+                or setting.get("title") == "Screensaver"
+            ):
+                setting["title"] = tr._(setting["title"])
+                if "desc" in setting:
+                    setting["desc"] = tr._(setting["desc"])
             if "default" in setting:
                 Config.setdefault(setting["section"], setting["key"], setting["default"])
                 setting.pop("default", None)
@@ -3602,7 +3621,7 @@ class Makera(RelativeLayout):
             logger.error(f"Failed to run macro {macro_id}: {e}")
 
     def open_download(self):
-        webbrowser.open(DOWNLOAD_ADDRESS, new=2)
+        webbrowser.open(self._release_url, new=2)
 
     def open_fw_download(self):
         webbrowser.open(FW_DOWNLOAD_ADDRESS, new=2)
@@ -3697,7 +3716,9 @@ class Makera(RelativeLayout):
         self.adv_calibrate_popup.open()
 
     def open_update_popup(self):
-        self.upgrade_popup.check_button.disabled = False
+        self.refresh_firmware_info()
+        if not self.upgrade_popup.ctl_version_txt.text:
+            self.upgrade_popup.ctl_version_txt.text = tr._("Installed: v%s") % self.ctl_version
         self.upgrade_popup.open(self)
 
     def close_update_popup(self):
@@ -3707,38 +3728,121 @@ class Makera(RelativeLayout):
             Config.write()
         self.upgrade_popup.dismiss(self)
 
-    def check_for_updates(self):
-        self.fw_upd_text = ""
-        self.fw_version_checked = False
-        self.ctl_upd_text = ""
-        UrlRequest(FW_UPD_ADDRESS, on_success=self.fw_upd_loaded)
-        UrlRequest(CTL_UPD_ADDRESS, on_success=self.ctl_upd_loaded)
+    def stop_update_checks(self):
+        self._update_generation += 1
+        self._release_check.cancel()
+        if self._fw_request is not None:
+            self._fw_request.cancel()
+            self._fw_request = None
 
-    def fw_upd_loaded(self, req, result):
-        # parse result
-        self.fw_upd_text = result
+    def check_for_updates(self):
+        self.stop_update_checks()
+        generation = self._update_generation
+        self.fw_upd_text = ""
+        self.fw_version_new = ""
+        self.fw_version_checked = False
+        self.ctl_version_new = ""
+        self._release_url = RELEASES_URL
+        app = App.get_running_app()
+        app.ctl_has_update = False
+        app.fw_has_update = False
+        self.upgrade_popup.check_button.disabled = True
+        self.upgrade_popup.ctl_version_txt.text = tr._("Checking for updates...")
+        self.upgrade_popup.ctl_upd_text.text = ""
+        self.upgrade_popup.fw_upd_text.text = tr._("Checking for updates...")
+        self.refresh_firmware_info()
+
+        def firmware_loaded(req, result):
+            if generation != self._update_generation:
+                return
+            self._fw_request = None
+            if not isinstance(result, str) or len(result) > 2 * 1024 * 1024:
+                firmware_failed(req, result)
+                return
+            self.fw_upd_text = result
+            self.check_fw_version()
+
+        def firmware_failed(*args):
+            if generation == self._update_generation:
+                self._fw_request = None
+                self.upgrade_popup.fw_upd_text.text = tr._("Unable to check for firmware updates.")
+
+        self._fw_request = UrlRequest(
+            FW_UPD_ADDRESS,
+            on_success=firmware_loaded,
+            on_failure=firmware_failed,
+            on_error=firmware_failed,
+            timeout=10,
+        )
+        self._release_check.start(
+            self.ctl_version,
+            kivy_platform,
+            "x86" if kivy_platform == "win" and struct.calcsize("P") == 4 else platform.machine(),
+            is_kiosk(),
+            self.show_controller_release,
+        )
+
+    def refresh_firmware_info(self):
+        app = App.get_running_app()
+        if not self.fw_version:
+            text = tr._("Firmware: not connected or not identified.")
+        elif app.is_community_firmware:
+            text = tr._("Community firmware: v%s") % self.fw_version
+            text += "\n" + tr._(
+                "The reference setup is a Carvera Air with 2.2.0c. This is not a complete compatibility certification."
+            )
+        else:
+            text = (
+                tr._("Firmware: v%s. Community firmware was not identified; some features may be unavailable.")
+                % self.fw_version
+            )
+        text += "\n" + tr._("Feature availability depends on the machine's reported firmware and capabilities.")
+        self.upgrade_popup.fw_info.text = text
+        self.upgrade_popup.fw_version_txt.text = (
+            tr._("Installed: v%s") % self.fw_version if self.fw_version else tr._("Firmware not identified")
+        )
+        if self.fw_version and app.fw_has_update and self.fw_version_new:
+            self.upgrade_popup.fw_version_txt.text = (
+                tr._("Available: v%s | Installed: v%s") % (self.fw_version_new, self.fw_version)
+            )
 
     def check_fw_version(self):
+        app = App.get_running_app()
+        app.fw_has_update = False
+        self.refresh_firmware_info()
         self.upgrade_popup.fw_upd_text.text = self.fw_upd_text
-        self.upgrade_popup.fw_upd_text.cursor = (0, 0)  # Position the cursor at the top of the text
+        self.upgrade_popup.fw_upd_text.cursor = (0, 0)
         versions = re.search(r"\[[0-9]+\.[0-9]+\.[0-9]+\]", self.fw_upd_text)
-        if versions != None:
-            self.fw_version_new = versions[0][1 : len(versions[0]) - 1]
-            if self.fw_version != "":
-                app = App.get_running_app()
-                if Utils.digitize_v(self.fw_version_new) > Utils.digitize_v(self.fw_version):
-                    app.fw_has_update = True
-                    self.upgrade_popup.fw_version_txt.text = (
-                        tr._(" New version detected: v") + self.fw_version_new + tr._(" Current: v") + self.fw_version
-                    )
-                else:
-                    app.fw_has_update = False
-                    self.upgrade_popup.fw_version_txt.text = tr._(" Current version: v") + self.fw_version
+        if versions is not None:
+            self.fw_version_new = versions[0][1:-1]
+            if self.fw_version and Utils.digitize_v(self.fw_version_new) > Utils.digitize_v(self.fw_version):
+                app.fw_has_update = True
+                self.upgrade_popup.fw_version_txt.text = tr._("Available: v%s | Installed: v%s") % (
+                    self.fw_version_new,
+                    self.fw_version,
+                )
+        else:
+            self.upgrade_popup.fw_upd_text.text = tr._("Unable to check for firmware updates.")
         self.fw_version_checked = True
 
-    def ctl_upd_loaded(self, req, result):
-        self.ctl_upd_text = result
-        Clock.schedule_once(self.check_ctl_version, 0)
+    def show_controller_release(self, release, error):
+        app = App.get_running_app()
+        self.upgrade_popup.check_button.disabled = False
+        app.ctl_has_update = release is not None and not error
+        self.ctl_version_checked = not error
+        if error:
+            text = tr._("Unable to check for updates. Installed: v%s") % self.ctl_version
+        elif release is not None:
+            self.ctl_version_new = release.version
+            self._release_url = release.url
+            self.upgrade_popup.ctl_upd_text.text = release.notes
+            text = tr._("Available: v%s | Installed: v%s") % (release.version, self.ctl_version)
+        elif self.ctl_version == "0.0.0":
+            text = tr._("Unversioned development build; automatic update comparison is unavailable.")
+        else:
+            text = tr._("No newer release with a package for this installation. Installed: v%s") % self.ctl_version
+        self.upgrade_popup.ctl_version_txt.text = text
+        self.upgrade_popup.ctl_upd_text.cursor = (0, 0)
 
     def change_language(self, lang_desc):
         for lang_key in translation.LANGS:
@@ -3751,23 +3855,6 @@ class Makera(RelativeLayout):
         self.config_popup.btn_apply.disabled = True
         self.message_popup.lb_content.text = tr._("Language setting applied, restart Controller app to take effect !")
         self.message_popup.open()
-
-    def check_ctl_version(self, *args):
-        self.upgrade_popup.ctl_upd_text.text = self.ctl_upd_text
-        self.upgrade_popup.ctl_upd_text.cursor = (0, 0)  # Position the cursor at the top of the text
-        versions = re.search(r"\[[0-9]+\.[0-9]+\.[0-9]+\]", self.ctl_upd_text)
-        if versions != None:
-            self.ctl_version_new = versions[0][1 : len(versions[0]) - 1]
-            app = App.get_running_app()
-            if Utils.digitize_v(self.ctl_version_new) > Utils.digitize_v(self.ctl_version):
-                app.ctl_has_update = True
-                self.upgrade_popup.ctl_version_txt.text = (
-                    tr._(" New version detected: v") + self.ctl_version_new + tr._(" Current: v") + self.ctl_version
-                )
-            else:
-                app.ctl_has_update = False
-                self.upgrade_popup.ctl_version_txt.text = tr._(" Current version: v") + self.ctl_version
-        self.ctl_version_checked = True
 
     # -----------------------------------------------------------------------
     def play(self, file_name, start_line):
@@ -5233,95 +5320,8 @@ class Makera(RelativeLayout):
             Clock.schedule_once(self.progressFinish, 0.1)
 
     def onFirmwareDetected(self, version, *args):
-        app = App.get_running_app()
-        if Config.get("carvera", "show_firmware_check") != "1":
-            return
-        if not app.is_community_firmware:
-            content = BoxLayout(orientation="vertical", padding=dp(15))
-            lbl = Label(
-                text=tr._(
-                    "This machine is not running the Community Firmware.\nComplete functionality is available when using both Community Firmware and Community Controller."
-                ),
-                halign="center",
-                valign="middle",
-            )
-            lbl.bind(size=lambda inst, val: setattr(inst, "text_size", val))
-            content.add_widget(lbl)
-            btns = BoxLayout(size_hint_y=0.4)
-            popup = Popup(
-                title=tr._("Stock Firmware Detected"), content=content, size_hint=(0.5, 0.4), auto_dismiss=False
-            )
-            btn_information = Button(text=tr._("More Information"))
-            btn_information.bind(
-                on_release=lambda *a: (
-                    webbrowser.open("https://carvera-community.gitbook.io/docs/compatibility"),
-                    popup.dismiss(),
-                )
-            )
-            btn_dont_show = Button(text=tr._("Don't Show Again"))
-            btn_dont_show.bind(
-                on_release=lambda *a: (
-                    Config.set("carvera", "show_firmware_check", "0"),
-                    Config.write(),
-                    popup.dismiss(),
-                )
-            )
-            btn_continue = Button(text=tr._("Continue"))
-            btn_continue.bind(on_release=lambda *a: popup.dismiss())
-            btns.add_widget(btn_information)
-            btns.add_widget(btn_dont_show)
-            btns.add_widget(btn_continue)
-            content.add_widget(btns)
-            popup.open()
-
-        # Warn when community firmware major.minor is ahead of the controller.
-        # Skip for unversioned controllers (0.0.0) and date-based YYYY.dev builds.
-        fw_v = Utils.digitize_v(version) if version else 0
-        ctl_v = Utils.digitize_v(self.ctl_version) if self.ctl_version else 0
-        fw_major, ctl_major = fw_v // 1_000_000, ctl_v // 1_000_000
-        if (
-            app.is_community_firmware
-            and fw_v
-            and ctl_v
-            and not (fw_major >= 2026 and ctl_major >= 2026)
-            and fw_v // 1000 > ctl_v // 1000
-        ):
-            content = BoxLayout(orientation="vertical", padding=dp(15))
-            lbl = Label(
-                text=tr._(
-                    "This is an unsupported configuration.\n"
-                    "The machine firmware is newer than this Controller.\n\n"
-                    "Firmware: v%s\n"
-                    "Controller: v%s\n\n"
-                    "Please update the Controller to a matching version."
-                )
-                % (version, self.ctl_version),
-                halign="center",
-                valign="middle",
-            )
-            lbl.bind(size=lambda inst, val: setattr(inst, "text_size", val))
-            content.add_widget(lbl)
-            btns = BoxLayout(size_hint_y=0.4)
-            popup = Popup(
-                title=tr._("Unsupported Configuration"),
-                content=content,
-                size_hint=(0.5, 0.4),
-                auto_dismiss=False,
-            )
-            btn_dont_show = Button(text=tr._("Don't Show Again"))
-            btn_dont_show.bind(
-                on_release=lambda *a: (
-                    Config.set("carvera", "show_firmware_check", "0"),
-                    Config.write(),
-                    popup.dismiss(),
-                )
-            )
-            btn_continue = Button(text=tr._("Continue"))
-            btn_continue.bind(on_release=lambda *a: popup.dismiss())
-            btns.add_widget(btn_dont_show)
-            btns.add_widget(btn_continue)
-            content.add_widget(btns)
-            popup.open()
+        if version == self.fw_version:
+            self.refresh_firmware_info()
 
     # -----------------------------------------------------------------------
     def setUIForModel(self, model, *args):
@@ -6176,6 +6176,9 @@ class Makera(RelativeLayout):
                     self._config_download_failures = 0
                     self.fw_version_checked = False
                     self.fw_version = ""
+                    app.fw_has_update = False
+                    self.upgrade_popup.fw_version_txt.text = ""
+                    self.refresh_firmware_info()
                     app.model = ""
                     app.fw_version_digitized = 0
                     app.is_community_firmware = False
@@ -8413,6 +8416,7 @@ class Makera(RelativeLayout):
 
 
 class MakeraApp(App):
+    kiosk_profile = BooleanProperty(is_kiosk())
     state = StringProperty(NOT_CONNECTED)
     playing = BooleanProperty(False)
     spindle_or_laser_is_on = BooleanProperty(False)
@@ -8479,7 +8483,11 @@ class MakeraApp(App):
 
         from .addons.probing.operations.ConfigUtils import ConfigUtils
 
+        if self.root is not None:
+            self.root.stop_update_checks()
         ConfigUtils.flush_saves()
+        if getattr(self, "_screensaver", None) is not None:
+            self._screensaver.stop()
         if getattr(self, "_kiosk", None) is not None:
             self._kiosk.stop()
         if getattr(self, "_interaction_profile", None) is not None:
@@ -8525,7 +8533,7 @@ class MakeraApp(App):
         tooltip_delay = Config.getfloat("carvera", "tooltip_delay", fallback=0.5)
         self.tooltip_delay = tooltip_delay if tooltip_delay >= 0 else 0.5
 
-        return Makera(ctl_version=__version__)
+        return Makera(ctl_version=__release_version__)
 
     def on_start(self):
         from kivy.base import EventLoop
@@ -8564,6 +8572,9 @@ class MakeraApp(App):
             from .kiosk_runtime import KioskRuntime
 
             self._kiosk = KioskRuntime(self)
+        from .ui.screensaver import Screensaver
+
+        self._screensaver = Screensaver(self)
         # Workaround for Android blank screen issue
         # https://github.com/kivy/python-for-android/issues/2720
         viewport_update_count = 0
@@ -8603,6 +8614,8 @@ class MakeraApp(App):
         from .addons.probing.operations.ConfigUtils import ConfigUtils
 
         ConfigUtils.flush_saves()
+        if getattr(self, "_screensaver", None) is not None:
+            self._screensaver._focus(Window, False)
         if getattr(self.root, "_settings_sender", None) is not None:
             self.root._settings_sender.cancel()
         cancel_all_touches()
@@ -8610,6 +8623,8 @@ class MakeraApp(App):
         return True
 
     def on_resume(self):
+        if getattr(self, "_screensaver", None) is not None:
+            self._screensaver._focus(Window, True)
         if self.android_touch:
             Metrics.fontscale = Metrics.get_fontscale(force_recompute=True)
             if self._touch_layout is not None:
@@ -8810,13 +8825,9 @@ def load_constants():
     global BLOCK_HEADER_SIZE
 
     global FW_UPD_ADDRESS
-    global CTL_UPD_ADDRESS
-    global DOWNLOAD_ADDRESS
     global FW_DOWNLOAD_ADDRESS
 
     FW_UPD_ADDRESS = "https://raw.githubusercontent.com/carvera-community/carvera_community_firmware/master/version.txt"
-    CTL_UPD_ADDRESS = "https://raw.githubusercontent.com/carvera-community/carvera_controller/main/CHANGELOG.md"
-    DOWNLOAD_ADDRESS = "https://github.com/carvera-community/carvera_controller/releases/latest"
     FW_DOWNLOAD_ADDRESS = "https://github.com/Carvera-Community/Carvera_Community_Firmware/releases/latest"
 
     SHORT_LOAD_TIMEOUT = 3  # s

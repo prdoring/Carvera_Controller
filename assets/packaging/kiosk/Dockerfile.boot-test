@@ -1,0 +1,14 @@
+FROM debian:trixie-slim AS guest
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    systemd-sysv python3 openssh-server sudo util-linux linux-image-amd64 \
+    initramfs-tools kmod && rm -rf /var/lib/apt/lists/*
+
+FROM debian:trixie-slim
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    qemu-system-x86 python3 e2fsprogs dosfstools mtools fdisk openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=guest / /guest/
+WORKDIR /src
+CMD ["python3", "tests/boot/kiosk_boot.py"]

@@ -16,7 +16,7 @@ from carveracontroller.addons.probing.operations.OperationsBase import Operation
 class ProbingPreviewPopup(ModalView):
     title = StringProperty("Confirm")
     probe_preview_label = StringProperty("N/A")
-    config: dict[str, float]
+    config: dict[str, str]
     gcode = StringProperty("")
 
     def __init__(self, controller, **kwargs):

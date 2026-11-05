@@ -61,7 +61,8 @@ def test_text_edit_cancels_pending_select_all():
 
 def test_invalid_probe_draft_is_visible_to_validation_without_being_saved():
     class Settings(ProbeSettingsDraft):
-        parameter_definitions = SimpleNamespace(distance=SimpleNamespace(code="X"))
+        class parameter_definitions:
+            distance = SimpleNamespace(code="X")
         config = {"X": "10"}
 
         def setting_changed(self, key, value):
@@ -86,3 +87,12 @@ def test_probe_saves_are_coalesced_and_snapshot_the_committed_values():
         values["X"] = "3"
         ConfigUtils.flush_saves()
         writer.submit.assert_called_once_with(ConfigUtils.save_config, {"X": "2"}, "test.json")
+
+
+def test_legacy_numeric_probe_settings_are_normalized_at_draft_boundary():
+    class Settings(ProbeSettingsDraft):
+        config = {"X": 12.5, "Y": "0"}
+
+    settings = Settings()
+    assert settings.draft_config() == {"X": "12.5", "Y": "0"}
+    assert settings.config == {"X": 12.5, "Y": "0"}
