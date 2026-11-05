@@ -1281,7 +1281,7 @@
         small_icon: True
         size_hint_y: None
         tooltip_txt: tr._('Update Firmware/Controller')
-        notify: (app.fw_has_update or app.ctl_has_update) and app.state != 'N/A'
+        notify: app.ctl_has_update
         disabled: app.state != 'Idle'
         height: '50dp'
         on_release:
@@ -2445,6 +2445,7 @@
     fw_upd_text: fw_upd_text
     ctl_upd_text: ctl_upd_text
     fw_version_txt: fw_version_txt
+    fw_info: fw_info
     ctl_version_txt: ctl_version_txt
 
     BoxLayout:
@@ -2457,7 +2458,7 @@
                 halign: "left"
                 valign: "middle"
             Label:
-                text: tr._("Upgrade")
+                text: tr._("Updates")
                 bold: True
                 halign: "left"
                 valign: "middle"
@@ -2509,7 +2510,7 @@
                             Label:
                                 id: ctl_version_txt
                                 size_hint_x: None
-                                width: '350dp'
+                                width: min(dp(440), root.width * .42)
                                 text: ''
                                 color: theme.ACCENT if app.ctl_has_update else theme.TEXT
                                 bold: True
@@ -2518,10 +2519,16 @@
                                 text_size: self.size
                             Button:
                                 size_hint_x: None
-                                width: '100dp'
-                                text: tr._("Download")
+                                width: dp(180)
+                                text: tr._("Open release page")
                                 on_release:
                                     app.root.open_download()
+                        DialogLabel:
+                            size_hint_y: None
+                            height: self.texture_size[1] + dp(16)
+                            text_size: max(1, self.width - dp(16)), None
+                            halign: 'left'
+                            text: tr._("Kiosk updates use the laptop maintenance helper with the mill idle. App bundles do not update the OS, system services, or maintenance tools; those changes need separately supplied image or tool downloads.") if app.kiosk_profile else tr._("Download the package for your platform from this fork's release page. Installation is a separate action.")
                         EditingTextInput:
                             id: ctl_upd_text
                             multiline: True
@@ -2583,6 +2590,12 @@
                                 text: tr._("Update")
                                 on_release:
                                     app.root.open_fw_upload()
+                        DialogLabel:
+                            id: fw_info
+                            size_hint_y: None
+                            height: self.texture_size[1] + dp(16)
+                            text_size: max(1, self.width - dp(16)), None
+                            halign: 'left'
                         EditingTextInput:
                             id: fw_upd_text
                             multiline: True
@@ -2600,7 +2613,6 @@
                 text: tr._("Check for Updates")
                 on_release:
                     app.root.check_for_updates()
-                    self.disabled = True
             Button:
                 text: tr._('Close')
                 on_release:
@@ -3953,7 +3965,7 @@
                 text: tr._('Menu') if app.android_touch else ''
                 icon: 'data/list.png'
                 icon_size: 24
-                notify: (app.fw_has_update or app.ctl_has_update) and app.state != 'N/A'
+                notify: app.ctl_has_update
                 on_release:
                     if root.func_drop_down.parent: root.func_drop_down.parent.remove_widget(root.func_drop_down)
                     root.func_drop_down.open(self)

@@ -28,6 +28,42 @@ def test_device_commands_require_an_explicit_host(laptop, monkeypatch):
     assert result.value.code == 2
 
 
+def test_stage_only_uploads_without_deploying(laptop, monkeypatch, tmp_path):
+    source = tmp_path / "preferences.tar.gz"
+    source.write_bytes(b"archive")
+    calls = []
+    monkeypatch.setattr(laptop, "run", lambda args, **_kwargs: calls.append(args))
+    monkeypatch.setattr(laptop, "remote", lambda *_args, **_kwargs: pytest.fail("Staging must not deploy"))
+    result = laptop.transfer_file("carvera-admin@example.invalid", source)
+    assert result == {"staged": source.name}
+    assert len(calls) == 1 and calls[0][0] == "scp"
+    assert "StrictHostKeyChecking=yes" in calls[0]
+    assert calls[0][-1].endswith("/uploads/preferences.tar.gz")
+
+
+def test_fetch_does_not_overwrite_an_existing_file(laptop, monkeypatch, tmp_path):
+    destination = tmp_path / "preferences.tar.gz"
+    destination.write_bytes(b"original")
+    monkeypatch.setattr(laptop, "run", lambda *_a, **_k: pytest.fail("Do not fetch over existing files"))
+    with pytest.raises(FileExistsError):
+        laptop.transfer_file("carvera-admin@example.invalid", "preferences.tar.gz", destination)
+    assert destination.read_bytes() == b"original"
+
+
+def test_fetch_downloads_to_a_private_temporary_file(laptop, monkeypatch, tmp_path):
+    destination = tmp_path / "preferences.tar.gz"
+
+    def download(args, **_kwargs):
+        assert args[0] == "scp" and "/exports/" in args[-2]
+        assert args[-1] != destination
+        Path(args[-1]).write_bytes(b"exported")
+
+    monkeypatch.setattr(laptop, "run", download)
+    laptop.transfer_file("carvera-admin@example.invalid", "preferences.tar.gz", destination)
+    assert destination.read_bytes() == b"exported"
+    assert list(tmp_path.iterdir()) == [destination]
+
+
 def test_remote_password_is_sent_on_stdin_not_in_arguments(laptop, monkeypatch):
     seen = []
 

@@ -30,6 +30,11 @@ RUN python assets/packaging/kiosk/build_bundle.py "${KIOSK_VERSION}" "${KIOSK_CO
 
 FROM image-tools AS image
 COPY assets/packaging/kiosk /project/kiosk
+COPY carveracontroller/ui/theme.py carveracontroller/ui/controls.kv /project/kiosk/system-ui/carveracontroller/ui/
+COPY carveracontroller/translation.py carveracontroller/ARIALUNI.ttf /project/kiosk/system-ui/carveracontroller/
+COPY carveracontroller/data/fonts /project/kiosk/system-ui/carveracontroller/data/fonts/
+COPY carveracontroller/data/theme /project/kiosk/system-ui/carveracontroller/data/theme/
+COPY --from=application /src/carveracontroller/locales /project/kiosk/system-ui/carveracontroller/locales/
 COPY --from=application /output /project/kiosk/payload
 COPY scripts/kiosk.py /project/kiosk/kiosk.py
 COPY carveracontroller/kiosk_state.py carveracontroller/runtime_profile.py carveracontroller/kiosk_touch.py /project/kiosk/runtime/

@@ -16,6 +16,8 @@ install -d -m 0755 "$target/var/lib/carvera-maint"
 install -d -m 0700 "$target/var/lib/carvera-maint/uploads" "$target/var/lib/carvera-maint/exports"
 chroot "$target" chown carvera-admin:carvera-admin /var/lib/carvera-maint/uploads /var/lib/carvera-maint/exports
 rsync -a --chown=0:0 --chmod=D755,F644 "$source/runtime/" "$target/opt/carvera/maintenance/"
+rsync -a --chown=0:0 --chmod=D755,F644 "$source/system-ui/" "$target/opt/carvera/system-ui/"
+touch "$target/opt/carvera/system-ui/carveracontroller/__init__.py" "$target/opt/carvera/system-ui/carveracontroller/ui/__init__.py"
 install -d "$target/opt/carvera/releases/$version/wheels"
 cp -a "$payload/wheels/." "$target/opt/carvera/releases/$version/wheels/"
 cp "$payload/bundle.json" "$target/opt/carvera/releases/$version/"

@@ -8,6 +8,7 @@ from pathlib import Path
 def verify(root):
     root = Path(root)
     paths = list((root / "opt/carvera/maintenance").rglob("*"))
+    paths += list((root / "opt/carvera/system-ui").rglob("*"))
     paths += list((root / "etc/carvera").rglob("*"))
     paths += list((root / "etc/systemd/system").glob("carvera-*.service"))
     paths += [root / "usr/local/sbin" / name for name in ("carvera-maint", "carvera-recover")]

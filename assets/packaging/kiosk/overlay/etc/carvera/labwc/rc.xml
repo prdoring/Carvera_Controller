@@ -3,6 +3,9 @@
   <desktops><number>1</number></desktops>
   <windowRules>
     <windowRule identifier="*" serverDecoration="no" />
+    <windowRule title="Carvera System">
+      <action name="ToggleAlwaysOnTop" />
+    </windowRule>
   </windowRules>
   <keyboard><default /></keyboard>
   <touch mouseEmulation="no" />

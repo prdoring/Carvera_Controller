@@ -1,8 +1,11 @@
 """Linux keyboard placement and a main-thread maintenance handshake."""
 
+import json
 import os
 import subprocess
 import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from kivy.clock import Clock
@@ -21,6 +24,13 @@ from .kiosk_touch import install as install_touch
 from .kiosk_touch import prepare_recovery, uninstall
 
 
+def independent_system_available(base=Path("/opt/carvera")):
+    """Only use the new helper protocol with its separately installed tools."""
+    return (base / "maintenance/system_operations.py").is_file() and (
+        base / "system-ui/carveracontroller/ui/controls.kv"
+    ).is_file()
+
+
 class KioskRuntime:
     def __init__(self, app):
         self.app = app
@@ -33,7 +43,10 @@ class KioskRuntime:
         self.rejected = None
         self._saved_controls = None
         self._keyboards = set()
-        self._recovery_process = None
+        self._system_worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="system-launch")
+        self._system_request = None
+        self._stopped = False
+        self._legacy_system = None
         self.panel = None
         self.touch = install_touch(Window)
         prepare_recovery(Path(app.user_data_dir) / "recovery")
@@ -53,10 +66,50 @@ class KioskRuntime:
         self.app.android_keyboard_height = max((keyboard.height for keyboard in keyboards), default=0)
 
     def open_recovery(self):
-        if self._recovery_process is None or self._recovery_process.poll() is not None:
-            self._recovery_process = subprocess.Popen([
-                "/opt/carvera/recovery-venv/bin/python", "/opt/carvera/maintenance/recovery.py",
-            ])
+        if self._system_request is not None and not self._system_request.done():
+            return
+        def launch():
+            if not independent_system_available():
+                return "legacy"
+            result = subprocess.run(["sudo", "-n", "/usr/local/sbin/carvera-recover"],
+                                    input=json.dumps({"action": "open", "id": uuid.uuid4().hex}),
+                                    capture_output=True, text=True, check=False, timeout=10)
+            if result.returncode:
+                raise RuntimeError("System settings could not open. Install the matching kiosk image and System tools.")
+        self._system_request = self._system_worker.submit(launch)
+        def finished(future):
+            try:
+                mode = future.result()
+            except Exception:
+                Clock.schedule_once(self.show_system_error)
+            else:
+                if mode == "legacy":
+                    Clock.schedule_once(self.show_legacy_system)
+        self._system_request.add_done_callback(finished)
+
+    def show_legacy_system(self, _dt):
+        if self._stopped:
+            return
+        from .ui.kiosk_system import KioskSystem
+
+        if self._legacy_system is None:
+            self._legacy_system = KioskSystem(self.app)
+        if self._legacy_system.parent is None:
+            self._legacy_system.open()
+
+    def show_system_error(self, _dt):
+        if self._stopped:
+            return
+        from .translation import tr
+
+        panel = ModalView(size_hint=(.7, None), height=dp(220))
+        content = BoxLayout(orientation="vertical", spacing=dp(16), padding=dp(20))
+        content.add_widget(Label(text=tr._("System settings could not open.\nInstall the matching kiosk image and System tools.")))
+        close = Button(text=tr._("Close"), size_hint_y=None, height=dp(52))
+        close.bind(on_release=lambda *_args: panel.dismiss())
+        content.add_widget(close)
+        panel.add_widget(content)
+        panel.open()
 
     def tick(self, _dt):
         status = activity(self.app)
@@ -122,8 +175,16 @@ class KioskRuntime:
         content.add_widget(system)
         self.panel.add_widget(content)
         self.panel.open()
+        # The app-bundled System screen must remain usable above the machine
+        # maintenance blocker so the operator can confirm a new network.
+        if self._legacy_system is not None:
+            self._legacy_system.raise_above_maintenance()
 
     def stop(self):
+        self._stopped = True
+        if self._legacy_system is not None:
+            self._legacy_system.dismiss(force=True)
+        self._system_worker.shutdown(wait=False, cancel_futures=True)
         runtime_profile.maintenance_active = False
         self.event.cancel()
         if self.panel is not None:
@@ -132,11 +193,4 @@ class KioskRuntime:
         uninstall(Window, self.touch)
         for keyboard in self._keyboards:
             keyboard.unbind(size=self.keyboard_changed)
-        if self._recovery_process is not None and self._recovery_process.poll() is None:
-            self._recovery_process.terminate()
-            try:
-                self._recovery_process.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                self._recovery_process.kill()
-                self._recovery_process.wait(timeout=2)
         (self.directory / "status.json").unlink(missing_ok=True)

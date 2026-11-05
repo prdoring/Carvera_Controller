@@ -37,6 +37,10 @@ def archive(path, files, symlink=None):
 
 @pytest.fixture
 def control(monkeypatch, tmp_path):
+    return make_control(monkeypatch, tmp_path)
+
+
+def make_control(monkeypatch, tmp_path):
     pytest.importorskip("fcntl")
     monkeypatch.syspath_prepend(str(ASSETS.parents[2] / "carveracontroller"))
     monkeypatch.syspath_prepend(str(ASSETS / "runtime"))
@@ -174,8 +178,9 @@ def test_failed_activation_restores_release_and_unchanged_preferences(control, m
     monkeypatch.setattr(control, "restore_snapshot", lambda source: load("settings").restore_settings(source, control.DATA))
 
     def fail(_token):
-        (control.DATA / "makera.ini").write_text("[user]\nvalue=changed\n")
-        raise RuntimeError("unhealthy startup")
+        if (control.BASE / "current").resolve() == new:
+            (control.DATA / "makera.ini").write_text("[user]\nvalue=changed\n")
+            raise RuntimeError("unhealthy startup")
 
     monkeypatch.setattr(control, "wait_ready", fail)
     with pytest.raises(RuntimeError, match="unhealthy"):
@@ -248,13 +253,17 @@ def test_recovery_can_renew_expired_maintenance_with_idle_confirmation(control, 
     control.enter(confirmed=True)
     lease = control.read_json(control.RUN / "maintenance.json")
     lease["entered"] -= 1801
+    lease["owner"] = "system"
     control.write_json(control.RUN / "maintenance.json", lease)
     monkeypatch.setitem(sys.modules, "control", control)
+    operations = load("system_operations")
+    monkeypatch.setitem(sys.modules, "system_operations", operations)
     recovery = load("recovery_control")
     calls = []
     monkeypatch.setattr(control, "command", lambda *args, **_k: calls.append(args))
-    assert recovery.dispatch({"action": "restart"}) == {"restarted": True}
-    assert calls == [("systemctl", "--no-block", "restart", control.SERVICE)]
+    monkeypatch.setattr(control, "wait_ready", lambda _token: None)
+    assert recovery.dispatch({"action": "restart", "confirmed_idle": True, "id": "a" * 32}) == {"restarted": True}
+    assert calls == [("systemctl", "restart", control.SERVICE)]
     assert not (control.RUN / "maintenance.request").exists()
 
 
@@ -282,7 +291,7 @@ def test_recovery_helper_rejects_deploy_even_with_idle_confirmation(control, mon
     monkeypatch.setattr(sys, "argv", ["recovery_control.py"])
     monkeypatch.setattr(sys, "stdin", io.StringIO('{"action":"deploy","confirmed_idle":true}'))
     monkeypatch.setenv("SUDO_USER", "carvera")
-    with pytest.raises(ValueError, match="Only Wi-Fi"):
+    with pytest.raises(ValueError, match="Unknown system action"):
         recovery.main()
 
 

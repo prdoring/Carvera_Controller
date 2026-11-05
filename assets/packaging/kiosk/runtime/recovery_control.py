@@ -1,49 +1,149 @@
 #!/usr/bin/python3
-"""Privileged touchscreen operations: Wi-Fi recovery and controller restart."""
+"""Restricted entry point for touchscreen system settings."""
 
 import json
 import os
+import subprocess
 import sys
+import tarfile
+import time
 
 import control
+import system_operations as operations
 
 
 def dispatch(request):
-    if request["action"] == "wifi-confirm":
-        result = control.network_confirm()
-        control.leave()
-        return result
-    if not (control.RUN / "maintenance.request").exists():
-        control.enter(confirmed=True)
-    elif control.time.monotonic() - control.read_json(control.RUN / "maintenance.json").get("entered", 0) > 1800:
-        control.leave()
-        control.enter(confirmed=True)
-    control.require_maintenance()
-    if request["action"] == "wifi":
-        return control.network_apply(request.get("wifi", {}))
-    control.leave()
-    control.command("systemctl", "--no-block", "restart", control.SERVICE)
-    return {"restarted": True}
+    return operations.dispatch(request)
+
+
+def launch_operation(request):
+    action = operations.validate(request)
+    path = control.RUN / ("system-request-" + request["id"] + ".json")
+    with control.locked():
+        previous = operations.operation_status()
+        if previous.get("id") == request["id"]:
+            if previous.get("phase") == "complete":
+                return previous["result"]
+            raise ValueError("This request has already been attempted. Refresh system details before retrying.")
+        if previous.get("phase") in {"queued", "running"}:
+            raise ValueError("Another system operation is in progress")
+        control.write_json(path, request)
+        operations.remember(
+            {"id": request["id"], "action": action, "phase": "queued", "pid": os.getpid(), "started": time.monotonic()}
+        )
+        try:
+            process = subprocess.Popen(
+                [
+                    "systemd-run",
+                    "--quiet",
+                    "--wait",
+                    "--pipe",
+                    "--collect",
+                    "--unit=carvera-system-" + request["id"],
+                    "--property=RuntimeMaxSec=1800s",
+                    "/usr/bin/python3",
+                    "-E",
+                    "-s",
+                    str(control.BASE / "maintenance/recovery_control.py"),
+                    "--operation",
+                    request["id"],
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        except OSError:
+            path.unlink(missing_ok=True)
+            operations.remember(
+                {
+                    "id": request["id"],
+                    "action": action,
+                    "phase": "failed",
+                    "message": "The system worker could not start.",
+                }
+            )
+            raise
+    try:
+        stdout, _stderr = process.communicate(timeout=900)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.communicate()
+        raise RuntimeError("The operation is still being checked. Refresh its status before attempting another action.")
+    try:
+        reply = json.loads(stdout)
+    except ValueError as error:
+        if operations.operation_status().get("phase") == "queued":
+            path.unlink(missing_ok=True)
+            operations.remember(
+                {
+                    "id": request["id"],
+                    "action": action,
+                    "phase": "failed",
+                    "message": "The system worker could not start.",
+                }
+            )
+        raise RuntimeError("The system worker did not return a result. Refresh details before retrying.") from error
+    if process.returncode or not reply.get("ok"):
+        raise RuntimeError(reply.get("error") or "The system operation failed")
+    return reply["result"]
+
+
+def execute_operation(identity):
+    operations.validate({"action": "status", "id": identity})
+    path = control.RUN / ("system-request-" + identity + ".json")
+    try:
+        for attempt in range(100):
+            try:
+                with control.locked():
+                    request = control.read_json(path)
+                    if request.get("id") != identity:
+                        raise ValueError("Invalid system worker request")
+                    return operations.run(request, queued=True)
+            except ValueError as error:
+                if str(error) != "Another maintenance operation is in progress" or attempt == 99:
+                    raise
+                time.sleep(0.05)
+    finally:
+        path.unlink(missing_ok=True)
 
 
 def main():
-    if len(sys.argv) != 1 or os.geteuid() != 0 or os.environ.get("SUDO_USER") != "carvera":
+    if os.geteuid() != 0:
         raise ValueError("Use the installed touchscreen recovery helper")
-    request = json.loads(sys.stdin.read(8193))
-    if not isinstance(request, dict) or set(request) - {"action", "wifi", "confirmed_idle"}:
-        raise ValueError("Invalid recovery request")
-    if request.get("action") not in ("wifi", "wifi-confirm", "restart"):
-        raise ValueError("Only Wi-Fi recovery and controller restart are available")
-    if request.get("confirmed_idle") is not True:
-        raise ValueError("Confirm that the machine is idle before making changes")
-    with control.locked():
-        result = dispatch(request)
-    print(json.dumps(result))
+    if len(sys.argv) == 3 and sys.argv[1] == "--revert-display" and not os.environ.get("SUDO_USER"):
+        with control.locked():
+            return operations.revert_display(sys.argv[2])
+    if len(sys.argv) == 3 and sys.argv[1] == "--operation" and not os.environ.get("SUDO_USER"):
+        result = execute_operation(sys.argv[2])
+        print(json.dumps({"ok": True, "result": result}))
+        return None
+    if len(sys.argv) != 1 or os.environ.get("SUDO_USER") != "carvera":
+        raise ValueError("Use the installed touchscreen recovery helper")
+    raw = sys.stdin.read(8193)
+    if len(raw) > 8192:
+        raise ValueError("System request is too large")
+    request = json.loads(raw)
+    action = operations.validate(request)
+    if action == "status":
+        result = operations.status()
+    elif action == "open":
+        result = operations.open_system()
+    else:
+        result = launch_operation(request)
+    print(json.dumps({"ok": True, "result": result}))
 
 
 if __name__ == "__main__":
     try:
         main()
-    except (OSError, ValueError, RuntimeError, KeyError) as error:
-        print(str(error), file=sys.stderr)
+    except (
+        OSError,
+        ValueError,
+        RuntimeError,
+        KeyError,
+        TypeError,
+        tarfile.TarError,
+        subprocess.SubprocessError,
+    ) as error:
+        print(json.dumps({"ok": False, "error": str(error)[:1000]}))
         sys.exit(1)

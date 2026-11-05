@@ -52,8 +52,8 @@ def admin_path(name, directory):
     return target
 
 
-def command(*args, check=True):
-    result = subprocess.run(args, text=True, capture_output=True, check=False, timeout=300)
+def command(*args, check=True, timeout=300):
+    result = subprocess.run(args, text=True, capture_output=True, check=False, timeout=timeout)
     if check and result.returncode:
         raise RuntimeError(result.stderr.strip() or f"{args[0]} failed")
     return result
@@ -118,6 +118,8 @@ def require_maintenance():
 
 
 def leave():
+    if read_json(RUN / "display-checkpoint.json"):
+        raise ValueError("Keep or revert the display preview before leaving maintenance")
     checkpoint = read_json(RUN / "network-checkpoint.json")
     if checkpoint and time.monotonic() < checkpoint.get("expires", 0):
         raise ValueError("Confirm the new Wi-Fi network or wait for its 120-second rollback before leaving maintenance")
@@ -132,7 +134,7 @@ def export_snapshot(destination):
     with os.fdopen(descriptor, "wb") as output:
         result = subprocess.run([
             "runuser", "-u", "carvera", "--", "python3", str(BASE / "maintenance/settings.py"), "backup", str(DATA),
-        ], stdout=output, stderr=subprocess.PIPE, check=False)
+        ], stdout=output, stderr=subprocess.PIPE, check=False, timeout=60)
     if result.returncode:
         raise RuntimeError(result.stderr.decode("utf-8", errors="replace").strip() or "Settings backup failed")
 
@@ -217,7 +219,7 @@ def wait_ready(token):
 def restore_snapshot(snapshot):
     result = subprocess.run([
         "runuser", "-u", "carvera", "--", "python3", str(BASE / "maintenance/settings.py"), "restore", str(DATA),
-    ], input=Path(snapshot).read_bytes(), capture_output=True, check=False)
+    ], input=Path(snapshot).read_bytes(), capture_output=True, check=False, timeout=60)
     if result.returncode:
         raise RuntimeError(result.stderr.decode("utf-8", errors="replace").strip() or "Settings restore failed")
 
@@ -237,15 +239,14 @@ def activate(release, restore=None):
         os.chmod(RUN / "maintenance.request", 0o644)
         STATUS.unlink(missing_ok=True)
         point_current(release)
-        command("systemctl", "stop", "carvera-recovery.service")
         command("systemctl", "start", SERVICE)
         wait_ready(lease["token"])
     except Exception:
         command("systemctl", "stop", SERVICE, check=False)
         point_current(previous)
         restore_snapshot(snapshot)
-        command("systemctl", "stop", "carvera-recovery.service", check=False)
-        command("systemctl", "start", SERVICE, check=False)
+        command("systemctl", "start", SERVICE)
+        wait_ready(lease["token"])
         raise
     previous_link = BASE / "previous"
     previous_link.unlink(missing_ok=True)
@@ -253,6 +254,38 @@ def activate(release, restore=None):
     shutil.copy2(snapshot, BASE / "previous-settings.tar.gz")
     prune_releases()
     return {"current": str(release), "previous": str(previous)}
+
+
+def restore_preferences(snapshot):
+    lease = require_maintenance()
+    result = subprocess.run([
+        "runuser", "-u", "carvera", "--", "python3", str(BASE / "maintenance/settings.py"), "validate", str(DATA),
+    ], input=Path(snapshot).read_bytes(), capture_output=True, check=False, timeout=30)
+    if result.returncode:
+        raise ValueError("The selected file is not a valid preferences snapshot")
+    saved = admin_path("before-restore-" + secrets.token_hex(8) + ".tar.gz", "exports")
+    with tempfile.TemporaryDirectory(prefix="restore-", dir=ADMIN) as directory:
+        original = Path(directory) / "preferences.tar.gz"
+        backup(original)
+        exported = Path(directory) / "export.tar.gz"
+        shutil.copyfile(original, exported)
+        os.chmod(exported, 0o600)
+        account = pwd.getpwnam("carvera-admin")
+        os.chown(exported, account.pw_uid, account.pw_gid)
+        os.replace(exported, saved)
+        command("systemctl", "stop", SERVICE)
+        try:
+            restore_snapshot(snapshot)
+            STATUS.unlink(missing_ok=True)
+            command("systemctl", "start", SERVICE)
+            wait_ready(lease["token"])
+        except Exception:
+            command("systemctl", "stop", SERVICE, check=False)
+            restore_snapshot(original)
+            command("systemctl", "start", SERVICE)
+            wait_ready(lease["token"])
+            raise
+    return {"restored": True, "backup": saved.name}
 
 
 def prune_releases():
@@ -267,9 +300,12 @@ def prune_releases():
 
 
 def deploy(bundle):
+    return deploy_file(admin_path(bundle, "uploads"))
+
+
+def deploy_file(bundle):
     require_maintenance()
     prune_releases()
-    bundle = admin_path(bundle, "uploads")
     staging = BASE / "releases" / ("staging-" + secrets.token_hex(6))
     descriptor = os.open(bundle, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(descriptor, "rb") as incoming:
@@ -364,6 +400,8 @@ def network_confirm():
     checkpoint = read_json(RUN / "network-checkpoint.json")
     if not checkpoint:
         raise ValueError("No pending network change")
+    if checkpoint.get("expires", 0) <= time.monotonic():
+        raise ValueError("The network confirmation expired; the previous network was restored")
     command("gdbus", "call", "--system", "--dest", "org.freedesktop.NetworkManager",
             "--object-path", "/org/freedesktop/NetworkManager", "--method",
             "org.freedesktop.NetworkManager.CheckpointDestroy", checkpoint["path"])
