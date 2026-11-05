@@ -115,7 +115,7 @@ Display changes require a mode actually advertised by the attached screen; 1080p
 is provided for matched performance comparisons. Wi-Fi changes roll back after
 120 seconds unless confirmed. If the address changes, use Settings → System to
 find it, reconnect, run `configure network-confirm`, then leave maintenance.
-The touchscreen recovery screen can also set Wi-Fi and confirm the new network.
+The touchscreen System screen can also set Wi-Fi and confirm the new network.
 
 The `carvera-admin` account retains fixed maintenance commands. `kiosk-admin`
 has a dedicated key and full passwordless sudo; it can update the independent
@@ -123,8 +123,120 @@ System application. The touchscreen account retains restricted recovery access.
 Root/password SSH stay disabled. Set and test the local TTY2 console fallback
 after administrator SSH works. See the administration guide for key setup,
 agent loading, migration checkpoints, rollback and the first legacy update.
+Disruptive actions require an idle confirmation and the
+same maintenance acknowledgement as laptop operations. The recovery UI has its
+own service, Kivy installation and a separate copy of the shared theme, fonts and language
+catalogs, so an unsuccessful application update does not remove it.
+System operations run in separate, bounded workers so closing or restarting the
+interface does not terminate an update. Reopening shows the recorded operation
+state; refresh its result before attempting a failed or interrupted action again.
+
+## Touchscreen System settings
+
+Settings → System opens an independent interface with Overview, Network, Display,
+Maintenance and Power sections. It remains available while the controller is
+restarting or unavailable. It never opens a connection to the mill.
+
+Network supports WPA-personal networks and manual entry of hidden SSIDs. Open,
+enterprise and WPA3-only networks are not supported by this form. Enter the
+password, select Connect Wi-Fi, and confirm that the machine is idle. Keep the
+network within 120 seconds or it reverts. The confirmation bar remains visible
+when switching sections. Use Paste explicitly to insert clipboard text; touching
+an action after editing must not paste text or require a second tap.
+
+Display lists the supported modes advertised by the screen near 60 Hz. Preview a
+mode and select Keep change within 20 seconds. A system timer restores the saved
+mode if System closes, fails or receives no confirmation. Only confirmed modes
+are saved for future starts.
+
+Maintenance can export diagnostics and logs, back up preferences, install staged
+application bundles, restore preferences, and restore the previous application
+with its saved preferences. Failed update startup restores the previous release
+and preferences. Restore creates a separate preferences backup before changing
+files and restores that backup if controller startup fails. Read the confirmation
+before proceeding. Reconnecting the mill is always a separate action.
+
+Use the laptop helper to transfer files without starting an installation:
+
+```powershell
+python scripts/kiosk.py stage --host carvera-admin@carvera-pi.local carvera-kiosk-app-1.0.0.dev2.tar.gz
+python scripts/kiosk.py stage --host carvera-admin@carvera-pi.local preferences.tar.gz
+python scripts/kiosk.py fetch --host carvera-admin@carvera-pi.local EXPORTED_FILENAME preferences-copy.tar.gz
+```
+
+Use the actual host and exported filename displayed by System. In the extracted
+laptop tools folder, use `python kiosk.py` instead. Stage and fetch use the
+caller's transfer directories reported by the helper and
+refuse to overwrite an existing local file. System shows the selected file's
+name, size and checksum before an installation or restore. If it changes after
+selection, refresh and review it again.
+
+Use `carvera-admin` for files selected or exported on the touchscreen. The
+`kiosk-admin` transfer area belongs to that account's laptop operations.
+
+Power separates restarting the controller from restarting or shutting down the
+Pi. The controller restarts disconnected. After shutting down, wait for the
+display to turn off and disk activity to stop before removing power. Finish
+laptop-owned maintenance from the laptop; System cannot take over that session.
+
+These System tools, service behavior and independent presentation assets are
+image-installed. An application-only bundle cannot replace those tools on an
+older kiosk. Full OS updates still use replacement images.
+
+### Existing images: application-only System screen
+
+When the independent System tools are absent, the controller opens an
+app-bundled System screen. It provides the shared touch styling, readable device
+information, manual Wi-Fi entry, Keep network and Restart controller through
+the older image's existing restricted helper. The existing independent emergency
+recovery screen remains installed and unchanged. The app-bundled screen closes
+when the controller restarts; it is not the independent System replacement.
+
+This mode does not provide display preview, touchscreen app installation,
+settings restore, shutdown, or the new background operation tracking. Continue
+using the laptop helper for supported application updates. Installing the full
+independent System tools requires a separately supported system-tools update
+with administrator access, or a replacement image. Card access is not required
+for this reduced application-only mode.
+
+The older backend does not enforce the new cross-client maintenance ownership
+rules. Do not perform laptop maintenance concurrently with changes from this
+screen. The screen checks existing maintenance before an action and refuses
+sessions it did not start; it cannot add an atomic ownership guarantee to the
+installed helper.
+
+The older helper can leave maintenance active after a Wi-Fi rollback. The
+screen reports this condition rather than claiming maintenance has ended. Finish
+through a deliberate controller restart after confirming machine idle, or have
+the laptop operator leave maintenance. A countdown in the app is a conservative
+local estimate; NetworkManager owns the actual network rollback.
+
+Some early images also cannot export a laptop preferences backup because the
+helper attempts to rename across filesystems. Their automatic deployment and
+rollback snapshots use a different path. An app-only update does not repair the
+installed backup helper; do not report a failed laptop export as a saved backup.
 
 ## Application updates and rollback
+
+The main update dot checks this fork's published `kiosk-v` application releases.
+Open the release page on your laptop and download the app archive and its
+checksum. App-only releases provide a `.tar.gz.sha256` file; full releases use
+`SHA256SUMS`. Verify the downloaded archive before deployment. Automatic checks
+only report availability; they do not install or enter maintenance.
+
+The extracted laptop helper uses `python kiosk.py`; source checkouts use
+`python scripts/kiosk.py`. Keep the helper's companion files together. Back up
+preferences before an update, confirm the actual target and an idle machine,
+then follow the maintenance sequence below. Rollback restores previous
+preferences as well as the previous app. Reconnecting the mill is a separate
+operation; opening USB resets it.
+
+An app bundle does not update the OS, services or image-installed maintenance
+and recovery tools. Read release notes for separately required image/tool
+updates. App-only releases do not replace the full-image installation downloads.
+Community firmware update notices appear only in the Firmware tab; a firmware
+version higher than the kiosk app version is not evidence of incompatibility.
+
 
 Build a uniquely versioned application bundle without rebuilding the OS:
 

@@ -349,6 +349,38 @@ def screen(host, novnc):
                                 )
 
 
+def transfer_file(host, name, destination=None):
+    ssh_args(host)
+    if destination is None:
+        source = Path(name).resolve(strict=True)
+        filename = source.name
+    else:
+        filename = name
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,120}", filename):
+        raise ValueError("Use a plain file name")
+    options = scp_args(host)
+    if destination is None:
+        if not source.is_file() or source.stat().st_size > 512 * 1024 * 1024 or not filename.endswith(".tar.gz"):
+            raise ValueError("Stage an application or preferences .tar.gz file no larger than 512 MiB")
+        run(options + [source, host + ":" + transfer_path(host, "uploads") + "/" + filename])
+        return {"staged": filename}
+    target = Path(destination)
+    if target.exists() or target.is_symlink():
+        raise FileExistsError("Choose a new destination; existing backups are never overwritten")
+    with tempfile.TemporaryDirectory(prefix="carvera-fetch-", dir=target.parent) as directory:
+        downloaded = Path(directory) / "download"
+        run(options + [host + ":" + transfer_path(host, "exports") + "/" + filename, downloaded])
+        with target.open("xb") as output:
+            try:
+                with downloaded.open("rb") as incoming:
+                    shutil.copyfileobj(incoming, output)
+            except Exception:
+                output.close()
+                target.unlink(missing_ok=True)
+                raise
+    return {"saved": str(target)}
+
+
 def main():
     global IDENTITY, HOST_KEY_ALIAS
     parser = argparse.ArgumentParser(description=__doc__)
@@ -387,6 +419,8 @@ def main():
         "backup",
         "configure",
         "maintenance",
+        "stage",
+        "fetch",
         "system-status",
         "system-update",
         "system-rollback",
@@ -413,6 +447,11 @@ def main():
         elif name == "deploy":
             child.add_argument("bundle")
         elif name == "backup":
+            child.add_argument("destination")
+        elif name == "stage":
+            child.add_argument("source")
+        elif name == "fetch":
+            child.add_argument("name")
             child.add_argument("destination")
         elif name == "configure":
             child.add_argument(
@@ -464,6 +503,10 @@ def main():
         return screen(args.host, args.novnc)
     elif args.action == "maintenance":
         result = remote(args.host, args.operation, confirmed=args.confirm_machine_idle)
+    elif args.action == "stage":
+        result = transfer_file(args.host, args.source)
+    elif args.action == "fetch":
+        result = transfer_file(args.host, args.name, args.destination)
     elif args.action == "deploy":
         source = Path(args.bundle).resolve(strict=True)
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,120}", source.name):

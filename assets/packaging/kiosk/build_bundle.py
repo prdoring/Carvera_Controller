@@ -15,7 +15,7 @@ def main(version, commit, output):
     root = Path.cwd()
     project = root / "pyproject.toml"
     project.write_text(re.sub(r'(?m)^version = "[^"]+"', f'version = "{version}"', project.read_text()), encoding="utf-8")
-    (root / "carveracontroller/__version__.py").write_text(f'__version__ = "{version}"\n', encoding="utf-8")
+    (root / "carveracontroller/__version__.py").write_text(f'__version__ = "{version}"\n__release_version__ = "{version}"\n', encoding="utf-8")
     for source in (root / "carveracontroller/locales").rglob("*.po"):
         subprocess.run(["msgfmt", str(source), "-o", str(source.with_suffix(".mo"))], check=True)
     output = Path(output)

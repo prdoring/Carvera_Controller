@@ -390,7 +390,7 @@ def prepare_updates(modal):
 
     for tab in panel.tab_list:
         content = tab.content
-        toolbar, log = reversed(content.children)
+        toolbar, information, log = reversed(content.children)
         widgets = list(reversed(toolbar.children))
         toolbar.clear_widgets()
         content.clear_widgets()
@@ -416,6 +416,7 @@ def prepare_updates(modal):
                 widget.size_hint_x = 1
                 buttons.add_widget(widget)
         content.add_widget(buttons)
+        content.add_widget(information)
         content.add_widget(title)
         log.size_hint_y = None
         log.height = max(dp(200), control_height() * 4)

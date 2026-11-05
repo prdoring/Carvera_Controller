@@ -170,3 +170,40 @@ still required; simulation does not validate the console, touchscreen or CNC.
 To follow the [installation instructions](../README.md#install-the-kiosk), use your generated image and open a terminal in `dist/kiosk/laptop`. You do not need a release ZIP when using your own build.
 
 For application-only builds, image details, and validation steps, see the [kiosk guide](https://github.com/prdoring/Carvera_Controller/blob/main/assets/packaging/kiosk/README.md).
+
+## Fork application releases
+
+Fresh installations default to English. An explicitly saved supported language
+choice is preserved.
+
+Fork release tags use `kiosk-vX.Y.Z`, `kiosk-vX.Y.Z.devN`, or `kiosk-vX.Y.ZrcN`.
+Push an explicit tag on a reviewed, tested commit to run the kiosk application
+release workflow. Ordinary branch pushes do not publish updates. Never reuse a
+published version. The workflow builds an ARM64 Python 3.13 app bundle, checks
+its source revision, version metadata, wheel hashes and archive checksum, then
+publishes a release assembled as a draft. Development and RC tags publish as
+prereleases. An existing release or draft stops publication rather than replacing
+its assets; inspect failed runs and use a new tag for a retry.
+
+Automated releases contain the app archive, its `.sha256` file and versioned
+bundle metadata. They do not contain an SD image or laptop tools. Full kiosk
+releases are prepared separately with the existing image/laptop packager and
+its `SHA256SUMS` for the image, app, System, updater and laptop tools; app-only
+publication must not replace that list.
+Changes to the OS, system services or installed maintenance/recovery tools need
+separately supplied image or tool downloads; deploying an app bundle cannot
+install them.
+
+The shared controller checks published `kiosk-v` releases in this fork, never
+community controller versions or inherited tags. Stable builds see stable
+releases; development and RC builds also see prereleases. Only a release with
+an asset for the installed platform/architecture can light the main update dot.
+Kiosk releases also need either the archive's `.sha256` file or a full release's
+`SHA256SUMS`. Other platform packages may be attached using the existing build
+output names; the app-only workflow does not build them. Numeric Android package
+versions remain separate from the canonical controller release version.
+
+Firmware updates retain their own tab marker. The Firmware tab describes the
+reported firmware and the CA1/2.2.0c reference setup without certifying every
+machine or feature. Controller release numbers do not establish firmware
+compatibility. Actual firmware capability checks still determine feature access.

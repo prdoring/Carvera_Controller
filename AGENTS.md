@@ -234,7 +234,7 @@ boot. Never commit it. Kiosk installation does not require reflashing the mill.
 | --- | --- |
 | Application lifecycle and existing UI | `carveracontroller/main.py`, `carveracontroller/makera.kv`, `carveracontroller/custom_widgets.py` |
 | Commands, machine state and transports | `carveracontroller/Controller.py`, `carveracontroller/CNC.py`, `carveracontroller/USBStream.py`, `carveracontroller/WIFIStream.py`, `carveracontroller/AndroidUSB.py`, `carveracontroller/protocols/` |
-| Linux kiosk profile, maintenance and touch | `carveracontroller/runtime_profile.py`, `carveracontroller/kiosk_runtime.py`, `carveracontroller/kiosk_state.py`, `carveracontroller/kiosk_touch.py` |
+| Linux kiosk profile, maintenance and touch | `carveracontroller/runtime_profile.py`, `carveracontroller/kiosk_runtime.py`, `carveracontroller/kiosk_state.py`, `carveracontroller/kiosk_touch.py`, `assets/packaging/kiosk/runtime/recovery.py`, `system_ui.py` and `system_operations.py` in the same runtime directory |
 | Shared touch UI and editing | `carveracontroller/ui/android_layout.py`, `carveracontroller/ui/mobile_*.py`, `carveracontroller/ui/touch.py`, `carveracontroller/ui/number_pad.py`, `carveracontroller/ui/editing.py`, `carveracontroller/ui/scrolling.py` |
 | Theme and artwork | `carveracontroller/ui/theme.py`, `carveracontroller/ui/theme.kv`, `carveracontroller/data/theme/`, `carveracontroller/data/fonts/`, artwork scripts in `scripts/` |
 | Image, services, deployment and recovery | `scripts/kiosk.py`, `assets/packaging/kiosk/` |
@@ -271,6 +271,19 @@ profile selection instead of duplicating them or treating the kiosk as Android.
 Extend the established interface. Use `ui/theme.py`, `ui/theme.kv`, shared widgets
 and the current fork screenshots as the design references. Reuse theme constants
 instead of scattering new color literals through Python and KV files.
+
+Basic control styling lives in `ui/controls.kv`, included by `theme.kv`. The
+independent System app uses an image-installed snapshot of that file, `theme.py`,
+fonts and translations under `/opt/carvera/system-ui`. Keep that snapshot
+independent of the active controller release; application-only updates do not
+replace it. System maintenance uses the restricted recovery helper and cannot
+take over a laptop-owned maintenance session.
+
+On older images without the independent System tools, `ui/kiosk_system.py`
+provides an application-only System view using the installed legacy helper
+protocol. Preserve the old independent recovery environment and its privileges.
+Do not present legacy mode as the complete independent System replacement, or
+enable operations the installed helper does not support.
 
 | Role | Existing color |
 | --- | --- |

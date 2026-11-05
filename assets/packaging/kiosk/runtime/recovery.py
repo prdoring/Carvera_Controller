@@ -365,7 +365,7 @@ class Recovery(App):
         panel = self.panel(
             tr._("Application and preferences"),
             tr._(
-                "Use the laptop helper to stage .tar.gz files. Application bundles update the controller only; OS, services and System tools require a replacement image."
+                "Use the laptop helper to stage application bundles or preferences. Application bundles update the controller. System tools use a separate administrator update; OS updates require a replacement image."
             ),
         )
         self.action(panel, tr._("Refresh staged files"), lambda: self.request("files", callback=self.show_files))

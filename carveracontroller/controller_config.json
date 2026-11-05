@@ -117,8 +117,8 @@
     },
     {
         "type": "bool",
-        "title": "Show Firmware Compatibility Check",
-        "desc": "Warn if the connected machine's firmware doesn't allow full functionality",
+        "title": "Warn About Known Firmware Incompatibilities",
+        "desc": "Warn about documented firmware incompatibilities; unverified versions appear in the Firmware tab",
         "section": "carvera",
         "key": "show_firmware_check",
         "default": "true"

@@ -28,6 +28,62 @@ def test_device_commands_require_an_explicit_host(laptop, monkeypatch):
     assert result.value.code == 2
 
 
+def test_stage_only_uploads_without_deploying(laptop, monkeypatch, tmp_path):
+    source = tmp_path / "preferences.tar.gz"
+    source.write_bytes(b"archive")
+    calls = []
+    monkeypatch.setattr(laptop, "run", lambda args, **_kwargs: calls.append(args))
+    def status(_host, action):
+        assert action == "status"
+        return {}
+    monkeypatch.setattr(laptop, "remote", status)
+    result = laptop.transfer_file("carvera-admin@example.invalid", source)
+    assert result == {"staged": source.name}
+    assert len(calls) == 1 and calls[0][0] == "scp"
+    assert "StrictHostKeyChecking=yes" in calls[0]
+    assert calls[0][-1].endswith("/uploads/preferences.tar.gz")
+
+
+def test_fetch_does_not_overwrite_an_existing_file(laptop, monkeypatch, tmp_path):
+    destination = tmp_path / "preferences.tar.gz"
+    destination.write_bytes(b"original")
+    monkeypatch.setattr(laptop, "run", lambda *_a, **_k: pytest.fail("Do not fetch over existing files"))
+    with pytest.raises(FileExistsError):
+        laptop.transfer_file("carvera-admin@example.invalid", "preferences.tar.gz", destination)
+    assert destination.read_bytes() == b"original"
+
+
+def test_fetch_downloads_to_a_private_temporary_file(laptop, monkeypatch, tmp_path):
+    destination = tmp_path / "preferences.tar.gz"
+
+    def download(args, **_kwargs):
+        assert args[0] == "scp" and "/exports/" in args[-2]
+        assert args[-1] != destination
+        Path(args[-1]).write_bytes(b"exported")
+
+    monkeypatch.setattr(laptop, "run", download)
+    monkeypatch.setattr(laptop, "remote", lambda *_args: {})
+    laptop.transfer_file("carvera-admin@example.invalid", "preferences.tar.gz", destination)
+    assert destination.read_bytes() == b"exported"
+    assert list(tmp_path.iterdir()) == [destination]
+
+
+def test_stage_preserves_full_admin_identity_and_transfer_directory(laptop, monkeypatch, tmp_path):
+    source = tmp_path / "preferences.tar.gz"
+    source.write_bytes(b"archive")
+    monkeypatch.setattr(laptop, "IDENTITY", tmp_path / "admin-key")
+    monkeypatch.setattr(laptop, "HOST_KEY_ALIAS", "carvera-pi.local")
+    monkeypatch.setattr(laptop, "remote", lambda *_args: {
+        "transfers": {"uploads": "/home/kiosk-admin/transfers/uploads"},
+    })
+    calls = []
+    monkeypatch.setattr(laptop, "run", lambda args, **_kwargs: calls.append(args))
+    laptop.transfer_file("kiosk-admin@192.0.2.1", source)
+    assert str((tmp_path / "admin-key").resolve()) in calls[0]
+    assert "IdentitiesOnly=yes" in calls[0] and "HostKeyAlias=carvera-pi.local" in calls[0]
+    assert calls[0][-1] == "kiosk-admin@192.0.2.1:/home/kiosk-admin/transfers/uploads/preferences.tar.gz"
+
+
 def test_remote_password_is_sent_on_stdin_not_in_arguments(laptop, monkeypatch):
     seen = []
 
