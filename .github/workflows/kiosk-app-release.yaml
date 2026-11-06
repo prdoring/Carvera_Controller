@@ -221,6 +221,8 @@ jobs:
         env:
           RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
           RELEASE_COMMIT: ${{ needs.resolve.outputs.commit }}
+          # Native descriptor capture intermittently breaks Tcl script reads on Windows.
+          PYTEST_ADDOPTS: --capture=sys
         run: python scripts/kiosk_desktop_check.py --output dist/kiosk/native --writer dist/kiosk/writer
       - uses: actions/upload-artifact@v4
         with:
