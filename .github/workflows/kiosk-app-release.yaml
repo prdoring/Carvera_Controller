@@ -160,6 +160,7 @@ jobs:
             --mount "type=bind,source=$PWD,target=/src,readonly" \
             --mount "type=bind,source=$PWD/dist/kiosk/native,target=/output" kiosk-desktop \
             python scripts/kiosk_desktop_check.py --output /output --writer /src/dist/kiosk/writer
+          sudo chown -R "$(id -u):$(id -g)" dist/kiosk/native
       - name: Check installed and portable packages without development tools
         run: |
           docker build --memory 1g -t kiosk-desktop-clean -f assets/packaging/kiosk/Dockerfile.desktop-clean .
