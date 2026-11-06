@@ -17,6 +17,7 @@ def verify(root):
     paths += [root / "etc/sudoers.d/carvera"]
     paths += [root / "etc/sudoers.d/kiosk-admin"]
     paths += [root / "var/lib/carvera-maint"]
+    paths += [root / "usr/local/lib/carvera/grow_root.py"]
     for path in paths:
         info = path.lstat()
         if path.is_symlink() or info.st_uid != 0 or info.st_mode & 0o022:
@@ -54,6 +55,10 @@ def verify(root):
         raise ValueError("kiosk-admin must have exactly the owner administrator rule")
     subprocess.run(["chroot", str(root), "systemctl", "is-enabled", "getty@tty2.service"], check=True)
     subprocess.run(["chroot", str(root), "systemctl", "is-enabled", "carvera-system-recover.service"], check=True)
+    subprocess.run(["chroot", str(root), "systemctl", "is-enabled", "carvera-root-grow.service"], check=True)
+    subprocess.run(["chroot", str(root), "systemctl", "is-enabled", "carvera-hostkeys.service"], check=True)
+    subprocess.run(["chroot", str(root), "test", "-x", "/usr/bin/growpart"], check=True)
+    subprocess.run(["chroot", str(root), "test", "-x", "/usr/sbin/resize2fs"], check=True)
     code = """
 import ctypes
 import importlib.metadata

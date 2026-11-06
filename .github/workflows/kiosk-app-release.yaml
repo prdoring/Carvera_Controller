@@ -1,102 +1,312 @@
-name: Kiosk application release
+name: Kiosk release
 
 on:
-  push:
-    tags:
-      - 'kiosk-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing mainline kiosk-vX.Y.Z.devN tag
+        required: true
+        type: string
+      mode:
+        required: true
+        type: choice
+        options: [full, app-only]
+      publish:
+        description: Publish after the documented native desktop and Pi validation gates
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: kiosk-app-release-${{ github.ref }}
+  group: kiosk-release-${{ inputs.tag }}
   cancel-in-progress: false
 
 jobs:
-  build:
+  resolve:
+    if: github.ref == 'refs/heads/main' && github.repository == 'prdoring/Carvera_Controller'
+    runs-on: ubuntu-24.04
+    outputs:
+      commit: ${{ steps.source.outputs.commit }}
+      version: ${{ steps.source.outputs.version }}
+      prerelease: ${{ steps.source.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolve immutable source and reject existing releases
+        id: source
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_MODE: ${{ inputs.mode }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/kiosk_publication.py prepare --tag "$RELEASE_TAG" --mode "$RELEASE_MODE" > "$RUNNER_TEMP/source.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          source = json.loads((Path(os.environ['RUNNER_TEMP']) / 'source.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              for key in ('commit', 'version', 'prerelease'):
+                  print(key + '=' + str(source[key]).lower(), file=out)
+          PY
+
+  components:
+    needs: resolve
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build isolated regression environment
+        run: docker build --memory 3g --cpu-quota 200000 -t kiosk-checks -f assets/packaging/kiosk/Dockerfile.test .
+      - name: Run kiosk and shared regressions
+        run: docker run --rm --init --memory 3g --cpus 2 --network none kiosk-checks
+      - name: Render the independent first-boot failure screen
+        run: |
+          mkdir -p dist/kiosk/system-ui-reports
+          docker run --rm --init --memory 2g --cpus 2 --network none \
+            -e CARVERA_BOOT_REPORTS=/reports \
+            --mount "type=bind,source=$PWD/dist/kiosk/system-ui-reports,target=/reports" \
+            kiosk-checks xvfb-run -a -s '-screen 0 1920x1200x24 -nolisten tcp' python tests/boot/kiosk_setup_ui.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kiosk-system-ui-checks
+          path: dist/kiosk/system-ui-reports/*
+      - name: Build component artifacts from the resolved commit
+        env:
+          RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
+          RELEASE_MODE: ${{ inputs.mode }}
+        run: |
+          if [ "$RELEASE_MODE" = full ]; then
+            python scripts/kiosk.py build --version "$RELEASE_VERSION"
+          else
+            python scripts/kiosk.py build --version "$RELEASE_VERSION" --app-only
+          fi
+      - name: Verify application bundle identities
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          python -m pip install packaging==26.3
+          python -m scripts.kiosk_release verify "$RELEASE_TAG"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kiosk-components
+          if-no-files-found: error
+          path: |
+            dist/kiosk/carvera-kiosk-*.img.xz
+            dist/kiosk/carvera-kiosk-*.tar.gz
+            dist/kiosk/carvera-kiosk-*.tar.gz.sha256
+            dist/kiosk/carvera-kiosk-laptop-*.zip
+            dist/kiosk/bundle*.json
+            dist/kiosk/image-metadata.json
+
+  linux-desktop:
+    needs: resolve
+    if: inputs.mode == 'full'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: x64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch verified presentation assets
+        run: |
+          python scripts/kiosk_desktop_assets.py dist/kiosk/desktop-assets/noto
+          python scripts/kiosk_novnc.py dist/kiosk/novnc-desktop
+      - name: Build native Debian 12 writer
+        run: |
+          docker build --memory 3g --cpu-quota 200000 -t kiosk-writer -f assets/packaging/kiosk/Dockerfile.writer .
+          id=$(docker create kiosk-writer)
+          trap 'docker rm "$id"' EXIT
+          docker cp "$id:/writer" dist/kiosk/writer
+      - name: Build independent Python 3.12 desktop runtime
+        run: docker build --memory 3g --cpu-quota 200000 -t kiosk-desktop -f assets/packaging/kiosk/Dockerfile.desktop .
+      - name: Freeze, package and exercise both tools
+        env:
+          RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: |
+          mkdir -p dist/kiosk/native
+          docker run --rm --init --memory 3g --cpus 2 --network none \
+            -e RELEASE_VERSION -e RELEASE_COMMIT \
+            --mount "type=bind,source=$PWD,target=/src,readonly" \
+            --mount "type=bind,source=$PWD/dist/kiosk/native,target=/output" kiosk-desktop \
+            python scripts/kiosk_desktop_check.py --output /output --writer /src/dist/kiosk/writer
+      - name: Check installed and portable packages without development tools
+        run: |
+          docker build --memory 1g -t kiosk-desktop-clean -f assets/packaging/kiosk/Dockerfile.desktop-clean .
+          docker run --rm --init --memory 1g --cpus 2 --network none \
+            --mount "type=bind,source=$PWD/dist/kiosk/native,target=/packages,readonly" kiosk-desktop-clean
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kiosk-desktop-linux-${{ matrix.arch }}
+          if-no-files-found: error
+          path: dist/kiosk/native/packages/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kiosk-design-linux-${{ matrix.arch }}
+          path: dist/kiosk/native/reports/*
+      - uses: actions/upload-artifact@v4
+        if: matrix.arch == 'x64'
+        with:
+          name: kiosk-writer-ci
+          if-no-files-found: error
+          path: dist/kiosk/writer/**
+
+  windows-desktop:
+    needs: resolve
+    if: inputs.mode == 'full'
+    runs-on: windows-2025
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ needs.resolve.outputs.commit }}
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - uses: ./.github/actions/bootstrap-poetry
-        with:
-          os: linux
-          install-args: --only main,lint,test
-      - name: Install GUI test dependencies
-        run: sudo apt-get update && sudo apt-get install -y xvfb xauth libgl1 libgles2 libmtdev1 libhidapi-hidraw0
-      - name: Validate release tag and source
-        id: release
-        shell: bash
+          architecture: x64
+      - name: Install isolated desktop and native writer build dependencies
         run: |
-          poetry run python -m scripts.kiosk_release prepare "$GITHUB_REF_NAME" > /tmp/kiosk-release.json
-          echo "version=$(python -c 'import json; print(json.load(open("/tmp/kiosk-release.json"))["version"])')" >> "$GITHUB_OUTPUT"
-      - name: Quality checks
+          python -m pip install -r assets/packaging/kiosk/desktop-requirements.txt pytest==8.4.2 pytest-timeout==2.4.0 aqtinstall==3.3.0 cmake==3.31.6 ninja==1.11.1.4
+          $qtOutput=Join-Path $env:GITHUB_WORKSPACE 'dist/kiosk/qt'
+          Push-Location $env:RUNNER_TEMP
+          try {
+            python -m aqt install-qt windows desktop 6.9.3 win64_mingw --archives qtbase qttools --outputdir $qtOutput
+            if ($LASTEXITCODE) { throw 'Qt download failed' }
+            python -m aqt install-tool windows desktop tools_mingw1310 qt.tools.win64_mingw1310 --outputdir $qtOutput
+            if ($LASTEXITCODE) { throw 'Compiler download failed' }
+          } finally { Pop-Location }
+          $compiler=python scripts/kiosk_nsis.py dist/kiosk/nsis
+          "CARVERA_NSIS_COMPILER=$compiler" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Build pinned Windows writer and fetch presentation
+        shell: pwsh
         run: |
-          poetry run ruff check carveracontroller tests scripts
-          poetry run ruff format --check carveracontroller/updates.py scripts/kiosk_release.py tests/unit/test_updates.py tests/unit/test_release_metadata.py tests/unit/test_kiosk_app_release.py tests/unit/test_language_default.py tests/integration/test_updates.py
-          poetry run mypy carveracontroller/updates.py --config-file pyproject.toml
-          poetry run mypy carveracontroller/machine --config-file pyproject.toml --strict
-          poetry run lint-imports --config pyproject.toml
-          xvfb-run -a -s '-screen 0 1920x1200x24 -nolisten tcp' poetry run python -m pytest tests/unit tests/integration/test_updates.py -q
-      - name: Build application bundle
-        run: python scripts/kiosk.py build --version '${{ steps.release.outputs.version }}' --app-only
-      - name: Verify application release
-        run: poetry run python -m scripts.kiosk_release verify "$GITHUB_REF_NAME"
+          $qt=(Resolve-Path dist/kiosk/qt/6.9.3/mingw_64).Path
+          $compiler=(Resolve-Path dist/kiosk/qt/Tools/mingw1310_64/bin).Path
+          $env:PATH=$compiler+';'+$qt+'/bin;'+$env:PATH
+          python scripts/build_kiosk_writer.py --qt $qt --work dist/kiosk/writer-work --output dist/kiosk/writer
+          python scripts/kiosk_desktop_assets.py dist/kiosk/desktop-assets/noto
+          python scripts/kiosk_novnc.py dist/kiosk/novnc-desktop
+      - name: Freeze, package and exercise both Windows tools
+        env:
+          RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.resolve.outputs.commit }}
+        run: python scripts/kiosk_desktop_check.py --output dist/kiosk/native --writer dist/kiosk/writer
       - uses: actions/upload-artifact@v4
         with:
-          name: kiosk-app-release
+          name: kiosk-desktop-windows-x64
           if-no-files-found: error
-          path: |
-            dist/kiosk/carvera-kiosk-app-${{ steps.release.outputs.version }}.tar.gz
-            dist/kiosk/carvera-kiosk-app-${{ steps.release.outputs.version }}.tar.gz.sha256
-            dist/kiosk/bundle-${{ steps.release.outputs.version }}.json
+          path: dist/kiosk/native/packages/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kiosk-design-windows-x64
+          path: dist/kiosk/native/reports/*
+
+  boot:
+    needs: [resolve, linux-desktop]
+    if: inputs.mode == 'full'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: kiosk-writer-ci
+          path: dist/kiosk/ci-writer
+      - name: Exercise Debian 13 systemd boot, provisioning and growth
+        run: |
+          docker build --memory 3g --cpu-quota 200000 -t kiosk-boot -f assets/packaging/kiosk/Dockerfile.boot-test .
+          docker run --rm --init --memory 2g --cpus 2 --network none --mount "type=bind,source=$PWD,target=/src,readonly" kiosk-boot
+          docker run --rm --init --memory 2g --cpus 2 --network none --mount "type=bind,source=$PWD,target=/src,readonly" kiosk-boot python3 tests/boot/kiosk_setup_boot.py
+          docker run --rm --init --memory 2g --cpus 2 --network none --mount "type=bind,source=$PWD,target=/src,readonly" kiosk-boot python3 tests/boot/kiosk_writer_boot.py --writer /src/dist/kiosk/ci-writer
 
   publish:
-    needs: build
+    needs: [resolve, components, linux-desktop, windows-desktop, boot]
+    if: >-
+      always() && needs.resolve.result == 'success' && needs.components.result == 'success' &&
+      (inputs.mode == 'app-only' || (needs.linux-desktop.result == 'success' && needs.windows-desktop.result == 'success' && needs.boot.result == 'success'))
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - uses: actions/download-artifact@v4
         with:
-          name: kiosk-app-release
-          path: release
-      - name: Publish application-only release
+          name: kiosk-components
+          path: incoming
+      - uses: actions/download-artifact@v4
+        if: inputs.mode == 'full'
+        with:
+          pattern: kiosk-desktop-*
+          merge-multiple: true
+          path: incoming
+      - name: Assemble exact inventory and verify embedded identities
+        env:
+          RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
+          RELEASE_COMMIT: ${{ needs.resolve.outputs.commit }}
+          RELEASE_MODE: ${{ inputs.mode }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y p7zip-full
+          python -m pip install packaging==26.3
+          python scripts/kiosk_release_stage.py --incoming incoming --output release --mode "$RELEASE_MODE" --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT"
+      - name: Recheck source and create a complete draft
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_MODE: ${{ inputs.mode }}
+          RELEASE_COMMIT: ${{ needs.resolve.outputs.commit }}
+          RELEASE_PREVIEW: ${{ needs.resolve.outputs.prerelease }}
+          PUBLISH_RELEASE: ${{ inputs.publish }}
         shell: bash
         run: |
           set -euo pipefail
-          tag="$GITHUB_REF_NAME"
-          version="${tag#kiosk-v}"
-          # A rerun must never replace a published release or a separately prepared draft.
-          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            echo 'This release already exists. Inspect it and use a new version.' >&2
-            exit 1
-          fi
-          cd release
-          sha256sum -c "carvera-kiosk-app-$version.tar.gz.sha256"
-          cat > /tmp/kiosk-notes.md <<'NOTES'
-          Application update for an existing Raspberry Pi 4 kiosk (ARM64, Python 3.13).
-
-          Download the app archive and its .sha256 file, verify the checksum, and use the laptop maintenance helper with the mill idle. Deployment preserves preferences and restores the previous application if startup fails. The controller remains disconnected afterward.
-
-          This release does not contain an SD image or laptop tools. It does not update the OS, system services, or installed maintenance tools. Those changes require separately supplied image or tool downloads.
-
-          See the kiosk guide: https://github.com/prdoring/Carvera_Controller/blob/main/assets/packaging/kiosk/README.md
-          NOTES
+          python scripts/kiosk_publication.py recheck --tag "$RELEASE_TAG" --mode "$RELEASE_MODE" --commit "$RELEASE_COMMIT"
           flags=()
-          if [[ "$version" == *'.dev'* || "$version" == *'rc'* ]]; then
-            flags+=(--prerelease)
+          if [ "$RELEASE_PREVIEW" = true ]; then flags+=(--prerelease); fi
+          printf '%s\n' "Kiosk $RELEASE_MODE release from $RELEASE_COMMIT." \
+            'See README setup instructions. Windows desktop downloads are unsigned prereleases.' \
+            'Full images include Setup, Screen Share and separate controller/System/updater tools. App-only releases do not install a new card.' > "$RUNNER_TEMP/notes.md"
+          gh release create "$RELEASE_TAG" --verify-tag --draft "${flags[@]}" --title "Kiosk ${RELEASE_TAG#kiosk-v}" --notes-file "$RUNNER_TEMP/notes.md"
+          gh release upload "$RELEASE_TAG" release/*
+          gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/downloaded"
+          python scripts/kiosk_release_stage.py --compare release "$RUNNER_TEMP/downloaded"
+          if [ "$PUBLISH_RELEASE" = true ]; then
+            gh release edit "$RELEASE_TAG" --draft=false
           fi
-          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --verify-tag --draft "${flags[@]}" \
-            --title "Kiosk application v$version" --notes-file /tmp/kiosk-notes.md --generate-notes
-          gh release upload "$tag" --repo "$GITHUB_REPOSITORY" \
-            "carvera-kiosk-app-$version.tar.gz" "carvera-kiosk-app-$version.tar.gz.sha256" "bundle-$version.json"
-          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false

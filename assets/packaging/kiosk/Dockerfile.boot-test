@@ -2,7 +2,7 @@ FROM debian:trixie-slim AS guest
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     systemd-sysv python3 openssh-server sudo util-linux linux-image-amd64 \
-    initramfs-tools kmod && rm -rf /var/lib/apt/lists/*
+    initramfs-tools kmod cloud-guest-utils e2fsprogs udev && rm -rf /var/lib/apt/lists/*
 
 FROM debian:trixie-slim
 ENV DEBIAN_FRONTEND=noninteractive

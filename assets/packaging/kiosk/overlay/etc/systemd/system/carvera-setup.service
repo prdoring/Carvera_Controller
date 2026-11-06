@@ -1,0 +1,16 @@
+[Unit]
+Description=Limited initial kiosk setup status
+After=carvera-kiosk.service
+
+[Service]
+User=carvera
+Group=carvera
+Environment=CARVERA_PROFILE=kiosk
+Environment=XDG_RUNTIME_DIR=/run/carvera
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=SDL_VIDEODRIVER=wayland
+Environment=KIVY_HOME=/var/lib/carvera/recovery
+WorkingDirectory=/var/lib/carvera
+ExecStart=/opt/carvera/recovery-venv/bin/python /opt/carvera/maintenance/setup_status_ui.py
+Restart=on-failure
+RestartSec=5

@@ -35,5 +35,7 @@ mmdebstrap:
     - libhidapi-libusb0
     - fonts-dejavu-core
     - ca-certificates
+    - cloud-guest-utils
+    - e2fsprogs
   customize-hooks:
     - bash /project/kiosk/install.sh "$1"

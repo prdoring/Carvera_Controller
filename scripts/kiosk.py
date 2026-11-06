@@ -144,46 +144,7 @@ def build(version, app_only=False, system_only=False):
 
 
 def pack_settings(source, destination):
-    pending = {}
-    with tarfile.open(source, "r:*") as archive:
-        for count, member in enumerate(archive):
-            if member.name in {"system-bundle.json", "updater-bundle.json"}:
-                raise ValueError("A system bundle is not a preferences backup")
-            if count > 4096:
-                raise ValueError("Too many entries in the settings archive")
-            path = PurePosixPath(member.name)
-            if (
-                not member.isfile()
-                or member.size > 1024 * 1024
-                or path.is_absolute()
-                or ".." in path.parts
-                or path.suffix not in (".ini", ".json")
-                or not (path.name == "makera.ini" or {".kivy", ".carveracontroller"}.intersection(path.parts))
-            ):
-                continue
-            name = (
-                "makera.ini"
-                if path.name == "makera.ini"
-                else ((".kivy/" if ".kivy" in path.parts else ".carveracontroller/") + path.name)
-            )
-            if name in pending:
-                raise ValueError("Duplicate preference files in settings archive")
-            content = archive.extractfile(member).read()
-            if path.suffix == ".json":
-                if not isinstance(json.loads(content), dict):
-                    raise ValueError("Expected a settings object")
-            else:
-                configparser.ConfigParser(interpolation=None).read_string(content.decode("utf-8"))
-            pending[name] = content
-            if sum(map(len, pending.values())) > 16 * 1024 * 1024:
-                raise ValueError("Settings exceed 16 MiB")
-    if not pending:
-        raise ValueError("No supported preferences found in settings archive")
-    with tarfile.open(destination, "w:gz") as archive:
-        for name, content in pending.items():
-            member = tarfile.TarInfo(name)
-            member.size, member.mode = len(content), 0o600
-            archive.addfile(member, io.BytesIO(content))
+    Path(destination).write_bytes(kiosk_admin.shared_settings().prepare_archive(source))
 
 
 def prepare_card(boot, public_key, hostname, ssid, country, settings=None, admin_public_keys=None):
@@ -191,7 +152,7 @@ def prepare_card(boot, public_key, hostname, ssid, country, settings=None, admin
     if not (boot / "carvera-image.json").is_file():
         raise ValueError("This volume is not an identified Carvera kiosk boot partition")
     identity = json.loads((boot / "carvera-image.json").read_text())
-    if identity.get("format") != "carvera-kiosk-pi4-v2":
+    if identity.get("format") not in {"carvera-kiosk-pi4-v2", "carvera-kiosk-pi4-v3"}:
         raise ValueError(
             "The card has an unexpected image identity; use a v2 image or admin-migration for an existing kiosk"
         )
@@ -200,8 +161,7 @@ def prepare_card(boot, public_key, hostname, ssid, country, settings=None, admin
         raise ValueError("Invalid hostname")
     public_key = Path(public_key).expanduser()
     key = public_key.read_text().strip()
-    if not re.fullmatch(r"(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp256) [A-Za-z0-9+/=]+(?: [^\r\n]*)?", key):
-        raise ValueError("Select an SSH public key, not a private key")
+    kiosk_admin.account_module().key_records([key])
     run(["ssh-keygen", "-l", "-f", Path(public_key).resolve()], capture_output=True)
     if os.name == "nt":
         label = ctypes.create_unicode_buffer(261)
@@ -227,6 +187,21 @@ def prepare_card(boot, public_key, hostname, ssid, country, settings=None, admin
         ):
             raise ValueError("Invalid WPA network name or password")
         value["wifi"] = {"ssid": ssid, "password": password, "country": country}
+    if identity.get("format") == "carvera-kiosk-pi4-v3":
+        module = kiosk_admin.shared_setup()
+        value["setup_protocol"] = 1
+        current = module.read_json(boot / module.RECEIPT)
+        if current.get("phase") == "prepared":
+            value["id"] = current.get("id")
+        preferences = None
+        if settings:
+            with tempfile.TemporaryDirectory(prefix="kiosk-preferences-") as temporary:
+                packed = Path(temporary) / "preferences.tar.gz"
+                pack_settings(Path(settings).expanduser().resolve(strict=True), packed)
+                preferences = packed.read_bytes()
+        if preferences is not None:
+            value["settings_sha256"] = hashlib.sha256(preferences).hexdigest()
+        return module.prepare(boot, value, kiosk_admin.account_module().public_keys, preferences)
     if settings:
         source = Path(settings).expanduser().resolve(strict=True)
         pack_settings(source, boot / "carvera-settings.tar.gz")
@@ -239,114 +214,60 @@ def prepare_card(boot, public_key, hostname, ssid, country, settings=None, admin
     }
 
 
-def unused_port():
-    with socket.socket() as listener:
-        listener.bind(("127.0.0.1", 0))
-        return listener.getsockname()[1]
-
-
-def wait_port(port, process):
-    deadline = time.monotonic() + 15
-    while time.monotonic() < deadline:
-        if process.poll() is not None:
-            raise RuntimeError("The viewer helper exited")
-        try:
-            with socket.create_connection(("127.0.0.1", port), timeout=0.2):
-                return
-        except OSError:
-            time.sleep(0.1)
-    raise RuntimeError("The viewer helper did not start")
-
-
-def stop_owned(process):
-    if process.poll() is None:
-        if os.name == "nt":
-            subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], capture_output=True, check=False)
-        else:
-            os.killpg(process.pid, signal.SIGTERM)
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            if os.name == "nt":
-                process.kill()
-            else:
-                os.killpg(process.pid, signal.SIGKILL)
-            process.wait(timeout=5)
-
-
 def screen(host, novnc):
+    import asyncio
+
+    if (ROOT / "kioskdesktop").is_dir():
+        sys.path.insert(0, str(ROOT))
     novnc = Path(novnc).resolve()
-    if not (novnc / "vnc.html").is_file():
+    if not (novnc / "vnc.html").is_file() or not (novnc / "core/rfb.js").is_file():
         raise ValueError("Use --novnc with the laptop/novnc directory exported by the image build")
+    ssh_args(host)
+    if not host.startswith("carvera-admin@") or not IDENTITY:
+        raise ValueError("Screen sharing requires --host carvera-admin@ADDRESS and an explicit --identity key")
     try:
-        import websockify  # noqa: F401
+        import asyncssh
+
+        from kioskdesktop.viewer import Session
     except ImportError as error:
         raise ValueError("Install the supplied laptop-requirements.txt before opening the viewer") from error
-    start = remote(host, "screen-start")
-    tunnel = viewer = None
-    token_directory = tempfile.TemporaryDirectory(prefix="carvera-viewer-")
-    forwarded = browser = None
+    selected_key = Path(IDENTITY).expanduser()
+    if selected_key.is_symlink() or not selected_key.is_file() or selected_key.stat().st_size > 65536:
+        raise ValueError("Select a regular maintenance private key no larger than 64 KiB")
+    data = selected_key.read_bytes()
     try:
-        forwarded, browser = unused_port(), unused_port()
-        tunnel = subprocess.Popen(
-            ssh_args(host)[:-1]
-            + [
-                "-N",
-                "-o",
-                "ExitOnForwardFailure=yes",
-                "-L",
-                f"127.0.0.1:{forwarded}:127.0.0.1:5901",
-                host,
-            ],
-            start_new_session=os.name != "nt",
+        key = asyncssh.import_private_key(data)
+    except asyncssh.KeyImportError:
+        key = asyncssh.import_private_key(data, passphrase=getpass.getpass("Maintenance key passphrase: "))
+
+    async def run_viewer():
+        session = Session()
+        session.connection = await asyncssh.connect(
+            host.split("@", 1)[1],
+            username="carvera-admin",
+            config=None,
+            known_hosts=str(Path.home() / ".ssh/known_hosts"),
+            host_key_alias=HOST_KEY_ALIAS,
+            client_keys=[key],
+            agent_path=None,
+            preferred_auth=("publickey",),
+            agent_forwarding=False,
+            connect_timeout=15,
+            login_timeout=15,
+            keepalive_interval=20,
+            keepalive_count_max=3,
         )
-        wait_port(forwarded, tunnel)
-        token = secrets.token_urlsafe(32)
-        token_file = Path(token_directory.name) / "tokens"
-        token_file.write_text(f"{token}: 127.0.0.1:{forwarded}\n", encoding="ascii")
-        token_file.chmod(0o600)
-        viewer = subprocess.Popen(
-            [
-                sys.executable,
-                "-m",
-                "websockify",
-                "--web",
-                str(novnc),
-                "--auth-plugin=ExpectOrigin",
-                f"--auth-source=http://127.0.0.1:{browser}",
-                "--token-plugin=ReadOnlyTokenFile",
-                "--token-source",
-                str(token_file),
-                f"127.0.0.1:{browser}",
-            ],
-            start_new_session=os.name != "nt",
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        wait_port(browser, viewer)
-        query = urlencode({"autoconnect": "true", "resize": "scale", "path": "websockify?token=" + token})
-        url = f"http://127.0.0.1:{browser}/vnc.html?{query}"
-        print("Opening the private local screen viewer.", flush=True)
-        webbrowser.open(url)
-        input("Press Enter to close this screen session. ")
-    finally:
-        for process in (viewer, tunnel):
-            if process is not None:
-                stop_owned(process)
-        try:
-            if start.get("owned"):
-                remote(host, "screen-stop", start["token"])
-        finally:
-            token_directory.cleanup()
-            for port in (forwarded, browser):
-                if port is not None:
-                    for family, address in ((socket.AF_INET, "127.0.0.1"), (socket.AF_INET6, "::1")):
-                        with socket.socket(family) as connection:
-                            connection.settimeout(0.2)
-                            if connection.connect_ex((address, port)) == 0:
-                                raise RuntimeError(
-                                    "A viewer port remains occupied; unrelated listeners were left alone"
-                                )
+
+        def report(value):
+            if value.get("phase") == "connected":
+                print("Opening the private local screen viewer. Press Ctrl+C to disconnect.", flush=True)
+
+        await session.run(report=report, assets=novnc)
+
+    try:
+        asyncio.run(run_viewer())
+    except KeyboardInterrupt:
+        return {"screen_closed": True}
 
 
 def transfer_file(host, name, destination=None):

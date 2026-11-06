@@ -1,12 +1,83 @@
 """Import application preferences without importing executables or G-code."""
 
 import configparser
+import bz2
+import gzip
 import io
 import json
+import lzma
 import os
 import sys
 import tarfile
+import zlib
 from pathlib import Path, PurePosixPath
+
+MAX_ARCHIVE = 32 * 1024 * 1024
+
+
+def bounded_archive(source):
+    """Bound all tar bytes, including skipped members and extended headers."""
+    if hasattr(source, "read"):
+        data = source.read(MAX_ARCHIVE + 1)
+    else:
+        with open(source, "rb") as incoming:
+            data = incoming.read(MAX_ARCHIVE + 1)
+    if len(data) > MAX_ARCHIVE:
+        raise ValueError("Settings archive exceeds 32 MiB")
+    decoder = None
+    if data.startswith(b"\x1f\x8b"):
+        decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    elif data.startswith(b"BZh"):
+        decoder = bz2.BZ2Decompressor()
+    elif data.startswith(b"\xfd7zXZ\0"):
+        decoder = lzma.LZMADecompressor(memlimit=64 * 1024 * 1024)
+    if decoder is not None:
+        expanded = decoder.decompress(data, MAX_ARCHIVE + 1)
+        if len(expanded) > MAX_ARCHIVE or not decoder.eof or decoder.unused_data:
+            raise ValueError("Settings compression is truncated, concatenated or exceeds 32 MiB")
+        data = expanded
+    return tarfile.open(fileobj=io.BytesIO(data), mode="r:")
+
+
+def prepare_archive(source):
+    """Normalize supported exports into deterministic, bounded setup preferences."""
+    pending = {}
+    incoming = bounded_archive(source)
+    with incoming as archive:
+        for index, member in enumerate(archive):
+            if index >= 4096:
+                raise ValueError("Too many entries in the settings archive")
+            if member.name in {"system-bundle.json", "updater-bundle.json"}:
+                raise ValueError("A system bundle is not a preferences backup")
+            path = PurePosixPath(member.name)
+            if (not member.isfile() or member.size > 1024 * 1024 or member.size < 0
+                    or path.is_absolute() or ".." in path.parts or "\\" in member.name
+                    or path.suffix not in (".ini", ".json")
+                    or not (path.name == "makera.ini" or {".kivy", ".carveracontroller"}.intersection(path.parts))):
+                continue
+            name = "makera.ini" if path.name == "makera.ini" else (
+                (".kivy/" if ".kivy" in path.parts else ".carveracontroller/") + path.name)
+            if name in pending:
+                raise ValueError("Duplicate preference files in settings archive")
+            content = archive.extractfile(member).read()
+            if path.suffix == ".json":
+                if not isinstance(json.loads(content), dict):
+                    raise ValueError("Expected a settings object")
+            else:
+                configparser.ConfigParser(interpolation=None).read_string(content.decode("utf-8"))
+            pending[name] = content
+            if sum(map(len, pending.values())) > 16 * 1024 * 1024:
+                raise ValueError("Settings exceed 16 MiB")
+    if not pending:
+        raise ValueError("No supported preferences found in settings archive")
+    output = io.BytesIO()
+    with gzip.GzipFile(fileobj=output, mode="wb", filename="", mtime=0) as compressed:
+        with tarfile.open(fileobj=compressed, mode="w") as archive:
+            for name, content in sorted(pending.items()):
+                member = tarfile.TarInfo(name)
+                member.size, member.mode = len(content), 0o600
+                archive.addfile(member, io.BytesIO(content))
+    return output.getvalue()
 
 
 def export_settings(directory, destination):
@@ -25,8 +96,10 @@ def import_settings(archive, destination):
     destination = Path(destination)
     report = {"imported": [], "skipped": [], "translated": []}
     pending = {}
-    with tarfile.open(archive, "r:*") as source:
-        for member in source:
+    with bounded_archive(archive) as source:
+        for index, member in enumerate(source):
+            if index >= 4096:
+                raise ValueError("Too many entries in the settings archive")
             if member.name in {"system-bundle.json", "updater-bundle.json"}:
                 raise ValueError("A system bundle is not a preferences backup")
             path = PurePosixPath(member.name)
@@ -81,7 +154,7 @@ def import_settings(archive, destination):
 def validated_snapshot(source):
     """Read and validate an exact preferences snapshot before changing files."""
     pending = {}
-    archive = tarfile.open(fileobj=source, mode="r:*") if hasattr(source, "read") else tarfile.open(source, "r:*")
+    archive = bounded_archive(source)
     with archive:
         for index, member in enumerate(archive):
             if index >= 4096:

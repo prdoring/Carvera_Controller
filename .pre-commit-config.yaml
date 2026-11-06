@@ -9,15 +9,15 @@ repos:
   - repo: local
     hooks:
       - id: ruff-check
-        name: ruff (package, tests, scripts)
-        entry: poetry run ruff check carveracontroller tests scripts
+        name: ruff (packages, tests, scripts)
+        entry: poetry run ruff check carveracontroller kioskdesktop tests scripts
         language: system
         always_run: true
         pass_filenames: false
 
       - id: ruff-format-check
-        name: ruff format (package, tests, scripts)
-        entry: poetry run ruff format --check carveracontroller tests scripts
+        name: ruff format (packages, tests, scripts)
+        entry: poetry run ruff format --check carveracontroller kioskdesktop tests scripts
         language: system
         always_run: true
         pass_filenames: false

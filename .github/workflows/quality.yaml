@@ -61,7 +61,7 @@ jobs:
         run: poetry run ./scripts/install_linux_prereqs.sh
 
       - name: Install Linux test prerequisites
-        run: sudo apt-get install -y xvfb libgl1 libgles2 libmtdev1
+        run: sudo apt-get install -y xvfb libgl1 libgles2 libmtdev1 python3-tk fontconfig
 
       - name: Run quality hooks
         run: poetry run pre-commit run --all-files

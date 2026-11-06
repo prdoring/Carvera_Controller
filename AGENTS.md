@@ -130,10 +130,47 @@ sudo rights or turn the touchscreen account into root for convenience.
 
 For approved screen sharing, use the documented `screen --host ...` helper and
 its laptop requirements. Keep viewer/tunnel listeners on localhost. Finish the
-helper normally (Enter) and verify cleanup. Preserve any pre-existing viewer or
+helper normally (Ctrl+C) and verify cleanup. Preserve any pre-existing viewer or
 screen-sharing service that this chat did not start.
 
 ## Building and updating the kiosk
+
+Fresh-card consumers use **Carvera Kiosk Setup** and the separate **Carvera Kiosk
+Screen Share** package, not source scripts or another imager. Read
+`docs/kiosk-setup.md` before changing that flow. The independent Tk desktop code
+is `kioskdesktop/`; it must not import Kivy, controller startup or machine
+transports. Derive presentation from the canonical Slate theme and keep bundled
+font/dependency licenses. Python 3.12 is the frozen desktop runtime.
+
+GUI-managed images use `carvera-kiosk-pi4-v3`; provisioning requests remain format
+2. Keep legacy/v2 CLI and migration routes separate. Do not make applying,
+completed, missing-journal or unknown cards fresh again. Root completion is
+authoritative and completed replay performs reconciliation/cleanup only. Bind
+preferences bytes into the private transaction digest; never put password-bearing
+digests or requests in public receipts, profiles, reports or logs.
+
+Keep GUI keys/profiles under the originating normal user, including alternate-
+administrator UAC. Do not launch an elevated GUI or generate real owner keys in
+an AI session; the owner enters their passphrases. Automated key tests use isolated
+temporary folders. The disk worker accepts fixed operations and physical identity,
+not arbitrary write directories/commands. Preserve independent source verification,
+production system-disk protections, held-medium consent, fixed FAT destinations,
+read-back verification, flushing and owned cleanup. Loop/VHD write adapters belong
+only in the disposable CI harness, never in production flags or disk selection.
+
+Screen Share uses an exact verified host/installation identity and maintenance
+credential only. Preserve explicit Connect/Disconnect, localhost Origin/token
+checks, retained port-zero sockets and the 20-second/90-second lease contract.
+Lock order is global maintenance lock then screen lock; renewal and owned cleanup
+take only the screen lock. No screen-lock holder may request the global lock.
+
+The single kiosk publication workflow runs from trusted `main`, resolves the tag
+once, builds every component from that commit, checks exact inventories/embedded
+identities, rechecks the tag and creates a complete draft before publication.
+Only its final publisher receives write access. Windows desktop/full releases
+remain unsigned prereleases until signing and verification are implemented.
+Do not replace existing published assets or imply automated mocks prove native
+UAC/polkit, a clean desktop or physical Pi/card validation.
 
 For installation, follow the README's release-download path when the required
 assets are published. Verify actual release availability and checksums; a planned

@@ -10,6 +10,9 @@ version=$(python3 -c 'import json; print(json.load(open("/project/kiosk/payload/
 image=/work/image-carvera-kiosk-pi4/carvera-kiosk-pi4.img
 test -f "$image"
 xz -T2 -c "$image" > "/export/carvera-kiosk-pi4-$version.img.xz"
+python3 /project/kiosk/kiosk_image_metadata.py "$image" "/export/carvera-kiosk-pi4-$version.img.xz" /export/image-metadata.json /project/kiosk
 cp /project/kiosk/payload/carvera-kiosk-*.tar.gz /project/kiosk/payload/bundle.json /project/kiosk/payload/system-bundle.json /export/
+cp /export/bundle.json "/export/bundle-$version.json"
+cp "/project/kiosk/payload/carvera-kiosk-app-$version.tar.gz.sha256" /export/
 cp /project/kiosk/README.md /export/README.md
 python3 /project/kiosk/package_release.py "$version" /export /project/kiosk/kiosk.py /usr/share/novnc

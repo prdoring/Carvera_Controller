@@ -1,0 +1,15 @@
+FROM python:3.12-bookworm
+ENV DEBIAN_FRONTEND=noninteractive PIP_DISABLE_PIP_VERSION_CHECK=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-tk tk-dev fontconfig xvfb xauth libx11-6 libxft2 git openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+COPY assets/packaging/kiosk/desktop-requirements.txt /desktop-requirements.txt
+RUN python -c 'import tkinter' \
+    && python -m pip install -r /desktop-requirements.txt pytest==8.4.2 pytest-timeout==2.4.0
+WORKDIR /src
+COPY kioskdesktop /src/kioskdesktop
+COPY scripts/build_kiosk_desktop.py /src/scripts/build_kiosk_desktop.py
+COPY carveracontroller/ui/theme.py /src/carveracontroller/ui/theme.py
+COPY carveracontroller/data/fonts /src/carveracontroller/data/fonts
+COPY carveracontroller/data/theme /src/carveracontroller/data/theme
+CMD ["python", "scripts/build_kiosk_desktop.py", "--design-slice"]

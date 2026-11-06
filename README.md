@@ -42,85 +42,66 @@ Features depend on the firmware reported by the machine. Higher USB baud rates r
 
 ## Install the kiosk
 
-The kiosk is included on this fork’s main branch.
+Use **Carvera Kiosk Setup** from a [full release](https://github.com/prdoring/Carvera_Controller/releases)
+that contains `setup-release.json`. Legacy and app-only releases cannot install
+this graphical setup. Until a complete compatible release is published, use the
+[developer build instructions](docs/development.md#kiosk-desktop-tools).
 
-### Before you start
+### 1. Open Setup on your computer
 
-On your computer, install **Raspberry Pi Imager**, **Python 3.11+**, and the **OpenSSH client tools** (ssh, scp, and ssh-keygen).
+Download the Setup installer for **Windows 11 x64**, or the `.deb` for **Debian
+12+ / Ubuntu 24.04+**, choosing x64 or ARM64 to match your computer. Portable
+downloads are also provided. Verify the download against that release's
+`SHA256SUMS`. Initial Windows downloads are unsigned previews.
 
-You also need an SSH key pair for laptop access. If you do not already have one, run the following and accept the default file location:
+Open Setup as your normal desktop user. It includes its own runtime and card
+writer; installing Python, Git, Docker, OpenSSH or Raspberry Pi Imager is not
+part of the graphical workflow.
 
-~~~bash
-ssh-keygen -t ed25519
-~~~
+### 2. Install and configure a card
 
-The card setup below uses the public key at `~/.ssh/id_ed25519.pub`. Keep the private key on your computer.
+Keep your working card for recovery and insert the new card. Choose **Install
+on a new card**. Follow **Card → Network → Access → Review → Install**:
 
-### 1. Download the image and setup tools
+- Select the physical card and a compatible full release. Setup can download the
+  image, or use an offline image with matching `setup-release.json`.
+- Choose Ethernet or WPA-personal Wi-Fi, a kiosk name and country. Optionally
+  import an exported preferences backup.
+- Enter and confirm a private passphrase. Setup creates separate encrypted
+  maintenance and administrator keys in a unique folder under your `.ssh` folder.
+  The administrator account has full control of the Pi.
+- Grant the card worker administrator permission when asked. After verification,
+  check the card's identity and capacity again and explicitly approve erasure.
+  Wait for configuration and safe ejection to finish.
 
-Administrator-enabled images use format `carvera-kiosk-pi4-v2`. Build the current
-source until a matching release is published. The published
-[Pi Kiosk v1.0.0](https://github.com/prdoring/Carvera_Controller/releases/tag/kiosk-v1.0.0)
-uses the legacy format and restricted maintenance login; its tools do not support
-the administrator setup below. Keep the image and laptop ZIP from the same build.
+If Windows asks to format the Linux partition, choose **Cancel**. A completed
+flash followed by failed configuration is reported separately; reopen the saved
+profile to retry configuration without reflashing. Use **Configure an
+already-flashed card** only for a fresh v3 image. Existing kiosks use the
+[migration workflow](docs/kiosk-administration.md#migrate-an-existing-card).
 
-Download these files from its **Assets** section:
+### 3. Check first boot
 
-| File | Purpose |
-| --- | --- |
-| `carvera-kiosk-pi4-VERSION.img.xz` | SD card image for the Raspberry Pi 4 |
-| `carvera-kiosk-laptop-VERSION.zip` | Card setup, migration and laptop tools |
-| `carvera-kiosk-app-VERSION.tar.gz` | Controller application update |
-| `carvera-kiosk-system-VERSION.tar.gz` | Independent System/recovery update |
-| `carvera-kiosk-updater-VERSION.tar.gz` | Administrator-only updater upgrade |
-| `SHA256SUMS` | Checksums for verifying the downloads |
+Insert the card into the Pi, keep the mill disconnected, and power on. First
+boot makes the card's available storage usable, applies setup and removes the
+temporary Wi-Fi payload. If setup fails, a limited status screen shows recovery
+information while the controller remains stopped.
 
-Compare every download you use with `SHA256SUMS`. On Linux, run `sha256sum -c
-SHA256SUMS` beside all five downloads. On Windows, use `Get-FileHash <filename>
--Algorithm SHA256` for each file and compare its hash.
+In Setup, choose **Check first boot** and open the saved profile. Compare the SSH
+fingerprint with the touchscreen before trusting it. Setup checks the installed
+image and component versions, both accounts and administrator access. It can
+set a private local recovery password. Physically test keyboard login with
+**Ctrl+Alt+F2**, then return to the kiosk with **Ctrl+Alt+F1**.
 
-Extract the laptop ZIP and open a terminal in its **laptop** folder, beside
-**kiosk.py**. Keep the complete folder together, including `kiosk_admin.py`,
-`bootstrap/`, guides and `novnc/`. Git and Docker are only needed to build.
-Keep the existing maintenance key and create a separate administrator key:
+The finish screen shows your key locations and connection details, and links to
+the separate **Carvera Kiosk Screen Share** download. Screen Share uses the
+verified profile and maintenance key, with explicit Connect/Disconnect controls.
+See the [setup guide](docs/kiosk-setup.md) for offline setup and recovery.
 
-```powershell
-ssh-keygen -t ed25519 -f "$HOME/.ssh/id_ed25519_carvera_kiosk_admin" -C carvera-kiosk-admin
-```
+### 4. Connect the mill when ready
 
-Enter your own passphrase and load it in the laptop SSH agent. Keep private keys
-on the laptop. See [key and agent setup](docs/kiosk-administration.md#accounts-and-keys).
-
-### 2. Flash and configure the card
-
-In Raspberry Pi Imager, choose a custom image and select the downloaded `.img.xz`. Flash a spare card and keep your existing card for rollback. Skip Imager’s OS customization.
-
-Before ejecting the card, configure its **bootfs** partition. Replace `E:/` with its actual drive or mount path, and change the public-key path, Wi-Fi name, and country to match your setup:
-
-~~~powershell
-python kiosk.py prepare-card --boot-dir E:/ --public-key ~/.ssh/id_ed25519.pub --admin-public-key ~/.ssh/id_ed25519_carvera_kiosk_admin.pub --hostname carvera-pi --ssid Workshop --country US
-~~~
-
-The helper prompts for your Wi-Fi password. For Ethernet, omit `--ssid` and `--country`. To import preferences from an exported Android app backup, add `--settings backup.tar.gz`.
-
-### 3. Boot the Pi
-
-Insert the card and power on the Pi. In **Settings → System**, find its network address and SSH fingerprint. From your computer, connect once:
-
-~~~bash
-ssh carvera-admin@carvera-pi.local
-~~~
-
-Compare the fingerprint with the touchscreen before accepting it. If the hostname does not resolve, use the IP address shown on the Pi. Once connected, type **exit** to return to your computer’s terminal.
-
-Also verify `kiosk-admin` with its dedicated key and `sudo -n id -u` (expected
-`0`). This account has full root authority. After SSH works, set a private console
-password and physically test TTY2 login and return to the kiosk on TTY1 using the
-[administration guide](docs/kiosk-administration.md#local-keyboard-fallback).
-
-### 4. Connect the mill
-
-The controller starts disconnected. Tap **Connect** and select USB or a network connection. **Opening a USB connection resets the mill.** USB is the default for a fresh installation.
+The controller starts disconnected. Tap **Connect** and select USB or a network
+connection. **Opening a USB connection resets the mill.**
 
 ## Laptop maintenance
 

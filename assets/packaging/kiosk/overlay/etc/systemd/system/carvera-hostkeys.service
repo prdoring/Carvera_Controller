@@ -1,0 +1,12 @@
+[Unit]
+Description=Create this kiosk's missing SSH host keys
+After=local-fs.target
+Before=carvera-provision.service ssh.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ssh-keygen -A
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -33,9 +33,11 @@ def test_stage_only_uploads_without_deploying(laptop, monkeypatch, tmp_path):
     source.write_bytes(b"archive")
     calls = []
     monkeypatch.setattr(laptop, "run", lambda args, **_kwargs: calls.append(args))
+
     def status(_host, action):
         assert action == "status"
         return {}
+
     monkeypatch.setattr(laptop, "remote", status)
     result = laptop.transfer_file("carvera-admin@example.invalid", source)
     assert result == {"staged": source.name}
@@ -73,9 +75,13 @@ def test_stage_preserves_full_admin_identity_and_transfer_directory(laptop, monk
     source.write_bytes(b"archive")
     monkeypatch.setattr(laptop, "IDENTITY", tmp_path / "admin-key")
     monkeypatch.setattr(laptop, "HOST_KEY_ALIAS", "carvera-pi.local")
-    monkeypatch.setattr(laptop, "remote", lambda *_args: {
-        "transfers": {"uploads": "/home/kiosk-admin/transfers/uploads"},
-    })
+    monkeypatch.setattr(
+        laptop,
+        "remote",
+        lambda *_args: {
+            "transfers": {"uploads": "/home/kiosk-admin/transfers/uploads"},
+        },
+    )
     calls = []
     monkeypatch.setattr(laptop, "run", lambda args, **_kwargs: calls.append(args))
     laptop.transfer_file("kiosk-admin@192.0.2.1", source)
@@ -126,22 +132,11 @@ def test_card_archive_contains_only_valid_preferences(laptop, tmp_path):
         assert b"android_ui_scale=1.1" in archive.extractfile(".kivy/config.ini").read()
 
 
-def test_failed_viewer_stops_only_the_screen_session_it_started(laptop, monkeypatch, tmp_path):
+def test_viewer_rejects_administrator_role_before_starting_a_session(laptop, monkeypatch, tmp_path):
     (tmp_path / "vnc.html").touch()
-    monkeypatch.setitem(sys.modules, "websockify", SimpleNamespace())
-    requests, stopped = [], []
-
-    def remote(_host, action, value=None):
-        requests.append((action, value))
-        return {"owned": True, "token": "owned-session"}
-
-    process = object()
-    monkeypatch.setattr(laptop, "remote", remote)
-    monkeypatch.setattr(laptop.subprocess, "Popen", lambda *_a, **_k: process)
-    monkeypatch.setattr(laptop, "unused_port", lambda: 49999)
-    monkeypatch.setattr(laptop, "wait_port", lambda *_a: (_ for _ in ()).throw(RuntimeError("failed viewer")))
-    monkeypatch.setattr(laptop, "stop_owned", stopped.append)
-    with pytest.raises(RuntimeError, match="failed viewer"):
-        laptop.screen("carvera-admin@example.invalid", tmp_path)
-    assert stopped == [process]
-    assert requests == [("screen-start", None), ("screen-stop", "owned-session")]
+    (tmp_path / "core").mkdir()
+    (tmp_path / "core/rfb.js").touch()
+    monkeypatch.setattr(laptop, "IDENTITY", "selected-key")
+    monkeypatch.setattr(laptop, "remote", lambda *_args: pytest.fail("No session may start"))
+    with pytest.raises(ValueError, match="carvera-admin"):
+        laptop.screen("kiosk-admin@example.invalid", tmp_path)

@@ -19,11 +19,22 @@ The controller starts disconnected. Tap Connect to open the machine connection;
 opening USB resets the mill. USB is the default preferred method for fresh
 settings, and network connections remain available.
 
+## Install from a release
+
+Use the main [graphical setup steps](../../../README.md#install-the-kiosk) or
+[setup guide](../../../docs/kiosk-setup.md). A compatible full release has
+`setup-release.json`, Setup and Screen Share packages for all three desktop
+targets, a v3 image and separate update artifacts. An app-only release cannot
+install a fresh card. Graphical users do not need Python, OpenSSH, Git, Docker or
+another card-writing app.
+
 ## Build locally
 
 See the [administration guide](../../../docs/kiosk-administration.md) for fresh
 setup, migration without reflashing, backup/undo, System updates and recovery.
-The new image format is `carvera-kiosk-pi4-v2`; use matching laptop tools.
+The graphical image format is `carvera-kiosk-pi4-v3`; request format 2 is retained.
+Old v2 tools reject v3 cards. Matching new CLI tools still handle v2 preparation
+and legacy migration through their separate paths.
 
 Use Python 3.11 or newer, Git, and Docker Desktop with Linux containers. No Pi is
 needed for the build. The first ARM build is slow under emulation; later builds
@@ -36,14 +47,17 @@ python scripts/kiosk.py build --version 1.0.0.dev1
 The equivalent existing build entry point is
 `python scripts/build.py --os kiosk --version 1.0.0.dev1`.
 
-Outputs include the compressed image, controller, System and updater bundles,
-laptop ZIP/folder, checksums and version information. Use `build --system-only
+Image builds produce the compressed image, controller, System and updater bundles,
+laptop ZIP/folder, image metadata and component checksums. The trusted full-release
+workflow adds the native desktop packages, complete metadata and checksum inventory.
+See [desktop builds](../../../docs/development.md#kiosk-desktop-tools).
+Use `build --system-only
 --version VERSION` for independent System builds. The image builder uses a pinned
 [rpi-image-gen release](https://github.com/raspberrypi/rpi-image-gen/tree/v2.9.0).
 Application dependencies follow `poetry.lock`; the image records installed OS
 package versions. OS package repositories can change between builds.
 
-## Prepare a card
+## Advanced CLI card preparation
 
 Flash the `.img.xz` using Raspberry Pi Imager's custom-image option. Skip Imager's
 OS customization and use the helper below for network/login setup. Keep the

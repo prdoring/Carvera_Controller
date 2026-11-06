@@ -1,5 +1,6 @@
 """Install the kiosk owner account without replacing existing credentials."""
 
+import base64
 import hashlib
 import json
 import os
@@ -15,7 +16,7 @@ ADMIN = "kiosk-admin"
 
 
 def command(*args, **kwargs):
-    return subprocess.run(args, check=True, text=True, capture_output=True, timeout=30, **kwargs)
+    return subprocess.run(args, check=True, text=True, encoding="utf-8", capture_output=True, timeout=30, **kwargs)
 
 
 def atomic_write(path, content, mode=0o600):
@@ -54,10 +55,11 @@ def read_json(path):
     return value
 
 
-def public_keys(values):
+def key_records(values):
+    """Validate common record boundaries without an operating-system dependency."""
     if not isinstance(values, list) or not 1 <= len(values) <= 16:
         raise ValueError("Provide between one and sixteen SSH public keys")
-    keys, fingerprints = [], []
+    result = []
     for value in values:
         if not isinstance(value, str) or len(value.encode("utf-8")) > 16384:
             raise ValueError("Invalid SSH public key")
@@ -68,10 +70,33 @@ def public_keys(values):
             r"(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(?:256|384|521)) [A-Za-z0-9+/=]+(?: [^\r\n\0]*)?", value
         ):
             raise ValueError("Provide a single public key without authorized_keys options")
+        encoded = value.split(" ", 2)[1]
+        try:
+            decoded = base64.b64decode(encoded, validate=True)
+        except ValueError as error:
+            raise ValueError("Invalid SSH public-key encoding") from error
+        if base64.b64encode(decoded).decode("ascii") != encoded:
+            raise ValueError("Use canonical OpenSSH public-key encoding")
+        result.append(value)
+    return result
+
+
+def public_keys(values, verify=None):
+    keys, fingerprints = [], []
+    for value in key_records(values):
+        if verify is not None:
+            fingerprint = verify(value)
+            if fingerprint not in fingerprints:
+                keys.append(value)
+                fingerprints.append(fingerprint)
+            continue
         with tempfile.TemporaryDirectory(prefix="kiosk-key-") as temporary:
             path = Path(temporary) / "public.pub"
             path.write_text(value + "\n", encoding="utf-8")
-            result = command("ssh-keygen", "-l", "-E", "sha256", "-f", str(path))
+            try:
+                result = command("ssh-keygen", "-l", "-E", "sha256", "-f", str(path))
+            except subprocess.CalledProcessError as error:
+                raise ValueError("OpenSSH could not validate this public key") from error
         lines = result.stdout.strip().splitlines()
         if len(lines) != 1 or len(lines[0].split()) < 2:
             raise ValueError("OpenSSH did not recognize a single public key")
@@ -232,7 +257,8 @@ def install(request, root=Path("/")):
             "key_fingerprints": fingerprints,
             "account": ADMIN,
             "operation": "migration" if request.get("legacy_gate") else "provision",
-            "target": request.get("target", {"hostname": request.get("hostname"), "image_format": IMAGE_FORMAT}),
+            "target": request.get("target", {"hostname": request.get("hostname"),
+                                              "image_format": "carvera-kiosk-pi4-v3" if request.get("setup_protocol") == 1 else IMAGE_FORMAT}),
         }
         write_json(completion, result)
         journal.unlink(missing_ok=True)

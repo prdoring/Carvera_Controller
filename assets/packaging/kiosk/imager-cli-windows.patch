@@ -1,0 +1,109 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 0022ce2..2aa8a22 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -509,7 +509,11 @@ endif()
+ # Create the application target before tools reference it
+ if (WIN32)
+     # Adding WIN32 prevents a console window being opened on Windows
+-    add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${DEPENDENCIES})
++    if(BUILD_CLI_ONLY)
++        add_executable(${PROJECT_NAME} ${SOURCES} ${DEPENDENCIES})
++    else()
++        add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${DEPENDENCIES})
++    endif()
+ 
+     # Inject the callback port macro for Windows builds
+     target_compile_definitions(${PROJECT_NAME}
+diff --git a/src/windows/PlatformPackaging.cmake b/src/windows/PlatformPackaging.cmake
+index ff5c371..415b47d 100644
+--- a/src/windows/PlatformPackaging.cmake
++++ b/src/windows/PlatformPackaging.cmake
+@@ -11,6 +11,7 @@ if(CMAKE_STRIP AND CMAKE_BUILD_TYPE MATCHES "^(Release|RelWithDebInfo|MinSizeRel
+     VERBATIM)
+ endif()
+ 
++if(NOT BUILD_CLI_ONLY)
+ # Optional code signing
+ if (IMAGER_SIGNED_APP)
+     # Determine build architecture
+@@ -213,6 +214,8 @@ else()
+     endif()
+ endif()
+ 
++endif()
++
+ # Resource file and manifest: generated at build time so version stays
+ # in sync with the binary even without a re-configure.
+ # Manifest must be generated before the .rc (which embeds it via RT_MANIFEST)
+@@ -253,12 +256,14 @@ add_custom_command(TARGET ${PROJECT_NAME}
+     DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/rpi-imager.manifest"
+     COMMENT "Copying generated manifest for resource compilation")
+ 
+-add_custom_command(TARGET ${PROJECT_NAME}
+-    POST_BUILD
+-    COMMAND ${CMAKE_COMMAND} -E copy
+-        "${MINGW64_ROOT}/bin/libgcc_s_seh-1.dll"
+-        "${MINGW64_ROOT}/bin/libstdc++-6.dll"
+-        "${MINGW64_ROOT}/bin/libwinpthread-1.dll"
+-        "${CMAKE_BINARY_DIR}/deploy")
++if(NOT BUILD_CLI_ONLY)
++    add_custom_command(TARGET ${PROJECT_NAME}
++        POST_BUILD
++        COMMAND ${CMAKE_COMMAND} -E copy
++            "${MINGW64_ROOT}/bin/libgcc_s_seh-1.dll"
++            "${MINGW64_ROOT}/bin/libstdc++-6.dll"
++            "${MINGW64_ROOT}/bin/libwinpthread-1.dll"
++            "${CMAKE_BINARY_DIR}/deploy")
++endif()
+ 
+ 
+diff --git a/src/windows/platformquirks_windows.cpp b/src/windows/platformquirks_windows.cpp
+index 1543932..9aaed4c 100644
+--- a/src/windows/platformquirks_windows.cpp
++++ b/src/windows/platformquirks_windows.cpp
+@@ -23,8 +23,10 @@
+ #include <iostream>
+ #include <QProcess>
+ #include <QDebug>
++#ifndef CLI_ONLY_BUILD
+ #include <QFont>
+ #include <QFontDatabase>
++#endif
+ #include <QString>
+ #include <QFile>
+ #include <QProcessEnvironment>
+@@ -488,6 +490,9 @@ bool hasElevatedPrivileges() {
+ }
+ 
+ void attachConsole() {
++#ifdef CLI_ONLY_BUILD
++    std::ios::sync_with_stdio();
++#else
+     // Allocate console on Windows (only needed if compiled as GUI program)
+     // Try to attach to parent process console first, or allocate a new one
+     if (::AttachConsole(ATTACH_PARENT_PROCESS) || ::AllocConsole()) {
+@@ -496,6 +501,7 @@ void attachConsole() {
+         // Sync C++ iostreams with C stdio for consistency
+         std::ios::sync_with_stdio();
+     }
++#endif
+ }
+ 
+ bool isElevatableBundle() {
+@@ -1028,6 +1034,7 @@ namespace TestAPI {
+ 
+ qreal detectTextScaleFactor()
+ {
++#ifndef CLI_ONLY_BUILD
+     // Windows "Make text bigger" accessibility setting affects the system font
+     // size. Detect this by comparing to the default 9pt (Segoe UI).
+     QFont systemFont = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
+@@ -1041,6 +1048,7 @@ qreal detectTextScaleFactor()
+             return factor;
+         }
+     }
++#endif
+     return 1.0;
+ }
+ 

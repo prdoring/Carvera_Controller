@@ -123,6 +123,16 @@ def main():
     if len(raw) > 8192:
         raise ValueError("System request is too large")
     request = json.loads(raw)
+    if isinstance(request, dict) and request.get("action") in {"setup-status", "setup-retry", "setup-shutdown"}:
+        import setup_gate
+
+        result = setup_gate.dispatch(request)
+        print(json.dumps({"ok": True, "result": result}))
+        return None
+    from provision_v3 import completion_ready
+
+    if not completion_ready():
+        raise ValueError("Complete kiosk setup before opening System settings")
     action = operations.validate(request)
     if action == "status":
         result = operations.status()

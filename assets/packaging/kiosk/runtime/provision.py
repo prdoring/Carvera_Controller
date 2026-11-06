@@ -15,6 +15,11 @@ BOOT = Path("/boot/firmware")
 
 
 def main():
+    image = read_json(BOOT / "carvera-image.json")
+    if image.get("format") == "carvera-kiosk-pi4-v3":
+        from provision_v3 import main as provision_new_image
+
+        return provision_new_image()
     path = BOOT / "carvera-provision.json"
     if not path.exists():
         if read_json(STATE / "access-complete.json"):

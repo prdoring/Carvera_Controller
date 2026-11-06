@@ -2,7 +2,7 @@
 FROM debian:trixie-slim AS image-tools
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git ca-certificates sudo binfmt-support qemu-user-static novnc \
+    git ca-certificates sudo binfmt-support qemu-user-static novnc mtools e2fsprogs \
     && rm -rf /var/lib/apt/lists/*
 RUN git clone --depth 1 --branch v2.9.0 https://github.com/raspberrypi/rpi-image-gen.git /opt/image-gen \
     && test "$(git -C /opt/image-gen rev-parse HEAD)" = d2d5705bcb37284c4b08c0ce43c039b1f1004e25 \
@@ -38,6 +38,8 @@ COPY --from=system /output /project/kiosk/payload
 COPY --from=system /src/carveracontroller /project/kiosk/application-source
 COPY scripts/kiosk.py /project/kiosk/kiosk.py
 COPY scripts/kiosk_admin.py /project/kiosk/kiosk_admin.py
+COPY kioskdesktop /project/kiosk/kioskdesktop
+COPY scripts/kiosk_image_metadata.py /project/kiosk/kiosk_image_metadata.py
 COPY carveracontroller/kiosk_state.py carveracontroller/runtime_profile.py carveracontroller/kiosk_touch.py /project/kiosk/runtime/
 RUN chmod +x /project/kiosk/build-image.sh
 ENTRYPOINT ["/project/kiosk/build-image.sh"]

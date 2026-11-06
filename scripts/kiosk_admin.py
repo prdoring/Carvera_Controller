@@ -32,6 +32,20 @@ def account_module():
     return module
 
 
+def shared_setup():
+    spec = importlib.util.spec_from_file_location("kiosk_setup_protocol", assets() / "setup_protocol.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def shared_settings():
+    spec = importlib.util.spec_from_file_location("kiosk_preferences", assets() / "settings.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def key_files(paths):
     if not paths:
         raise ValueError("Supply at least one --admin-public-key")

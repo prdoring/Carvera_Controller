@@ -160,36 +160,92 @@ rather than replacing an installed one. System releases declare maintenance
 protocol compatibility and include recovery UI assets/environment independently
 of the active controller.
 
-The [administration guide](kiosk-administration.md) documents v2 provisioning,
+The [administration guide](kiosk-administration.md) documents provisioning,
 existing-card migration, full administration, recovery and updater repair.
 Test the laptop ZIP outside the repository, including a path containing spaces.
 Access and update changes need Linux account-policy tests and Debian 13/systemd
 257 boot tests with separate boot/root filesystems. Physical Pi validation is
 still required; simulation does not validate the console, touchscreen or CNC.
 
-To follow the [installation instructions](../README.md#install-the-kiosk), use your generated image and open a terminal in `dist/kiosk/laptop`. You do not need a release ZIP when using your own build.
+The image build emits `image-metadata.json`. The full release workflow combines
+that with all desktop packages into `setup-release.json` for Setup's offline
+picker. A component build alone does not produce full-release metadata. The
+laptop CLI remains available in `dist/kiosk/laptop` for advanced provisioning
+and existing-card migration.
 
 For application-only builds, image details, and validation steps, see the [kiosk guide](https://github.com/prdoring/Carvera_Controller/blob/main/assets/packaging/kiosk/README.md).
 
-## Fork application releases
+## Kiosk desktop tools
+
+The independent desktop package is `kioskdesktop/`. It uses Python 3.12, Tk/ttk,
+AsyncSSH and PyInstaller, without importing Kivy or controller transports. Its
+colors, button artwork and IBM Plex fonts come from the kiosk theme; the bundled
+Noto CJK fallback has its own redistribution license.
+
+Build Windows packages natively with Qt 6.9.3/MinGW 13.1 and NSIS 3.13. Build
+Linux x64 and ARM64 packages natively in the Debian 12 containers. The publication
+workflow contains the exact dependency setup. These are developer prerequisites;
+downloaded tools include their runtime and require no Python, Git, Docker or SSH
+installation.
+
+```sh
+python scripts/kiosk_desktop_assets.py dist/kiosk/desktop-assets/noto
+python scripts/kiosk_novnc.py dist/kiosk/novnc-desktop
+python scripts/build_kiosk_writer.py --qt PATH_TO_QT --work dist/kiosk/writer-work --output dist/kiosk/writer
+```
+
+On Windows, add the matching MinGW and CMake/Ninja tools to the build environment.
+The writer builder uses Windows short path aliases where available to avoid a
+MinGW resource-preprocessor quoting defect. Otherwise choose a build folder with
+no spaces. This restriction does not apply to the installed or portable tools.
+
+Set `RELEASE_VERSION` and `RELEASE_COMMIT` to the version and full source SHA, then
+run the native package gate:
+
+```sh
+python scripts/kiosk_desktop_check.py --output dist/kiosk/native --writer dist/kiosk/writer
+```
+
+Use a fresh output directory for each gate run; existing reports and packages
+are preserved.
+
+This checks both frozen executables, actual fonts, packaged server workers,
+portable paths containing spaces and Unicode, and Windows per-user installation
+and removal. Linux installed/portable checks also run in `Dockerfile.desktop-clean`,
+which contains no development tools. Tk requires X11 or XWayland. Review the
+captured setup, erase-confirmation and viewer screens beside the kiosk references;
+check keyboard focus, enlarged text, resizing and display scaling on each target.
+
+Run the desktop unit tests separately from controller tests when using the minimal
+desktop environment. Controller tests require the application's development
+dependencies. The disposable Debian 13 boot tests use `Dockerfile.boot-test` and
+`tests/boot/kiosk_setup_boot.py`; they exercise real filesystem growth, setup
+failure routing and replay without exposing host disks or a network.
+
+Native UAC/polkit approval and denial, alternate-administrator UAC, a real removable
+card and the Pi 4 remain physical/manual release checks. Mocks, Xvfb and ARM
+emulation do not establish those results. Keep the old card and disconnect the
+mill during the new-card hardware check.
+
+## Fork releases
 
 Fresh installations default to English. An explicitly saved supported language
 choice is preserved.
 
 Fork release tags use `kiosk-vX.Y.Z`, `kiosk-vX.Y.Z.devN`, or `kiosk-vX.Y.ZrcN`.
-Push an explicit tag on a reviewed, tested commit to run the kiosk application
-release workflow. Ordinary branch pushes do not publish updates. Never reuse a
-published version. The workflow builds an ARM64 Python 3.13 app bundle, checks
-its source revision, version metadata, wheel hashes and archive checksum, then
-publishes a release assembled as a draft. Development and RC tags publish as
-prereleases. An existing release or draft stops publication rather than replacing
-its assets; inspect failed runs and use a new tag for a retry.
+Create an explicit tag on a reviewed mainline commit, then dispatch **Kiosk
+release** from `main` with that tag and `full` or `app-only` mode. Ordinary pushes
+do not publish. Both modes serialize by tag and resolve one immutable commit for
+all builds. Only the final publisher has write access. It rechecks the tag,
+verifies the exact asset inventory and embedded identities, uploads a complete
+draft, and checks downloaded bytes before optional publication. Never reuse a
+version or replace published assets. Windows tools are unsigned prereleases;
+stable full releases are rejected until signing is implemented.
 
-Automated releases contain the app archive, its `.sha256` file and versioned
-bundle metadata. They do not contain an SD image or laptop tools. Full kiosk
-releases are prepared separately with the existing image/laptop packager and
-its `SHA256SUMS` for the image, app, System, updater and laptop tools; app-only
-publication must not replace that list.
+Full releases include the image, controller/System/updater bundles, laptop CLI,
+Windows installers and portable ZIPs, both Linux `.deb` and portable packages,
+`setup-release.json`, image metadata, notices and checksums. App-only releases
+contain the controller archive, its `.sha256` and versioned bundle metadata.
 Changes to the OS, system services or installed maintenance/recovery tools need
 separately supplied image or tool downloads; deploying an app bundle cannot
 install them.

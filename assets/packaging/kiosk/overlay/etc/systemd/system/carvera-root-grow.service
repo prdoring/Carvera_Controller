@@ -1,0 +1,15 @@
+[Unit]
+Description=Expand the new kiosk root filesystem
+After=local-fs.target
+Before=carvera-provision.service
+RequiresMountsFor=/boot/firmware
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -E -s /usr/local/lib/carvera/grow_root.py
+TimeoutStartSec=10min
+UMask=0077
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -3105,3 +3105,47 @@ msgstr ""
 
 msgid "Use the laptop helper to stage application bundles or preferences. Application bundles update the controller. System tools use a separate administrator update; OS updates require a replacement image."
 msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:39
+msgid "Kiosk setup"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:42
+msgid "Initial setup has not finished. The controller is stopped."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:50
+msgid "Retry the same setup"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:51
+msgid "Shut down"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:67
+msgid "Setup stage: {phase}\nSSH fingerprint:\n{fingerprint}"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:68
+msgid "Not available yet"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:71
+msgid "Setup could not finish. Use the same setup profile to recover, or reflash the card."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:75
+msgid "Setup status is unavailable. Shut down and inspect the card with Kiosk Setup."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:82
+msgid "Checking setup…"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:101
+msgid "Retrying setup. Storage preparation may take several minutes."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:106
+msgid "Setup remains incomplete. Check the card with Kiosk Setup."
+msgstr ""

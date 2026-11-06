@@ -30,6 +30,10 @@ def main(version, commit, output):
         archive.add(output / "bundle.json", arcname="bundle.json")
         for wheel in sorted(wheels.glob("*.whl")):
             archive.add(wheel, arcname="wheels/" + wheel.name)
+    name = f"carvera-kiosk-app-{version}.tar.gz"
+    with (output / name).open("rb") as source:
+        digest = hashlib.file_digest(source, "sha256").hexdigest()
+    (output / (name + ".sha256")).write_text(digest + "  " + name + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

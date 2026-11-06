@@ -83,7 +83,7 @@ def build(version, commit, output, root=None):
             "architecture": "aarch64",
             "python": "3.13",
             "os": "debian-13",
-            "minimum_updater": 1,
+            "minimum_updater": 2,
             "maintenance_protocols": [1],
         }
         system = archive_files(output, f"carvera-kiosk-system-{version}.tar.gz", stage, "system-bundle.json", manifest)
@@ -98,7 +98,7 @@ def build(version, commit, output, root=None):
             f"carvera-kiosk-updater-{version}.tar.gz",
             stage,
             "updater-bundle.json",
-            {"kind": "kiosk-updater", "format": 1, "version": version, "updater_version": 1, "commit": commit},
+            {"kind": "kiosk-updater", "format": 1, "version": version, "updater_version": 2, "commit": commit},
         )
     return system
 

@@ -1,6 +1,7 @@
 """Export standalone laptop tools and checksums for a kiosk image release."""
 
 import hashlib
+import json
 import re
 import shutil
 import sys
@@ -38,9 +39,31 @@ def package_laptop(version, output, helper, novnc):
         if not extension.exists():
             extension = assets.parents[2] / "scripts/kiosk_admin.py"
         shutil.copy2(extension, laptop / "kiosk_admin.py")
+        desktop = assets.parents[2] / "kioskdesktop"
+        if not desktop.is_dir():
+            desktop = assets / "kioskdesktop"
+        target = laptop / "kioskdesktop"
+        target.mkdir()
+        for name in (
+            "__init__.py",
+            "viewer.py",
+            "viewer_server.py",
+            "profiles.py",
+            "runtime.py",
+            "transport.py",
+            "releases.py",
+        ):
+            shutil.copyfile(desktop / name, target / name)
         bootstrap = laptop / "bootstrap"
         bootstrap.mkdir()
-        for name in ("admin_accounts.py", "admin_bootstrap.py", "system_update.py", "kiosk_state.py"):
+        for name in (
+            "admin_accounts.py",
+            "admin_bootstrap.py",
+            "system_update.py",
+            "kiosk_state.py",
+            "setup_protocol.py",
+            "settings.py",
+        ):
             source = assets / "runtime" / name
             if not source.exists() and name == "kiosk_state.py":
                 source = assets.parents[2] / "carveracontroller/kiosk_state.py"
@@ -68,6 +91,25 @@ def package_laptop(version, output, helper, novnc):
                 rb"(?m)^-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----\r?$", path.read_bytes()
             ):
                 raise ValueError(f"Private data in laptop tools: {path.relative_to(laptop)}")
+        manifest = output / "bundle.json"
+        identity = json.loads(manifest.read_text()) if manifest.is_file() else {}
+        (laptop / "laptop-build.json").write_text(
+            json.dumps(
+                {
+                    "format": 1,
+                    "version": version,
+                    "commit": identity.get("commit"),
+                    "sha256": {
+                        path.relative_to(laptop).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+                        for path in files
+                    },
+                },
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        files.append(laptop / "laptop-build.json")
         archive = stage / archive_name
         with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
             for path in files:

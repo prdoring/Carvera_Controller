@@ -45,6 +45,7 @@ def generate_pot():
                     "control.py",
                     "settings.py",
                     "display.py",
+                    "setup_status_ui.py",
                 )
             ],
             "ui/kiosk_legacy.py",

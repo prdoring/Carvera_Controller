@@ -1,0 +1,7 @@
+[Unit]
+Description=Expire abandoned owned kiosk screen sessions
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -E -s /opt/carvera/maintenance/screen_sessions.py --watch
+Restart=no

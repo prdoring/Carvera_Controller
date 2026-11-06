@@ -11,6 +11,7 @@ Environment=WAYLAND_DISPLAY=wayland-0
 Environment=SDL_VIDEODRIVER=wayland
 Environment=KIVY_HOME=/var/lib/carvera/recovery
 WorkingDirectory=/var/lib/carvera
+ExecCondition=+/usr/bin/python3 -E -s /opt/carvera/maintenance/setup_gate.py --check
 ExecStart=/opt/carvera/recovery-venv/bin/python /opt/carvera/maintenance/recovery.py
 Restart=on-failure
 RestartSec=5

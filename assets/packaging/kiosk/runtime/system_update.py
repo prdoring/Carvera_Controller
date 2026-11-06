@@ -30,10 +30,10 @@ RUNTIME_UNITS = Path("/run/systemd/system")
 SCREEN_CONFIG = Path("/etc/carvera/wayvnc.conf")
 UPLOADS = Path("/home/kiosk-admin/transfers/uploads")
 MANIFEST = "system-bundle.json"
-UPDATER_VERSION = 1
+UPDATER_VERSION = 2
 LIMIT = 512 * 1024 * 1024
-SERVICES = ("carvera-screen.service", "carvera-recovery.service", "carvera-controller.service", "carvera-kiosk.service")
-UNIT_NAMES = {*SERVICES, "carvera-cpu.service"}
+SERVICES = ("carvera-screen.service", "carvera-setup.service", "carvera-recovery.service", "carvera-controller.service", "carvera-kiosk.service")
+UNIT_NAMES = {*SERVICES, "carvera-cpu.service", "carvera-screen-watchdog.service"}
 RUNTIME_NAMES = {
     "control.py",
     "controller.sh",
@@ -41,6 +41,11 @@ RUNTIME_NAMES = {
     "display.py",
     "network.py",
     "provision.py",
+    "provision_v3.py",
+    "setup_protocol.py",
+    "setup_gate.py",
+    "setup_status_ui.py",
+    "screen_sessions.py",
     "recovery.py",
     "recovery_control.py",
     "session-ready.sh",
@@ -347,8 +352,31 @@ def session_hook_override(enabled):
     command("systemctl", "daemon-reload")
 
 
+def revoke_screen():
+    """Caller holds the global lock; screen cleanup takes only the screen lock."""
+    descriptor = os.open(RUN / "screen.lock", os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        owner = read_json(RUN / "screen.json")
+        pid = command("systemctl", "show", "--property=MainPID", "--value", "carvera-screen.service").stdout.strip()
+        invocation = command("systemctl", "show", "--property=InvocationID", "--value", "carvera-screen.service").stdout.strip()
+        if pid.isdigit() and int(pid):
+            if (not owner or str(owner.get("pid")) != pid or owner.get("invocation") != invocation
+                    or not re.fullmatch("[a-f0-9]{32}", invocation)):
+                raise ValueError("An unrelated screen service is active; close its original session before updating")
+            write_json(RUN / "screen-ended.json", {"generation": owner.get("generation"), "reason": "system-update"})
+            (RUN / "screen.json").unlink(missing_ok=True)
+            command("systemctl", "stop", "carvera-screen.service")
+        else:
+            (RUN / "screen.json").unlink(missing_ok=True)
+        command("systemctl", "stop", "carvera-screen-watchdog.service", check=False)
+
+
 def stop_services():
+    revoke_screen()
     for name in SERVICES:
+        if name == "carvera-screen.service":
+            continue
         command("systemctl", "stop", name)
 
 

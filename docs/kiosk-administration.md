@@ -1,10 +1,11 @@
 # Kiosk administration and recovery
 
-The administrator-enabled image format is `carvera-kiosk-pi4-v2`. Use the image
-and laptop tools from the same build. Published `kiosk-v1.0.0` assets use the old
-format and restricted login; downloading that release does not add these features.
-Build from source until an administrator-enabled release is published. A full
-build exports image, app, system, updater and laptop artifacts with `SHA256SUMS`.
+Graphical installation uses `carvera-kiosk-pi4-v3` and provisioning request format
+2. Use **Carvera Kiosk Setup** and the [graphical setup guide](kiosk-setup.md) for a
+new card. Select a full release containing `setup-release.json`; legacy and
+app-only releases do not contain this workflow. Existing v2 preparation and
+legacy administrator migration remain supported through the CLI below. A full
+release includes image, app, System, updater, laptop CLI and desktop packages with `SHA256SUMS`.
 Verify every artifact you use against that file. An individual system/app build
 also exports a checksum beside its bundle. Checksums detect corruption; obtain
 packages from your own trusted build or a verified release download.
@@ -17,7 +18,15 @@ packages from your own trusted build or a verified release download.
 | `carvera-admin` | Routine controller maintenance | Fixed maintenance commands |
 | `kiosk-admin` | Whole kiosk administration | Full passwordless sudo |
 
-Keep the existing maintenance key. Create the additional key on your laptop:
+Graphical Setup creates distinct encrypted keys under
+`~/.ssh/carvera/INSTALLATION_ID/`, plus a versioned profile. It shows the exact
+locations after verification. The owner enters a nonempty confirmed passphrase;
+no passphrase is saved. Verification removes temporary local Wi-Fi transaction
+data and retains nonsecret release metadata. Screen Share uses only the selected
+maintenance role and the exact verified host key/installation ID.
+
+For an existing card's CLI migration, keep the existing maintenance key and
+create the additional key on your laptop:
 
 ```powershell
 ssh-keygen -t ed25519 -f "$HOME/.ssh/id_ed25519_carvera_kiosk_admin" -C carvera-kiosk-admin
@@ -48,7 +57,13 @@ authorization. Keep the operator present for machine operations.
 
 ## Fresh image
 
-Flash the matching image using Raspberry Pi Imager's custom-image option; skip
+Prefer [Carvera Kiosk Setup](kiosk-setup.md). It runs as the original desktop user
+and obtains native administrator approval only for a short-lived card worker.
+It verifies source bytes in private staging, holds the selected physical medium
+through final consent, and independently locates the matching FAT partition.
+Do not run the GUI elevated or format Windows' unfamiliar Linux partition.
+
+For advanced CLI preparation, flash the matching image using Raspberry Pi Imager's custom-image option; skip
 its customization. On the mounted boot volume run:
 
 ```powershell
@@ -60,12 +75,25 @@ Repeat `--admin-public-key` to authorize additional owners (maximum 16). Only
 single public-key records are accepted, without authorized_keys options. The
 temporary provisioning file contains the Wi-Fi password. Protect it until the
 Pi removes it after successful setup. New setup tools reject old image formats;
-old setup tools reject the distinct v2 format. Initial setup cannot finish
+old v2 setup tools reject the distinct v3 format. Initial setup cannot finish
 without the administrator key.
 
 On first boot, verify both logins using their respective keys. The controller
 starts disconnected. Setup completion is root-owned outside app data and boot
 files. Completed packages cannot be used to add keys again or reset passwords.
+The v3 journal covers hostname, maintenance access, Wi-Fi, preferences and
+administrator access before any of them changes. Prepared retries retain the
+same private digest, including the exact normalized preferences bytes. Missing
+or corrupt authoritative records are not treated as a fresh setup. Root
+completion is committed before the FAT receipt and payload cleanup; every boot
+reconciles interrupted cleanup without reinstalling credentials.
+
+New v3 images have one first-boot root growth service using growpart/resize2fs.
+It validates the running root/boot partitions on the same MBR disk, never moves
+their starts, and retries interrupted growth before setup proceeds. This service
+is part of the base image outside ordinary System releases. Its absence/failure
+keeps normal controller/System startup gated; the limited setup screen remains
+available with sanitized diagnostics, fingerprint, shutdown and exact retry.
 
 ## Migrate an existing card
 

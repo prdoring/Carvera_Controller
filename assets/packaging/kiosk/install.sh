@@ -37,6 +37,8 @@ chroot "$target" /opt/carvera/recovery-venv/bin/python -m pip install \
 python3 "$source/runtime/kiosk_touch.py" "$target/var/lib/carvera/recovery"
 ln -s "releases/$version" "$target/opt/carvera/current"
 rsync -a --chown=0:0 --chmod=D755,F644 "$source/overlay/" "$target/"
+install -d -m 0755 "$target/usr/local/lib/carvera"
+install -m 0644 "$source/firstboot/grow_root.py" "$target/usr/local/lib/carvera/grow_root.py"
 mkdir -p "$target/opt/carvera/updater-releases/bootstrap-1"
 cp "$source/runtime/system_update.py" "$source/runtime/admin_accounts.py" "$source/runtime/kiosk_state.py" "$target/opt/carvera/updater-releases/bootstrap-1/"
 cp "$payload/updater-bundle.json" "$target/opt/carvera/updater-releases/bootstrap-1/"
@@ -49,7 +51,7 @@ chroot "$target" chmod -R go-w /opt/carvera
 printf 'performance\n' > "$target/etc/carvera/cpu-governor"
 printf '1920x1200\n' > "$target/etc/carvera/display-mode"
 chroot "$target" chown -R carvera:carvera /var/lib/carvera
-chroot "$target" systemctl enable carvera-provision.service carvera-cpu.service carvera-kiosk.service ssh.service NetworkManager.service avahi-daemon.service seatd.service
+chroot "$target" systemctl enable carvera-hostkeys.service carvera-root-grow.service carvera-provision.service carvera-cpu.service carvera-kiosk.service ssh.service NetworkManager.service avahi-daemon.service seatd.service
 chroot "$target" systemctl mask getty@tty1.service
 chroot "$target" systemctl mask apt-daily.timer apt-daily-upgrade.timer
 chroot "$target" systemctl mask rpi-eeprom-update.service
@@ -58,10 +60,14 @@ chroot "$target" systemctl mask wayvnc.service
 chroot "$target" systemctl enable getty@tty2.service carvera-system-recover.service
 chroot "$target" dpkg-query -W > "$target/etc/carvera/packages.txt"
 mkdir -p "$target/boot/firmware"
-python3 - "$target/boot/firmware/carvera-image.json" "$version" <<'PY'
+python3 - "$target/boot/firmware/carvera-image.json" "$version" "$payload/bundle.json" <<'PY'
 import json, sys
 from pathlib import Path
-Path(sys.argv[1]).write_text(json.dumps({"format": "carvera-kiosk-pi4-v2", "version": sys.argv[2], "provisioning_format": 2}))
+bundle = json.loads(Path(sys.argv[3]).read_text())
+boot = Path(sys.argv[1]).parent
+Path(sys.argv[1]).write_text(json.dumps({"format": "carvera-kiosk-pi4-v3", "version": sys.argv[2],
+                                      "commit": bundle["commit"], "provisioning_format": 2, "setup_protocol": 1}))
+(boot / "carvera-setup.json").write_text(json.dumps({"protocol": 1, "phase": "fresh"}))
 PY
 rm -f "$target"/etc/ssh/ssh_host_*
 python3 "$source/verify_rootfs.py" "$target"

@@ -357,7 +357,8 @@ def diagnostics():
               "image": read_json(Path("/boot/firmware/carvera-image.json")),
               "system": read_json(BASE / "system-current/system-bundle.json"),
               "updater": read_json(BASE / "updater/updater-bundle.json"),
-              "updater_version": 1, "maintenance_protocol": 1,
+              "updater_version": read_json(BASE / "updater/updater-bundle.json").get("updater_version", 1),
+              "maintenance_protocol": 1, "capabilities": {"setup_protocol": 1, "screen_lease_protocol": 1},
               "transfers": {name: str(transfer_directory() / name) for name in ("uploads", "exports")}}
     for label, path in {
         "os": "/etc/os-release",
@@ -422,51 +423,33 @@ def network_confirm():
     return {"network_confirmed": True}
 
 
-def screen_start():
-    service = "carvera-screen.service"
-    if active(service):
-        raise ValueError("A screen session is already active; it was left alone. Close that viewer before starting another.")
-    with socket.socket() as probe:
-        try:
-            probe.bind(("127.0.0.1", 5901))
-        except OSError as error:
-            raise ValueError("Screen-sharing port 5901 is occupied by another process; it will be left alone") from error
-    command("systemctl", "start", service)
-    pid = command("systemctl", "show", "--property=MainPID", "--value", service).stdout.strip()
-    if not pid.isdigit() or int(pid) == 0:
-        raise RuntimeError("Screen sharing did not start")
-    invocation = command("systemctl", "show", "--property=InvocationID", "--value", service).stdout.strip()
-    if not re.fullmatch(r"[a-f0-9]{32}", invocation):
-        raise RuntimeError("Screen sharing did not report its service identity")
-    value = {"token": secrets.token_hex(16), "pid": pid, "invocation": invocation}
-    write_json(RUN / "screen.json", value)
-    return {"owned": True, "token": value["token"]}
+def screen_module():
+    import screen_sessions
+
+    screen_sessions.RUN = RUN
+    screen_sessions.command = lambda *args, check=True: command(*args, check=check, timeout=20)
+    return screen_sessions
 
 
-def screen_stop(token):
-    owner = read_json(RUN / "screen.json")
-    service = "carvera-screen.service"
-    if not owner or not secrets.compare_digest(str(token), owner["token"]):
-        raise ValueError("This screen session belongs to another viewer")
-    pid = command("systemctl", "show", "--property=MainPID", "--value", service).stdout.strip()
-    invocation = command("systemctl", "show", "--property=InvocationID", "--value", service).stdout.strip()
-    if pid != owner["pid"] or invocation != owner.get("invocation"):
-        raise ValueError("The screen service was replaced; it will be left running")
-    command("systemctl", "stop", service)
-    for family, address in ((socket.AF_INET, "127.0.0.1"), (socket.AF_INET6, "::1")):
-        with socket.socket(family) as connection:
-            connection.settimeout(0.2)
-            if connection.connect_ex((address, 5901)) == 0:
-                raise RuntimeError("A screen listener remains; unrelated processes were left alone")
-    (RUN / "screen.json").unlink()
-    return {"screen_stopped": True}
+def screen_start(value=None):
+    return screen_module().start(value)
+
+
+def screen_stop(value):
+    return screen_module().stop(value)
+
 
 
 def dispatch(args):
     if args.action == "health":
         manifest = read_json(Path(__file__).resolve().parent.parent / "system-bundle.json")
         return {"system_version": manifest.get("version"), "maintenance_protocol": 1,
+                "capabilities": {"setup_protocol": 1, "screen_lease_protocol": 1},
                 "transfers": {name: str(transfer_directory() / name) for name in ("uploads", "exports")}}
+    if args.action == "setup-status":
+        import provision_v3
+
+        return provision_v3.status()
     if args.action in ("status", "diagnose"):
         return diagnostics()
     if args.action == "enter":
@@ -485,9 +468,11 @@ def dispatch(args):
         return command("journalctl", "--no-pager", "-n", "500", "-u", SERVICE,
                        "-u", "carvera-kiosk.service", "-u", "carvera-recovery.service").stdout
     if args.action == "screen-start":
-        return screen_start()
+        return screen_start(args.value)
     if args.action == "screen-stop":
         return screen_stop(args.value)
+    if args.action == "screen-renew":
+        return screen_module().renew(args.value)
     if args.action == "network":
         return network_apply(args.value)
     if args.action == "network-confirm":
@@ -529,14 +514,14 @@ def main():
         raise ValueError("Invalid maintenance request")
     args = SimpleNamespace(action=request.get("action"), value=request.get("value"),
                            confirm_machine_idle=request.get("confirm_machine_idle") is True)
-    actions = {"health", "status", "diagnose", "enter", "leave", "deploy", "rollback", "backup", "screen-start",
-               "screen-stop", "restart", "reboot", "network", "network-confirm", "governor", "display", "logs"}
+    actions = {"health", "status", "diagnose", "setup-status", "enter", "leave", "deploy", "rollback", "backup", "screen-start",
+               "screen-stop", "screen-renew", "restart", "reboot", "network", "network-confirm", "governor", "display", "logs"}
     if args.action not in actions:
         raise ValueError("Unknown maintenance action")
     caller = os.environ.get("SUDO_USER")
     if caller not in {"carvera-admin", "kiosk-admin"} and not (caller is None and args.action == "health"):
         raise ValueError("This helper is restricted to the laptop maintenance account")
-    if args.action in {"health", "status", "diagnose", "logs"}:
+    if args.action in {"health", "status", "diagnose", "logs", "setup-status", "screen-renew", "screen-stop"}:
         result = dispatch(args)
     else:
         with locked():

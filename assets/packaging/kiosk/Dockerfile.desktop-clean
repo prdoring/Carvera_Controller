@@ -1,0 +1,8 @@
+FROM debian:bookworm-slim
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xvfb xauth libfontconfig1 libx11-6 libxft2 libxrender1 libxext6 ca-certificates pkexec util-linux udev \
+    && rm -rf /var/lib/apt/lists/*
+COPY assets/packaging/kiosk/desktop-clean.sh /check-desktop
+RUN chmod 0755 /check-desktop
+CMD ["/check-desktop"]

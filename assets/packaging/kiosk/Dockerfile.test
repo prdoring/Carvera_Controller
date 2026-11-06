@@ -19,5 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && pip install --force-reinstall --no-deps --no-binary=kivy Kivy==2.3.1
 # Keep the final checkers aligned with poetry.lock and its Python 3.9 target.
 RUN pip install websockify==0.12.0 mypy==1.20.2 ruff==0.16.0 Pillow==11.3.0 import-linter==2.11
+RUN apt-get update && apt-get install -y --no-install-recommends python3-tk \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install asyncssh==2.24.0 aiohttp==3.14.5 bcrypt==5.0.0
 COPY . .
 CMD ["python", "assets/packaging/kiosk/run_checks.py", "tests/unit", "-q"]

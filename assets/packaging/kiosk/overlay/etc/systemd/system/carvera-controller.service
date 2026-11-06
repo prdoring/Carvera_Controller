@@ -14,6 +14,7 @@ Environment=CARVERA_PROFILE=kiosk
 Environment=CARVERA_DATA_DIR=/var/lib/carvera
 Environment=CARVERA_RUNTIME_DIR=/run/carvera
 WorkingDirectory=/var/lib/carvera
+ExecCondition=+/usr/bin/python3 -E -s /opt/carvera/maintenance/setup_gate.py --check
 ExecStart=/opt/carvera/maintenance/controller.sh
 TimeoutStopSec=15
 Restart=no

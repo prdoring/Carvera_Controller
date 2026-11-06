@@ -1,0 +1,22 @@
+FROM debian:bookworm-slim AS qt-runtime
+ENV DEBIAN_FRONTEND=noninteractive CMAKE_BUILD_PARALLEL_LEVEL=2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake ninja-build git ca-certificates curl xz-utils python3 \
+    libssl-dev libdrm-dev libudev-dev libusb-1.0-0-dev libdbus-1-dev patchelf pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+RUN curl --fail --location --retry 3 -o qt.tar.xz \
+    https://download.qt.io/archive/qt/6.9/6.9.3/single/qt-everywhere-src-6.9.3.tar.xz \
+    && echo '59d4fbf50d2524a9082f85d565f0197316cde89c26e97cfc6c157cb255b7ea18  qt.tar.xz' | sha256sum -c - \
+    && tar -xf qt.tar.xz && rm qt.tar.xz
+RUN mkdir qt-build && cd qt-build \
+    && ../qt-everywhere-src-6.9.3/configure -prefix /opt/qt -opensource -confirm-license \
+       -release -shared -submodules qtbase,qttools -nomake examples -nomake tests \
+       -no-gui -no-widgets -no-opengl -no-icu \
+    && cmake --build . --parallel 2 && cmake --install .
+FROM qt-runtime AS writer
+RUN apt-get update && apt-get install -y --no-install-recommends libgnutls28-dev \
+    && rm -rf /var/lib/apt/lists/*
+COPY scripts/build_kiosk_writer.py /build/build_kiosk_writer.py
+RUN python3 /build/build_kiosk_writer.py --qt /opt/qt --work /build/imager --output /writer
+CMD ["/writer/rpi-imager", "--version"]

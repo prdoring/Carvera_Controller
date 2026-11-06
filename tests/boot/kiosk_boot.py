@@ -33,7 +33,7 @@ def write(root, name, text, mode=0o644):
     path.chmod(mode)
 
 
-def boot(disk, kernel, initrd, arguments, report):
+def boot(disk, kernel, initrd, arguments, report, extra_drives=()):
     with report.open("wb") as output:
         result = subprocess.run(
             [
@@ -62,7 +62,10 @@ def boot(disk, kernel, initrd, arguments, report):
                 "-append",
                 arguments,
                 "-drive",
-                f"file={disk},format=raw,if=virtio",
+                f"file={disk},format=raw,if=none,id=boot-root",
+                "-device",
+                "virtio-blk-pci,drive=boot-root",
+                *extra_drives,
             ],
             stdout=output,
             stderr=subprocess.STDOUT,

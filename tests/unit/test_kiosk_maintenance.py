@@ -55,13 +55,17 @@ def make_control(monkeypatch, tmp_path):
 
 
 def test_import_only_preferences_and_translate_android_paths(tmp_path):
-    source = archive(tmp_path / "settings.tar.gz", {
-        "files/.kivy/config.ini": b"[carvera]\nlocal_folder=/storage/emulated/0/jobs\nandroid_ui_scale=1.15\n[input]\nraw=evil\n",
-        "files/.kivy/probe.json": b'{"diameter": 3.175}',
-        "files/.carveracontroller/gcodes/job.nc": b"G0 X50",
-        "../escape.json": b"{}",
-        "files/.kivy/code.py": b"raise Exception()",
-    }, symlink="files/.kivy/linked.json")
+    source = archive(
+        tmp_path / "settings.tar.gz",
+        {
+            "files/.kivy/config.ini": b"[carvera]\nlocal_folder=/storage/emulated/0/jobs\nandroid_ui_scale=1.15\n[input]\nraw=evil\n",
+            "files/.kivy/probe.json": b'{"diameter": 3.175}',
+            "files/.carveracontroller/gcodes/job.nc": b"G0 X50",
+            "../escape.json": b"{}",
+            "files/.kivy/code.py": b"raise Exception()",
+        },
+        symlink="files/.kivy/linked.json",
+    )
     destination = tmp_path / "data"
     result = load("settings").import_settings(source, destination)
     config = (destination / ".kivy/config.ini").read_text()
@@ -123,8 +127,12 @@ def test_backup_stages_privately_on_destination_filesystem(control, monkeypatch)
 
 
 def bundle(path, *, content=b"wheel", expected=None, extra=None):
-    manifest = {"version": "1.0.0.dev1", "architecture": "aarch64", "python": "3.13",
-                "sha256": {"wheels/application.whl": expected or hashlib.sha256(content).hexdigest()}}
+    manifest = {
+        "version": "1.0.0.dev1",
+        "architecture": "aarch64",
+        "python": "3.13",
+        "sha256": {"wheels/application.whl": expected or hashlib.sha256(content).hexdigest()},
+    }
     files = {"bundle.json": json.dumps(manifest).encode(), "wheels/application.whl": content}
     files.update(extra or {})
     return archive(path, files)
@@ -175,7 +183,9 @@ def test_failed_activation_restores_release_and_unchanged_preferences(control, m
     (control.DATA / "makera.ini").write_text("[user]\nvalue=before\n")
     monkeypatch.setattr(control, "require_maintenance", lambda: {"token": "one"})
     monkeypatch.setattr(control, "command", lambda *_a, **_k: SimpleNamespace(returncode=0))
-    monkeypatch.setattr(control, "restore_snapshot", lambda source: load("settings").restore_settings(source, control.DATA))
+    monkeypatch.setattr(
+        control, "restore_snapshot", lambda source: load("settings").restore_settings(source, control.DATA)
+    )
 
     def fail(_token):
         if (control.BASE / "current").resolve() == new:
@@ -200,7 +210,9 @@ def test_rollback_saves_current_preferences_before_restoring_old_ones(control, m
     monkeypatch.setattr(control, "require_maintenance", lambda: {"token": "one"})
     monkeypatch.setattr(control, "command", lambda *_a, **_k: SimpleNamespace(returncode=0))
     monkeypatch.setattr(control, "wait_ready", lambda _token: None)
-    monkeypatch.setattr(control, "restore_snapshot", lambda source: load("settings").restore_settings(source, control.DATA))
+    monkeypatch.setattr(
+        control, "restore_snapshot", lambda source: load("settings").restore_settings(source, control.DATA)
+    )
     control.rollback()
     assert (control.BASE / "current").resolve() == old
     assert (control.BASE / "previous").resolve() == new
@@ -210,10 +222,17 @@ def test_rollback_saves_current_preferences_before_restoring_old_ones(control, m
 
 
 def test_screen_start_preserves_an_existing_service(control, monkeypatch):
-    monkeypatch.setattr(control, "active", lambda _service: True)
-    monkeypatch.setattr(control, "command", lambda *_a, **_k: pytest.fail("Existing screen service must be preserved"))
+    calls = []
+
+    def command(*args, **_kwargs):
+        calls.append(args)
+        assert args[:2] == ("systemctl", "is-active")
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(control, "command", command)
     with pytest.raises(ValueError, match="already active"):
-        control.screen_start()
+        control.screen_start({"lease_protocol": 1})
+    assert len(calls) == 1
 
 
 def test_update_retains_current_previous_and_unmanaged_files(control):
@@ -269,13 +288,27 @@ def test_recovery_can_renew_expired_maintenance_with_idle_confirmation(control, 
 
 
 def test_screen_stop_requires_ownership_and_same_service_process(control, monkeypatch):
-    control.write_json(control.RUN / "screen.json", {"token": "one", "pid": "100"})
+    owner = {"token": "a" * 64, "generation": "b" * 32, "pid": 100, "invocation": "c" * 32}
+    control.write_json(control.RUN / "screen.json", owner)
     monkeypatch.setattr(control, "command", lambda *_a, **_k: SimpleNamespace(stdout="200\n"))
     with pytest.raises(ValueError, match="another viewer"):
-        control.screen_stop("two")
-    with pytest.raises(ValueError, match="replaced"):
-        control.screen_stop("one")
+        control.screen_stop({"token": "d" * 64, "generation": owner["generation"]})
+    with pytest.raises(ValueError, match="another viewer"):
+        control.screen_stop(owner["token"])
     assert (control.RUN / "screen.json").exists()
+    calls = []
+
+    def command(*args, **_kwargs):
+        calls.append(args)
+        assert args[:2] == ("systemctl", "show")
+        return SimpleNamespace(stdout="200\n" if "--property=MainPID" in args else "e" * 32 + "\n")
+
+    monkeypatch.setattr(control, "command", command)
+    assert control.screen_stop({key: owner[key] for key in ("token", "generation")}) == {
+        "screen_stopped": False,
+        "replacement_preserved": True,
+    }
+    assert not (control.RUN / "screen.json").exists()
 
 
 def test_touchscreen_account_cannot_use_laptop_helper(control, monkeypatch):
@@ -287,14 +320,29 @@ def test_touchscreen_account_cannot_use_laptop_helper(control, monkeypatch):
         control.main()
 
 
-def test_recovery_helper_rejects_deploy_even_with_idle_confirmation(control, monkeypatch):
+@pytest.mark.parametrize("action", ["health", "setup-status", "screen-renew", "screen-stop"])
+def test_readonly_and_owned_screen_operations_do_not_take_global_lock(control, monkeypatch, action):
+    monkeypatch.setattr(control.os, "geteuid", lambda: 0)
+    monkeypatch.setenv("SUDO_USER", "carvera-admin")
+    monkeypatch.setattr(sys, "argv", ["control.py"])
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"action": action})))
+    monkeypatch.setattr(control, "locked", lambda: pytest.fail("This operation must remain available during an update"))
+    monkeypatch.setattr(control, "dispatch", lambda request: {"action": request.action})
+    control.main()
+
+
+@pytest.mark.parametrize("complete", [False, True])
+def test_recovery_helper_rejects_deploy_even_with_idle_confirmation(control, monkeypatch, complete):
     monkeypatch.setitem(sys.modules, "control", control)
     recovery = load("recovery_control")
+    import provision_v3
+
+    monkeypatch.setattr(provision_v3, "completion_ready", lambda: complete)
     monkeypatch.setattr(recovery.os, "geteuid", lambda: 0)
     monkeypatch.setattr(sys, "argv", ["recovery_control.py"])
     monkeypatch.setattr(sys, "stdin", io.StringIO('{"action":"deploy","confirmed_idle":true}'))
     monkeypatch.setenv("SUDO_USER", "carvera")
-    with pytest.raises(ValueError, match="Unknown system action"):
+    with pytest.raises(ValueError, match="Unknown system action" if complete else "Complete kiosk setup"):
         recovery.main()
 
 
@@ -304,7 +352,9 @@ def test_display_uses_advertised_refresh_and_actual_connector(monkeypatch):
 
     def command(args, **_kwargs):
         calls.append(args)
-        return SimpleNamespace(stdout='HDMI-A-2 "EM101"\n  Enabled: yes\n  Modes:\n    1920x1200 px, 59.951000 Hz (preferred, current)\n')
+        return SimpleNamespace(
+            stdout='HDMI-A-2 "EM101"\n  Enabled: yes\n  Modes:\n    1920x1200 px, 59.951000 Hz (preferred, current)\n'
+        )
 
     monkeypatch.setattr(display.subprocess, "run", command)
     display.apply("1920x1200")
@@ -324,8 +374,17 @@ def test_first_boot_applies_hostname_and_installs_login_key(monkeypatch, tmp_pat
     (tmp_path / "var/lib/carvera").mkdir(parents=True)
     key = "ssh-ed25519 AAAA laptop"
     (boot / "carvera-image.json").write_text('{"format":"carvera-kiosk-pi4-v2"}')
-    (boot / "carvera-provision.json").write_text(json.dumps({"format": 2, "id": "a" * 32,
-        "hostname": "workshop-panel", "authorized_keys": [key], "admin_public_keys": [key]}))
+    (boot / "carvera-provision.json").write_text(
+        json.dumps(
+            {
+                "format": 2,
+                "id": "a" * 32,
+                "hostname": "workshop-panel",
+                "authorized_keys": [key],
+                "admin_public_keys": [key],
+            }
+        )
+    )
     monkeypatch.setattr(provision, "public_keys", lambda values: (values, ["SHA256:test"]))
     installed = []
     monkeypatch.setattr(provision, "install", lambda request: installed.append(request))
