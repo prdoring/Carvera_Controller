@@ -75,6 +75,21 @@ grow_root.grow()
         for name in ("carvera-hostkeys.service", "carvera-root-grow.service", "carvera-provision.service"):
             shutil.copyfile(ASSETS / "overlay/etc/systemd/system" / name, root / "etc/systemd/system" / name)
             run("chroot", root, "systemctl", "enable", name)
+        # image-gen also enables its own generator. Delay it to exercise the
+        # ordering needed to keep two generators from writing the same keys.
+        write(
+            root,
+            "/etc/systemd/system/ssh-hostkeys-generate.service",
+            "[Unit]\nAfter=local-fs.target\nBefore=ssh.service\n[Service]\nType=oneshot\n"
+            "ExecStart=/bin/sh -c 'sleep 2; ssh-keygen -A; touch /run/upstream-hostkeys-ready'\n"
+            "RemainAfterExit=yes\n[Install]\nWantedBy=multi-user.target\n",
+        )
+        run("chroot", root, "systemctl", "enable", "ssh-hostkeys-generate.service")
+        write(
+            root,
+            "/etc/systemd/system/carvera-hostkeys.service.d/test.conf",
+            "[Service]\nExecStartPre=/usr/bin/test -e /run/upstream-hostkeys-ready\n",
+        )
         write(
             root,
             "/etc/systemd/system/carvera-root-grow.service.d/test.conf",

@@ -45,8 +45,19 @@ def main():
             str(runtime),
             *(value for value in sys.path if value and not Path(value).resolve().is_relative_to(SOURCE)),
         ]
+        # Xvfb has no window manager to size a fullscreen client. Set the
+        # initial dimensions before SDL creates its native window.
+        os.environ["KIVY_HOME"] = "/var/lib/carvera/recovery"
+        from kivy.config import Config
+
+        Config.set("graphics", "width", "1920")
+        Config.set("graphics", "height", "1200")
         import setup_status_ui
         from kivy.base import EventLoop
+        from kivy.core.window import Window
+
+        Window.fullscreen = False
+        Window.left = Window.top = 0
 
         status = Path("/run/carvera-maint/setup-status.json")
         status.parent.mkdir(parents=True, exist_ok=True)
@@ -66,29 +77,73 @@ def main():
 
         setup_status_ui.subprocess = SimpleNamespace(run=call)
         app = setup_status_ui.SetupStatus()
+        failures = []
+        from kivy.clock import Clock
+
+        def capture(_dt):
+            try:
+                from PIL import ImageGrab
+
+                from carveracontroller.ui import theme
+
+                assert "Retrying setup" in app.feedback.text
+                (reports / "setup-geometry.json").write_text(
+                    json.dumps(
+                        {"window": list(Window.size), "system": list(Window.system_size), "root": list(app.root.size)}
+                    )
+                )
+                assert tuple(Window.size) == (1920, 1200)
+                assert tuple(app.root.size) == tuple(Window.size)
+                assert app.shutdown.right <= Window.width and app.shutdown.y >= 0
+                picture = ImageGrab.grab()
+                picture.save(reports / "setup-limited.png")
+                expected = [round(channel * 255) for channel in theme.BACKGROUND[:3]]
+                assert all(
+                    abs(actual - target) <= 2 for actual, target in zip(picture.getpixel((1910, 1190)), expected)
+                )
+            except Exception as error:
+                failures.append(error)
+            finally:
+                app.stop()
+
+        def check(_dt):
+            try:
+                assert "carveracontroller.main" not in sys.modules
+                assert "carveracontroller.Controller" not in sys.modules
+                assert not any(name.endswith(("USBStream", "WifiStream")) for name in sys.modules)
+                assert "isolated-test-fingerprint" in app.details.text
+                assert "could not finish" in app.message.text
+                from carveracontroller.ui import theme
+
+                assert Path(theme.__file__).resolve().is_relative_to(presentation)
+                assert Path(app.details._label.options["font_name_r"]).resolve().is_relative_to(presentation)
+                app.request("setup-retry")
+                deadline = time.monotonic() + 10
+
+                def ready(_dt):
+                    if time.monotonic() >= deadline:
+                        failures.append(TimeoutError("The limited setup action did not finish"))
+                        app.stop()
+                        return False
+                    if app.pending:
+                        return True
+                    if requests != ["setup-retry"]:
+                        failures.append(AssertionError("Unexpected limited setup action"))
+                        app.stop()
+                    else:
+                        Clock.schedule_once(capture, 0.1)
+                    return False
+
+                Clock.schedule_interval(ready, 0.05)
+            except Exception as error:
+                failures.append(error)
+                app.stop()
+
         try:
-            app._run_prepare()
-            for _ in range(20):
-                EventLoop.idle()
-                time.sleep(0.01)
-            assert "carveracontroller.main" not in sys.modules and "carveracontroller.Controller" not in sys.modules
-            assert not any(name.endswith(("USBStream", "WifiStream")) for name in sys.modules)
-            assert "isolated-test-fingerprint" in app.details.text
-            assert "could not finish" in app.message.text
-            from carveracontroller.ui import theme
-
-            assert Path(theme.__file__).resolve().is_relative_to(presentation)
-            assert Path(app.details._label.options["font_name_r"]).resolve().is_relative_to(presentation)
-            app.request("setup-retry")
-            for _ in range(20):
-                EventLoop.idle()
-                time.sleep(0.01)
-            assert requests == ["setup-retry"] and not app.pending
-            assert "Retrying setup" in app.feedback.text
-            from kivy.core.window import Window
-
-            capture = Window.screenshot(name=str(reports / "setup-window.png"))
-            Path(capture).replace(reports / "setup-limited.png")
+            Clock.schedule_once(check, 0.3)
+            app.run()
+            if failures:
+                raise failures[0]
             print("PASS: independent limited setup UI, bundled fonts/translations, fixed helper request", flush=True)
         finally:
             app.stop()

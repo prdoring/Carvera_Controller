@@ -120,9 +120,12 @@ def test_oversized_header_is_rejected_before_scanning_its_body(updater, tmp_path
 
 def test_normal_mode_requires_real_fresh_ack(updater, monkeypatch):
     monkeypatch.setattr(updater, "command", lambda *_a, **_k: SimpleNamespace(returncode=3))
-    updater.write_json(updater.RUN / "maintenance.json", {"token": "one", "entered": time.monotonic()})
+    clock = SimpleNamespace(monotonic=lambda: 100.0)
+    monkeypatch.setattr(updater, "time", clock)
+    monkeypatch.setitem(updater.maintenance_ack.__globals__, "time", clock)
+    updater.write_json(updater.RUN / "maintenance.json", {"token": "one", "entered": clock.monotonic()})
     updater.write_json(updater.RUN / "maintenance.request", {"token": "one"})
-    status = {"updated": time.monotonic(), "busy": False, "connected": False, "maintenance": False, "token": "one"}
+    status = {"updated": clock.monotonic(), "busy": False, "connected": False, "maintenance": False, "token": "one"}
     updater.write_json(updater.STATUS, status)
     with pytest.raises(ValueError, match="acknowledged"):
         updater.preflight()

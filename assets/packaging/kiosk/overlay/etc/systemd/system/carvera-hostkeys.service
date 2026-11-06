@@ -1,6 +1,6 @@
 [Unit]
 Description=Create this kiosk's missing SSH host keys
-After=local-fs.target
+After=local-fs.target ssh-hostkeys-generate.service
 Before=carvera-provision.service ssh.service
 
 [Service]

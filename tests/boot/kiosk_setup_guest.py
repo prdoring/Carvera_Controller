@@ -18,6 +18,7 @@ def main():
     case = json.loads((BOOT / "test-case.json").read_text())["case"]
     status = provision_v3.status()
     assert len(status["host_fingerprints"]) == 1, status
+    subprocess.run(["systemctl", "is-active", "--quiet", "carvera-hostkeys.service"], check=True)
     root = json.loads((STATE / "root-grow.json").read_text())
     assert Path("/proc/1/exe").resolve() == Path("/usr/lib/systemd/systemd")
     assert subprocess.check_output(["/proc/1/exe", "--version"]).splitlines()[0].startswith(b"systemd 257")
