@@ -39,9 +39,11 @@ def package_laptop(version, output, helper, novnc):
         if not extension.exists():
             extension = assets.parents[2] / "scripts/kiosk_admin.py"
         shutil.copy2(extension, laptop / "kiosk_admin.py")
-        desktop = assets.parents[2] / "kioskdesktop"
+        desktop = assets / "kioskdesktop"
         if not desktop.is_dir():
-            desktop = assets / "kioskdesktop"
+            if len(assets.parents) < 3:
+                raise ValueError("The packaged desktop helpers are missing")
+            desktop = assets.parents[2] / "kioskdesktop"
         target = laptop / "kioskdesktop"
         target.mkdir()
         for name in (

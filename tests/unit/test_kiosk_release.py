@@ -2,6 +2,7 @@
 
 import hashlib
 import importlib.util
+import shutil
 import subprocess
 import sys
 import zipfile
@@ -91,6 +92,24 @@ def test_extracted_tools_work_outside_repository_in_path_with_spaces(tmp_path, t
         assert result.returncode == 0, result.stderr
     assert (laptop / "bootstrap/admin_bootstrap.py").is_file()
     assert (laptop / "ADMINISTRATION.md").is_file()
+
+
+def test_container_packager_uses_bundled_helpers_before_ancestor_directory(tmp_path, tools, monkeypatch):
+    _helper, novnc = tools
+    root = SOURCE.parents[3]
+    assets = tmp_path / "container/project/kiosk"
+    shutil.copytree(SOURCE.parent, assets, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    shutil.copytree(root / "kioskdesktop", assets / "kioskdesktop", ignore=shutil.ignore_patterns("__pycache__"))
+    for name in ("kiosk.py", "kiosk_admin.py"):
+        shutil.copyfile(root / "scripts" / name, assets / name)
+    shutil.copyfile(root / "carveracontroller/kiosk_state.py", assets / "runtime/kiosk_state.py")
+    shutil.copyfile(root / "docs/kiosk-administration.md", assets / "kiosk-administration.md")
+    (tmp_path / "kioskdesktop").mkdir()
+    (tmp_path / "kioskdesktop/viewer.py").write_text("unrelated ancestor directory")
+    monkeypatch.setattr(release, "__file__", str(assets / "package_release.py"))
+    archive = release.package_laptop("1.1.0.dev6", tmp_path / "output", assets / "kiosk.py", novnc)
+    with zipfile.ZipFile(archive) as package:
+        assert package.read("laptop/kioskdesktop/viewer.py") == (assets / "kioskdesktop/viewer.py").read_bytes()
 
 
 def test_missing_download_prevents_checksums(tmp_path):
