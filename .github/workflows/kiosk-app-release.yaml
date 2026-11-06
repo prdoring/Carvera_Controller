@@ -307,6 +307,11 @@ jobs:
           gh release upload "$RELEASE_TAG" release/*
           gh release download "$RELEASE_TAG" --dir "$RUNNER_TEMP/downloaded"
           python scripts/kiosk_release_stage.py --compare release "$RUNNER_TEMP/downloaded"
+          python - <<'PY'
+          import os
+          from scripts.kiosk_publication import recheck
+          recheck(os.environ['RELEASE_TAG'], os.environ['RELEASE_COMMIT'], os.environ['RELEASE_MODE'])
+          PY
           if [ "$PUBLISH_RELEASE" = true ]; then
             gh release edit "$RELEASE_TAG" --draft=false
           fi

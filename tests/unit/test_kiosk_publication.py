@@ -10,6 +10,26 @@ import pytest
 from scripts import kiosk_full_release, kiosk_publication
 
 
+@pytest.mark.parametrize("fetched,local", [("a", "a"), ("b", "a"), ("a", "b")])
+def test_final_tag_check_reads_the_remote_again_without_rejecting_its_own_draft(monkeypatch, fetched, local):
+    commands = []
+    tag, expected = "kiosk-v1.2.3.dev1", "a" * 40
+    monkeypatch.setattr(kiosk_publication.subprocess, "run", lambda args, **_kwargs: commands.append(args))
+    monkeypatch.setattr(kiosk_publication, "git", lambda *_args: fetched * 40)
+    monkeypatch.setattr(kiosk_publication, "resolve", lambda *_args: {"commit": local * 40})
+    monkeypatch.setattr(
+        kiosk_publication,
+        "require_unpublished",
+        lambda *_args: pytest.fail("The final source check must allow the publisher's existing draft"),
+    )
+    if fetched == local == "a":
+        kiosk_publication.recheck(tag, expected, "full")
+    else:
+        with pytest.raises(ValueError, match="tag changed"):
+            kiosk_publication.recheck(tag, expected, "full")
+    assert commands == [["git", "fetch", "--no-tags", "origin", "refs/tags/" + tag]]
+
+
 @pytest.mark.parametrize("tag", ["main", "kiosk-v01.2.3", "kiosk-v1.2.3.dev01", "kiosk-v1.2.3;echo", "kiosk-v1.2"])
 def test_noncanonical_tag_never_reaches_git(monkeypatch, tag):
     monkeypatch.setattr(kiosk_publication, "git", lambda *_args: pytest.fail("Invalid tag reached Git"))
