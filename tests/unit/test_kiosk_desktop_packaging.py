@@ -1,8 +1,19 @@
 """Installed distributions retain version ordering and remove only their own files."""
 
 from pathlib import Path
+from xml.etree import ElementTree
 
 from scripts import package_kiosk_desktop as packaging
+
+
+def test_windows_gui_keeps_user_privileges_and_per_monitor_scaling():
+    source = Path(__file__).resolve().parents[2] / "assets/packaging/kiosk/desktop.manifest"
+    manifest = ElementTree.parse(source)
+    privileges = manifest.find(".//{urn:schemas-microsoft-com:asm.v3}requestedExecutionLevel")
+    assert privileges is not None
+    assert privileges.attrib == {"level": "asInvoker", "uiAccess": "false"}
+    awareness = manifest.find(".//{http://schemas.microsoft.com/SMI/2016/WindowsSettings}dpiAwareness")
+    assert awareness is not None and awareness.text == "PerMonitorV2"
 
 
 def test_uninstaller_includes_intermediate_directories_without_recursive_deletion(tmp_path, monkeypatch):
