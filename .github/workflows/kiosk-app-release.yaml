@@ -154,6 +154,9 @@ jobs:
           mkdir -p dist/kiosk/native
           docker run --rm --init --memory 3g --cpus 2 --network none \
             -e RELEASE_VERSION -e RELEASE_COMMIT \
+            -e GIT_CONFIG_COUNT=2 \
+            -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/src \
+            -e GIT_CONFIG_KEY_1=safe.directory -e GIT_CONFIG_VALUE_1=/src/dist/kiosk/novnc-desktop \
             --mount "type=bind,source=$PWD,target=/src,readonly" \
             --mount "type=bind,source=$PWD/dist/kiosk/native,target=/output" kiosk-desktop \
             python scripts/kiosk_desktop_check.py --output /output --writer /src/dist/kiosk/writer
