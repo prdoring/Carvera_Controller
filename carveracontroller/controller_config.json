@@ -62,7 +62,7 @@
     {
         "type": "screensaver",
         "title": "Screensaver",
-        "desc": "Random rotation shows all six designs, changing every 30 minutes.",
+        "desc": "Random rotation switches every 30 minutes. Random traces switches when the drawing clears.",
         "section": "carvera",
         "key": "screensaver_style",
         "default": "random"

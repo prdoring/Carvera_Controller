@@ -17,7 +17,7 @@ from kivy.uix.scrollview import ScrollView
 
 from carveracontroller import runtime_profile
 from carveracontroller.ui.screensaver import ScreensaverCanvas
-from carveracontroller.ui.screensaver_patterns import ROTATION_SECONDS, STYLES
+from carveracontroller.ui.screensaver_patterns import CYCLE_SECONDS, ROTATION_SECONDS, STYLES, TRACE_STYLES, pattern
 from tests.integration.conftest import pump_frames, set_window_size
 
 
@@ -58,7 +58,7 @@ def test_timeout_rotation_and_off(saver):
         manager.check(0)
         assert manager.visible
         seen = [manager.current_style]
-        for _ in range(5):
+        for _ in range(len(STYLES) - 1):
             clock[0] += ROTATION_SECONDS
             manager.check(0)
             seen.append(manager.current_style)
@@ -153,23 +153,26 @@ def test_preview_uses_drafts_without_saving_and_preserves_dialog(saver):
     pump_frames(5)
     items = {item.key: item for item in popup._all_setting_items() if item.key.startswith("screensaver_")}
     try:
-        items["screensaver_style"].value = "contours"
+        style = items["screensaver_style"]
+        assert "random_traces" in style.choices()
+        style.value = "random_traces"
         items["screensaver_show_clock"].value = "0"
         before = len(app.simulation.commands)
         with patch.object(manager, "blocked", return_value=False):
             items["screensaver_preview"].preview()
-        assert manager.visible and manager.current_style == "contours"
+        assert manager.visible and manager.current_style == "random_traces"
         assert not manager.overlay.show_clock
         assert Config.get("carvera", "screensaver_style") == "random"
         assert len(app.simulation.commands) == before
         manager.hide()
         assert popup.parent is not None
-        assert items["screensaver_style"].value == "contours"
+        assert style.value == "random_traces"
     finally:
         popup._discard_and_close()
 
 
-def test_timeout_picker_fits_the_kiosk_and_scrolls_on_a_shorter_screen(mobile, tmp_path):
+@pytest.mark.parametrize("key, fits_native", (("screensaver_timeout_minutes", True), ("screensaver_style", False)))
+def test_screensaver_picker_scrolls_when_needed(mobile, tmp_path, key, fits_native):
     app, _layout = mobile
     original_size = tuple(Window.size)
     original_target = app.touch_target
@@ -177,28 +180,31 @@ def test_timeout_picker_fits_the_kiosk_and_scrolls_on_a_shorter_screen(mobile, t
     Metrics.fontscale = 1
     app.touch_target = dp(48)
     app.root._ensure_controller_settings_panels()
-    setting = next(
-        item for item in app.root.config_popup._all_setting_items() if item.key == "screensaver_timeout_minutes"
-    )
+    setting = next(item for item in app.root.config_popup._all_setting_items() if item.key == key)
     dialog = None
     try:
         set_window_size((1920, 1200))
         setting.choose()
         pump_frames(15)
-        dialog = next(widget for widget in Window.children if isinstance(widget, Popup) and widget.title == setting.title)
+        dialog = next(
+            widget for widget in Window.children if isinstance(widget, Popup) and widget.title == setting.title
+        )
         surface = dialog.content
         choices = list(reversed(surface.body.children))
         assert [button.text for button in choices] == list(setting.choices().values())
         assert all(button.height >= dp(48) for button in choices)
         assert [widget for widget in surface.walk() if isinstance(widget, ScrollView)] == [surface.viewport]
-        assert surface.viewport.height >= surface.body.height - 1
-        Window.screenshot(name=str(tmp_path / "timeout-picker-kiosk.png"))
+        assert (surface.viewport.height >= surface.body.height - 1) == fits_native
+        assert surface.viewport.do_scroll_y != fits_native
+        Window.dispatch("on_draw")
+        Window.screenshot(name=str(tmp_path / f"{key}-kiosk.png"))
 
         set_window_size((960, 540))
         pump_frames(12)
         assert surface.viewport.do_scroll_y and surface.viewport.bar_width >= dp(8)
         assert surface.actions.top <= surface.viewport.y
-        Window.screenshot(name=str(tmp_path / "timeout-picker-short.png"))
+        Window.dispatch("on_draw")
+        Window.screenshot(name=str(tmp_path / f"{key}-short.png"))
         surface.viewport.scroll_y = 0
         pump_frames(4)
         assert choices[-1].to_window(0, choices[-1].y)[1] >= surface.viewport.to_window(0, surface.viewport.y)[1] - 1
@@ -242,18 +248,37 @@ def test_overlay_stays_above_new_dialog_and_shutdown_cleans_callbacks(saver):
         Window.remove_widget(dialog)
 
 
+def test_random_traces_change_when_the_drawing_clears(kivy_app):
+    with patch("carveracontroller.ui.screensaver.pattern", wraps=pattern) as draw:
+        view = ScreensaverCanvas("random_traces", True, size=(1920, 1200))
+        for _ in range(2 * len(TRACE_STYLES) - 1):
+            calls = draw.call_count
+            view.advance(CYCLE_SECONDS - 0.5)
+            assert draw.call_count == calls
+            assert view.dot.size == (6, 6)
+            view.advance(0.5)
+            assert draw.call_count == calls + 1
+            assert view.dot.size == (0, 0)
+            assert all(not line.points for pair in view._lines for line in pair)
+        drawn = [call.args[0] for call in draw.call_args_list]
+        count = len(TRACE_STYLES)
+        assert set(drawn[:count]) == set(drawn[count:]) == set(TRACE_STYLES)
+        assert all(a != b for a, b in zip(drawn, drawn[1:]))
+
+
 def test_capture_native_screens(kivy_app, saver, tmp_path):
     manager, clock = saver
     original = Window.size
     try:
         set_window_size((1920, 1200))
-        for style in STYLES:
+        for style in (*STYLES, "random_traces"):
             with patch.object(manager, "blocked", return_value=False):
                 manager.preview({"screensaver_style": style})
                 clock[0] += 1
                 manager.overlay.advance(8)
                 pump_frames(6)
                 assert manager.visible
+                Window.dispatch("on_draw")
                 Window.screenshot(name=str(tmp_path / f"screensaver-{style}.png"))
             manager.hide()
     finally:
@@ -344,7 +369,7 @@ def test_apply_saves_pending_selection_and_clock(saver):
         popup.dismiss(force=True)
 
 
-@pytest.mark.parametrize("style", ("toolpath", "contours", "block", "orbits"))
+@pytest.mark.parametrize("style", TRACE_STYLES)
 def test_completed_paths_are_cached_during_tracing(kivy_app, style):
     view = ScreensaverCanvas(style, False, size=(1920, 1200))
     view.advance(4)

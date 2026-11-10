@@ -182,11 +182,15 @@ def build(
             for relative in ("vnc.html", "core/rfb.js", "app/ui.js"):
                 if not (novnc / relative).is_file():
                     raise ValueError("The noVNC distribution is incomplete")
+            ignore_source_files = shutil.ignore_patterns(
+                ".git", ".github", "node_modules", "__pycache__", "tests", "docs", "utils"
+            )
             shutil.copytree(
                 novnc,
                 stage / "novnc",
-                ignore=shutil.ignore_patterns(
-                    ".git", ".github", "node_modules", "__pycache__", "tests", "docs", "utils"
+                # The decoder imports vendor/pako/lib/utils, so exclude tools only at the root.
+                ignore=lambda directory, names: (
+                    ignore_source_files(directory, names) if Path(directory) == novnc else []
                 ),
             )
             metadata["novnc_commit"] = novnc_commit

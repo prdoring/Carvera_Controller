@@ -19,7 +19,16 @@ from carveracontroller.CNC import CNC
 from carveracontroller.kiosk_state import activity
 
 from . import theme
-from .screensaver_patterns import CYCLE_SECONDS, ROTATION_SECONDS, Rotation, Trace, ellipse, pattern, preferences
+from .screensaver_patterns import (
+    CYCLE_SECONDS,
+    ROTATION_SECONDS,
+    TRACE_STYLES,
+    Rotation,
+    Trace,
+    ellipse,
+    pattern,
+    preferences,
+)
 from .touch import cancel_all_touches
 
 
@@ -28,6 +37,7 @@ class ScreensaverCanvas(Widget):
         super().__init__(**kwargs)
         self.rng = random.Random()
         self.style, self.show_clock = style, show_clock
+        self._trace_rotation = Rotation(self.rng, styles=TRACE_STYLES) if style == "random_traces" else None
         self.elapsed = 0.0
         self.cycle = -1
         self.clock_slot = -1
@@ -70,7 +80,8 @@ class ScreensaverCanvas(Widget):
         if self.style == "parts":
             self._new_parts()
             return
-        paths = pattern(self.style, self.rng)
+        style = self._trace_rotation.next() if self._trace_rotation else self.style
+        paths = pattern(style, self.rng)
         self.traces = [Trace(p) for p in paths]
         self._ends = []
         self.total_length = 0.0

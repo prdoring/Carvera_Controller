@@ -10,20 +10,27 @@ from carveracontroller.translation import tr
 
 from . import theme
 from .android_layout import DialogActions, DialogSurface
-from .screensaver_patterns import STYLES, TIMEOUTS
+from .screensaver_patterns import STYLE_OPTIONS, TIMEOUTS
 
 
 def style_labels():
     return dict(
         zip(
-            (*STYLES, "random"),
+            STYLE_OPTIONS,
             (
                 tr._("Workshop Clock"),
                 tr._("Toolpath Trace"),
                 tr._("Contour Map"),
                 tr._("Isometric Block"),
                 tr._("Orbit Lines"),
+                tr._("Gear Mesh"),
+                tr._("PCB Routing"),
+                tr._("Turbine Impeller"),
+                tr._("Basket Weave"),
+                tr._("Waveform"),
+                tr._("Bridge Truss"),
                 tr._("Nut & Bolt"),
+                tr._("Random traces"),
                 tr._("Random rotation"),
             ),
         )

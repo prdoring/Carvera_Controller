@@ -1991,8 +1991,29 @@ msgstr "预览当前选择而不保存。轻触任意位置返回。"
 msgid "Random rotation"
 msgstr "随机轮换"
 
-msgid "Random rotation shows all six designs, changing every 30 minutes."
-msgstr "随机轮换全部六种图案，每 30 分钟切换一次。"
+msgid "Random rotation switches every 30 minutes. Random traces switches when the drawing clears."
+msgstr "随机轮换每 30 分钟切换一次。随机描绘在图案清除时切换。"
+
+msgid "Random traces"
+msgstr "随机描绘"
+
+msgid "Basket Weave"
+msgstr "篮编纹"
+
+msgid "Bridge Truss"
+msgstr "桥梁桁架"
+
+msgid "Gear Mesh"
+msgstr "齿轮啮合"
+
+msgid "PCB Routing"
+msgstr "电路板布线"
+
+msgid "Turbine Impeller"
+msgstr "涡轮叶轮"
+
+msgid "Waveform"
+msgstr "波形"
 
 msgid "Screensaver"
 msgstr "屏幕保护"

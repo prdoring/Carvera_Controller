@@ -1847,7 +1847,28 @@ msgstr ""
 msgid "Random rotation"
 msgstr ""
 
-msgid "Random rotation shows all six designs, changing every 30 minutes."
+msgid "Random rotation switches every 30 minutes. Random traces switches when the drawing clears."
+msgstr ""
+
+msgid "Random traces"
+msgstr ""
+
+msgid "Basket Weave"
+msgstr ""
+
+msgid "Bridge Truss"
+msgstr ""
+
+msgid "Gear Mesh"
+msgstr ""
+
+msgid "PCB Routing"
+msgstr ""
+
+msgid "Turbine Impeller"
+msgstr ""
+
+msgid "Waveform"
 msgstr ""
 
 msgid "Screensaver"

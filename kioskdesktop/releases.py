@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from typing import BinaryIO
 
 REPOSITORY = "prdoring/Carvera_Controller"
+RELEASES_PAGE = f"https://github.com/{REPOSITORY}/releases"
 API = f"https://api.github.com/repos/{REPOSITORY}/releases"
 MAX_METADATA = 256 * 1024
 MAX_IMAGE = 64 * 1024**3
@@ -114,6 +115,28 @@ class Release:
                 download_url(asset.get("url"), release_version)
                 digest(asset.get("sha256"))
         return cls(release_version, commit, components, image, downloads)
+
+
+def published_viewer_url(release: Release, target: str) -> str | None:
+    """Resolve the exact viewer asset when its release is publicly accessible."""
+    viewer = release.downloads[target]["viewer"]
+    tag = f"kiosk-v{release.version}"
+    try:
+        item = fetch_json(f"{API}/tags/{tag}")
+    except (OSError, ValueError):
+        return None
+    if not isinstance(item, dict) or item.get("tag_name") != tag or item.get("draft") is not False:
+        return None
+    assets = item.get("assets")
+    if isinstance(assets, list) and any(
+        isinstance(asset, dict)
+        and asset.get("state") == "uploaded"
+        and asset.get("browser_download_url") == viewer["url"]
+        and asset.get("size") == viewer["size"]
+        for asset in assets
+    ):
+        return viewer["url"]
+    return None
 
 
 def discover(previews=False) -> list[Release]:

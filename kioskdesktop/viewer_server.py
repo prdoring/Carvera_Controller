@@ -42,6 +42,7 @@ class ViewerServer:
     async def start(self):
         app = web.Application(client_max_size=8 * 1024**2)
         app.router.add_get("/websockify", self.websocket)
+        app.router.add_get("/defaults.json", self.defaults)
         app.router.add_get("/{path:.*}", self.static)
         self.runner = web.AppRunner(app, access_log=None, shutdown_timeout=2)
         await self.runner.setup()
@@ -61,6 +62,10 @@ class ViewerServer:
     def check_host(self, request):
         if request.headers.getall("Host", []) != [f"127.0.0.1:{self.port}"]:
             raise web.HTTPForbidden(text="Unexpected local viewer host")
+
+    async def defaults(self, request):
+        self.check_host(request)
+        return web.json_response({"show_dot": True}, headers={"Cache-Control": "no-store"})
 
     async def static(self, request):
         self.check_host(request)

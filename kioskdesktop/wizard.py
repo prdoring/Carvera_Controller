@@ -643,9 +643,19 @@ class Wizard(Application):
         self.notice("Connection details copied. Private keys and passphrases are excluded.")
 
     def download_viewer(self):
-        if not self.release:
-            self.release = installer.load_release(self.profile_path, self.profile)
-        webbrowser.open(self.release.downloads[installer.desktop_target()]["viewer"]["url"])
+        def resolve():
+            release = self.release or installer.load_release(self.profile_path, self.profile)
+            return release.version, releases.published_viewer_url(release, installer.desktop_target())
+
+        def open_download(result):
+            version, url = result
+            webbrowser.open(url or releases.RELEASES_PAGE)
+            if url:
+                self.notice("Opened the Screen Share download in your browser.")
+            else:
+                self.notice(f"Look for Kiosk {version} on GitHub. Sign in to access a draft release.")
+
+        self.background(resolve, open_download, "Checking the Screen Share download")
 
     def viewer_page(self):
         parent = self.page(

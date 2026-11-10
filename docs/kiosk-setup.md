@@ -85,9 +85,11 @@ login. Test TTY2 login with a physical keyboard, then return to TTY1; see
 [local keyboard fallback](kiosk-administration.md#local-keyboard-fallback).
 
 The finish screen provides **Show key folder**, **Copy connection details** and
-the matching **Download Screen Share** link. Keep the encrypted keys and profile
-with your backups. Their passphrases are not saved, and losing both keys and
-authenticated administrator access may require offline recovery.
+**Download Screen Share**. If Setup cannot find the matching public download, it
+opens the fork's releases page and shows the version to look for. Draft assets
+require signing into GitHub with access to the draft. Keep the encrypted keys
+and profile with your backups. Their passphrases are not saved, and losing both
+keys and authenticated administrator access may require offline recovery.
 
 ## Incomplete setup
 

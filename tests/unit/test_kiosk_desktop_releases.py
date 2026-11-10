@@ -4,9 +4,11 @@ import hashlib
 import io
 import lzma
 import struct
+from urllib.error import HTTPError
 
 import pytest
 
+from kioskdesktop import releases
 from kioskdesktop.releases import Image, Release, partition_layout, verify_image
 
 
@@ -71,3 +73,29 @@ def test_overlapping_partitions_fail(image_bytes):
 def test_app_only_metadata_is_not_installable():
     with pytest.raises(ValueError, match="full kiosk"):
         Release.parse({"kind": "kiosk-app", "version": "1.1.0.dev5"})
+
+
+@pytest.mark.parametrize("availability", ["public", "draft", "404", "missing", "wrong-size"])
+def test_viewer_link_requires_the_matching_public_asset(monkeypatch, image_bytes, availability):
+    version, target = "1.1.0.dev6", "windows-x64"
+    tag = f"kiosk-v{version}"
+    url = f"{releases.RELEASES_PAGE}/download/{tag}/carvera-kiosk-viewer-{version}-{target}.exe"
+    release = Release(version, "a" * 40, {}, image_bytes[2], {target: {"viewer": {"url": url, "size": 1024}}})
+
+    def fetch(endpoint):
+        assert endpoint == f"{releases.API}/tags/{tag}"
+        if availability == "404":
+            raise HTTPError(endpoint, 404, "Not Found", None, None)
+        asset = {
+            "browser_download_url": url,
+            "state": "uploaded",
+            "size": 512 if availability == "wrong-size" else 1024,
+        }
+        return {
+            "tag_name": tag,
+            "draft": availability == "draft",
+            "assets": [] if availability == "missing" else [asset],
+        }
+
+    monkeypatch.setattr(releases, "fetch_json", fetch)
+    assert releases.published_viewer_url(release, target) == (url if availability == "public" else None)

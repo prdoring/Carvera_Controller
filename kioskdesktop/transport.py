@@ -13,7 +13,11 @@ async def probe(address: str, *, port=22):
     import asyncssh
 
     profiles.validate_host(address)
-    key = await asyncio.wait_for(asyncssh.get_server_host_key(address, config=None, port=port), timeout=15)
+    # The kiosk touchscreen displays the Ed25519 host key fingerprint.
+    key = await asyncio.wait_for(
+        asyncssh.get_server_host_key(address, config=None, port=port, server_host_key_algs=["ssh-ed25519"]),
+        timeout=15,
+    )
     if key is None:
         raise ValueError("The kiosk did not provide an SSH host key")
     return {

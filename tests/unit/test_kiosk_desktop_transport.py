@@ -19,6 +19,7 @@ def test_first_boot_exact_host_account_roles_and_component_identity(tmp_path):
         components=dict.fromkeys(("image", "controller", "system", "updater"), "1.1.0.dev5"),
     )
     host_key = asyncssh.generate_private_key("ssh-ed25519")
+    rsa_key = asyncssh.generate_private_key("ssh-rsa")
     accepted, commands, ports = [], [], []
     status = {
         "protocol": 1,
@@ -59,12 +60,13 @@ def test_first_boot_exact_host_account_roles_and_component_identity(tmp_path):
 
     async def exercise():
         server = await asyncssh.create_server(
-            Server, "127.0.0.1", 0, server_host_keys=[host_key], process_factory=process
+            Server, "127.0.0.1", 0, server_host_keys=[rsa_key, host_key], process_factory=process
         )
         port = server.get_port()
         ports.append(port)
         try:
             profile["host"] = await transport.probe("127.0.0.1", port=port)
+            assert profile["host"]["fingerprint"] == host_key.get_fingerprint("sha256")
             assert (await transport.verify_first_boot(profile, "test-key-passphrase", port=port))["id"] == profile["id"]
             status["components"]["system"]["commit"] = "c" * 40
             with pytest.raises(ValueError, match="component identities"):

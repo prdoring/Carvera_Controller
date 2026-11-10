@@ -57,6 +57,11 @@ def test_actual_frozen_server_origin_token_bridge_and_listener_cleanup(force, ke
             async with aiohttp.ClientSession() as client:
                 async with client.get(origin + "/vnc.html") as response:
                     assert response.status == 200 and "noVNC" in await response.text()
+                async with client.get(origin + "/defaults.json") as response:
+                    assert response.status == 200 and (await response.json())["show_dot"] is True
+                async with client.get(origin + "/vendor/pako/lib/utils/common.js") as response:
+                    assert response.status == 200
+                    assert response.content_type in {"text/javascript", "application/javascript"}
                 for headers, query in (
                     ({}, token),
                     ({"Origin": "https://foreign.example"}, token),
