@@ -4,6 +4,7 @@ import configparser
 import json
 import math
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -95,6 +96,14 @@ def call_helper(request):
 
 
 class Recovery(App):
+    def run(self):
+        # A service stop must bypass the interactive Return to controller flow.
+        signal.signal(signal.SIGTERM, self.stop_service)
+        super().run()
+
+    def stop_service(self, _signal, _frame):
+        Clock.schedule_once(lambda _dt: self.stop())
+
     def build(self):
         self.title = "Carvera System"
         preferences = configparser.ConfigParser(interpolation=None)

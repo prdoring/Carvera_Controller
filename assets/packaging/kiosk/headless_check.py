@@ -157,9 +157,12 @@ System().run()
                 wait_for(lambda: read_json(run / "status.json").get("pid") == app.pid, processes, timeout=90)
                 assert system.poll() is None
                 assert pixel(port, 35, 1165) == (0, 255, 0), "Restarted controller covered System settings"
+                os.killpg(system.pid, signal.SIGTERM)
+                assert system.wait(timeout=5) == 0, "System did not stop cleanly on SIGTERM"
+                processes.remove(system)
                 print(json.dumps({"backend": "SDL Wayland", "display": status["display"],
                                   "renderer": status["renderer"], "screen_sharing": "RFB ready",
-                                  "system": "remains visible across controller restart"}))
+                                  "system": "remains visible across controller restart and stops on SIGTERM"}))
             except Exception:
                 log.flush()
                 print((base / "processes.log").read_text(errors="replace")[-6000:])
