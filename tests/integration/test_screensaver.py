@@ -9,8 +9,11 @@ from kivy.base import EventLoop
 from kivy.config import Config
 from kivy.core.window import Window
 from kivy.graphics import Callback
+from kivy.metrics import Metrics, dp
 from kivy.tests.common import UnitTestTouch
 from kivy.uix.button import Button
+from kivy.uix.popup import Popup
+from kivy.uix.scrollview import ScrollView
 
 from carveracontroller import runtime_profile
 from carveracontroller.ui.screensaver import ScreensaverCanvas
@@ -105,6 +108,24 @@ def test_blockers_and_sleep(saver):
         assert manager.visible
 
 
+def test_stationary_hover_allows_preview_and_idle_saver(saver):
+    manager, clock = saver
+    status = {"flags": {}, "connected": False, "state": "N/A"}
+    hover = UnitTestTouch(50, 50)
+    hover.is_touch = False
+    EventLoop.touches.append(hover)
+    try:
+        with patch("carveracontroller.ui.screensaver.activity", return_value=status):
+            assert not manager.blocked()
+            assert manager.preview({"screensaver_style": "clock"})
+            manager.hide()
+            clock[0] += 1800
+            manager.check(0)
+            assert manager.visible
+    finally:
+        EventLoop.touches.remove(hover)
+
+
 def test_waking_fingers_and_keyboard_do_not_pass_through(saver):
     manager, _ = saver
     with patch.object(manager, "blocked", return_value=False):
@@ -146,6 +167,46 @@ def test_preview_uses_drafts_without_saving_and_preserves_dialog(saver):
         assert items["screensaver_style"].value == "contours"
     finally:
         popup._discard_and_close()
+
+
+def test_timeout_picker_fits_the_kiosk_and_scrolls_on_a_shorter_screen(mobile, tmp_path):
+    app, _layout = mobile
+    original_size = tuple(Window.size)
+    original_target = app.touch_target
+    Metrics.density = 1.5
+    Metrics.fontscale = 1
+    app.touch_target = dp(48)
+    app.root._ensure_controller_settings_panels()
+    setting = next(
+        item for item in app.root.config_popup._all_setting_items() if item.key == "screensaver_timeout_minutes"
+    )
+    dialog = None
+    try:
+        set_window_size((1920, 1200))
+        setting.choose()
+        pump_frames(15)
+        dialog = next(widget for widget in Window.children if isinstance(widget, Popup) and widget.title == setting.title)
+        surface = dialog.content
+        choices = list(reversed(surface.body.children))
+        assert [button.text for button in choices] == list(setting.choices().values())
+        assert all(button.height >= dp(48) for button in choices)
+        assert [widget for widget in surface.walk() if isinstance(widget, ScrollView)] == [surface.viewport]
+        assert surface.viewport.height >= surface.body.height - 1
+        Window.screenshot(name=str(tmp_path / "timeout-picker-kiosk.png"))
+
+        set_window_size((960, 540))
+        pump_frames(12)
+        assert surface.viewport.do_scroll_y and surface.viewport.bar_width >= dp(8)
+        assert surface.actions.top <= surface.viewport.y
+        Window.screenshot(name=str(tmp_path / "timeout-picker-short.png"))
+        surface.viewport.scroll_y = 0
+        pump_frames(4)
+        assert choices[-1].to_window(0, choices[-1].y)[1] >= surface.viewport.to_window(0, surface.viewport.y)[1] - 1
+    finally:
+        if dialog is not None:
+            dialog.dismiss(animation=False)
+        app.touch_target = original_target
+        set_window_size(original_size)
 
 
 @pytest.mark.parametrize("style", STYLES)

@@ -280,7 +280,7 @@ class Screensaver:
             or runtime_profile.maintenance_active
             or any(status["flags"].values())
             or (status["connected"] and status["state"] not in ("Idle", "Sleep", "Alarm"))
-            or bool(EventLoop.touches)
+            or any(event.is_touch for event in EventLoop.touches)
         )
 
     def check(self, _dt):

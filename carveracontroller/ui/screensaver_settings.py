@@ -2,14 +2,13 @@
 
 from kivy.app import App
 from kivy.metrics import dp
-from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
-from kivy.uix.scrollview import ScrollView
 from kivy.uix.settings import SettingItem
 
 from carveracontroller.translation import tr
 
+from . import theme
 from .android_layout import DialogActions, DialogSurface
 from .screensaver_patterns import STYLES, TIMEOUTS
 
@@ -54,9 +53,6 @@ class SettingScreensaver(SettingItem):
     def choose(self, *_):
         surface = DialogSurface(orientation="vertical", padding=dp(12), spacing=dp(8))
         popup = Popup(title=self.title, content=surface, size_hint=(0.9, 0.85))
-        scroll = ScrollView()
-        column = BoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(8))
-        column.bind(minimum_height=column.setter("height"))
         for value, caption in self.choices().items():
             button = Button(text=caption, size_hint_y=None, height=max(dp(48), App.get_running_app().touch_target))
 
@@ -65,14 +61,18 @@ class SettingScreensaver(SettingItem):
                 popup.dismiss()
 
             button.bind(on_release=select)
-            column.add_widget(button)
-        scroll.add_widget(column)
-        surface.add_widget(scroll)
+            surface.add_widget(button)
         actions = DialogActions()
         cancel = Button(text=tr._("Cancel"))
         cancel.bind(on_release=lambda *_: popup.dismiss())
         actions.add_widget(cancel)
         surface.add_widget(actions)
+        surface.prepare()
+        surface.viewport.bar_width = dp(8)
+        surface.viewport.bar_color = theme.ACCENT
+        surface.viewport.bar_inactive_color = theme.ACCENT
+        surface.viewport.scroll_type = ["bars", "content"]
+        surface.viewport.bind(do_scroll_y=lambda view, scrolls: setattr(view, "bar_width", dp(8) if scrolls else 0))
         popup.open()
 
 
