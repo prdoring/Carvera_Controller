@@ -11,6 +11,22 @@ asyncssh = pytest.importorskip("asyncssh")
 from kioskdesktop import profiles, transport
 
 
+@pytest.mark.parametrize(
+    "error,expected",
+    [
+        (asyncssh.KeyImportError("private-value"), "could not be unlocked"),
+        (asyncssh.HostKeyNotVerifiable("private-value"), "identity has changed"),
+        (asyncssh.PermissionDenied("private-value"), "rejected this access key"),
+        (transport.InstallationError("private-value"), "did not pass its checks"),
+        (TimeoutError("private-value"), "Could not reach"),
+    ],
+)
+def test_connection_guidance_distinguishes_failures_without_disclosing_output(error, expected):
+    message = transport.failure_message(error)
+    assert expected in message
+    assert "private-value" not in message
+
+
 def test_first_boot_exact_host_account_roles_and_component_identity(tmp_path):
     _path, profile = profiles.create("kiosk-test", "test-key-passphrase", "test-key-passphrase", directory=tmp_path)
     profile.update(
@@ -21,6 +37,7 @@ def test_first_boot_exact_host_account_roles_and_component_identity(tmp_path):
     host_key = asyncssh.generate_private_key("ssh-ed25519")
     rsa_key = asyncssh.generate_private_key("ssh-rsa")
     accepted, commands, ports = [], [], []
+    sudo_allowed = [True]
     status = {
         "protocol": 1,
         "phase": "complete",
@@ -48,6 +65,9 @@ def test_first_boot_exact_host_account_roles_and_component_identity(tmp_path):
     async def process(session):
         commands.append(session.command)
         if session.command == "sudo -n id -u":
+            if not sudo_allowed[0]:
+                session.exit(1)
+                return
             session.stdout.write("0\n")
         elif session.command == "sudo -n /usr/local/sbin/carvera-maint":
             request = json.loads(await session.stdin.read())
@@ -71,6 +91,10 @@ def test_first_boot_exact_host_account_roles_and_component_identity(tmp_path):
             status["components"]["system"]["commit"] = "c" * 40
             with pytest.raises(ValueError, match="component identities"):
                 await transport.verify_first_boot(profile, "test-key-passphrase", port=port)
+            status["components"]["system"]["commit"] = profile["commit"]
+            sudo_allowed[0] = False
+            with pytest.raises(transport.InstallationError, match="Administrator sudo"):
+                await transport.verify_first_boot(profile, "test-key-passphrase", port=port)
             foreign = asyncssh.generate_private_key("ssh-ed25519")
             profile["host"] = {
                 "address": "127.0.0.1",
@@ -89,6 +113,8 @@ def test_first_boot_exact_host_account_roles_and_component_identity(tmp_path):
         "sudo -n /usr/local/sbin/carvera-maint",
         "sudo -n id -u",
         "sudo -n /usr/local/sbin/carvera-maint",
+        "sudo -n /usr/local/sbin/carvera-maint",
+        "sudo -n id -u",
     ]
     for port in ports:
         for family, address in ((socket.AF_INET, "127.0.0.1"), (socket.AF_INET6, "::1")):

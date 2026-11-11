@@ -18,15 +18,15 @@ from kioskdesktop.gui import Application
 from kioskdesktop.theme import field
 
 PHASES = {
-    "downloading": "Downloading image",
+    "downloading": "Downloading kiosk software",
     "permission": "Waiting for administrator permission",
-    "staging": "Copying into protected staging",
-    "verifying_image": "Verifying image before erasure",
-    "writing": "Flashing card",
-    "verifying_write": "Verifying written card",
-    "configuring": "Configuring kiosk",
-    "ejecting": "Flushing and ejecting card",
-    "complete": "Card ready",
+    "staging": "Preparing files for the card",
+    "verifying_image": "Checking the download",
+    "writing": "Writing the card",
+    "verifying_write": "Checking what was written",
+    "configuring": "Saving Pi settings",
+    "ejecting": "Ejecting the card",
+    "complete": "Safe to remove the card",
     "connected": "Screen sharing connected",
     "disconnected": "Disconnected",
 }
@@ -43,6 +43,7 @@ class Wizard(Application):
         self.cancel_event = threading.Event()
         self.card_operation = self.screen_session = self.screen_loop = None
         self.worker = None
+        self.confirmed_host = None
         self.variables.update(
             {
                 name: tk.StringVar(value=value)
@@ -59,6 +60,7 @@ class Wizard(Application):
                     "phrase_administrator": "",
                     "recovery_password": "",
                     "recovery_confirmation": "",
+                    "source": "",
                 }.items()
             }
         )
@@ -79,10 +81,7 @@ class Wizard(Application):
     def page(self, step, title, explanation):
         parent = self.panel(title, explanation)
         self.form.canvas.yview_moveto(0)
-        for child in self.navigation.winfo_children():
-            child.configure(
-                foreground=self.theme.color["ACCENT"] if child.cget("text") == step else self.theme.color["SECONDARY"]
-            )
+        self.set_step(step)
         self.status.configure(text="", style="Secondary.TLabel", wraplength=430)
         return parent
 
@@ -94,60 +93,151 @@ class Wizard(Application):
         button.pack(fill="x", pady=6)
         return button
 
+    def detail(self, parent, text, style="Mono.TLabel"):
+        label = ttk.Label(parent, text=text, style=style, wraplength=900)
+        label.pack(anchor="w", fill="x", pady=8)
+        label.bind("<Configure>", lambda event: label.configure(wraplength=max(100, event.width)))
+
+    def advanced(self, parent, title):
+        expanded = tk.BooleanVar(value=False)
+        frame = ttk.Frame(parent)
+        toggle = ttk.Checkbutton(parent, text=title, variable=expanded)
+        toggle.configure(command=lambda: frame.pack(fill="x") if expanded.get() else frame.pack_forget())
+        toggle.pack(anchor="w", pady=12)
+        return frame
+
+    def clear_secrets(self):
+        for key in (
+            "password",
+            "passphrase",
+            "confirmation",
+            "phrase_maintenance",
+            "phrase_administrator",
+            "recovery_password",
+            "recovery_confirmation",
+        ):
+            self.variables[key].set("")
+
     def home(self):
+        self.clear_secrets()
         parent = self.page(
-            "Card",
+            "Choose a card",
             "Set up your kiosk" if not self.viewer_mode else "Screen Share",
-            "Keep your existing card for recovery. Setup never connects to the mill."
+            "Use a spare SD card and keep your working card for recovery."
             if not self.viewer_mode
-            else "Open the verified setup profile for your kiosk. Screen sharing allows touchscreen input.",
+            else "Choose your kiosk to view and control its touchscreen from this computer.",
         )
         if not self.viewer_mode:
-            self.button(parent, "Install on a new card", lambda: self.begin("flash"))
-            self.button(parent, "Configure an already-flashed card", lambda: self.begin("configure"))
-            self.button(parent, "Check first boot", self.choose_profile)
-            self.button(parent, "Resume saved card setup", lambda: self.choose_profile(resume=True))
+            self.button(parent, "Install on an SD card", lambda: self.begin("flash"))
+            self.button(parent, "Continue a saved setup", self.choose_profile)
+            advanced = self.advanced(parent, "Advanced options")
+            self.button(advanced, "Configure an already-written card", lambda: self.begin("configure"))
         else:
-            self.button(parent, "Choose kiosk profile", self.choose_profile)
+            self.button(parent, "Choose kiosk", self.choose_profile)
         self.actions()
 
     def begin(self, mode):
+        self.clear_secrets()
         self.mode = mode
-        self.profile_path = self.profile = self.selected = None
+        self.profile_path = self.profile = self.selected = self.release = None
+        self.catalogue = []
+        self.variables["release"].set("")
+        self.variables["image"].set("")
+        self.variables["source"].set("")
+        for name in ("preferences", "key_maintenance", "key_administrator"):
+            self.variables[name].set("")
         self.show_card()
 
-    def choose_profile(self, resume=False):
+    def choose_profile(self):
+        self.clear_secrets()
+        parent = self.page(
+            "Start the kiosk", "Choose your kiosk", "Continue with the keys and settings saved on this computer."
+        )
+        self.profile_box = ttk.Combobox(parent, state="readonly")
+        self.profile_box.pack(fill="x", pady=12)
+        self.button(parent, "Browse for profile", self.browse_profile)
+        self.actions(self.home)
+        self.background(profiles.saved, self.profiles_ready, "Finding saved setups")
+
+    def profiles_ready(self, values):
+        self.saved_profiles = values
+        stages = {"keys": "Setup not saved", "prepared": "Setup in progress", "verified": "Laptop access verified"}
+        self.profile_box.configure(
+            values=[f"{value['hostname']} · {stages[value['stage']]} · {value['id'][:8]}" for _path, value in values]
+        )
+        self.actions(self.home, self.open_selected_profile)
+        if values:
+            self.profile_box.current(0)
+            self.notice("Choose the kiosk you want to continue setting up.")
+        else:
+            self.next.configure(state="disabled")
+            self.notice("No saved setups found. Browse for the original profile.json if it is in another folder.")
+
+    def open_selected_profile(self):
+        index = self.profile_box.current()
+        if 0 <= index < len(self.saved_profiles):
+            self.open_profile(self.saved_profiles[index][0])
+
+    def browse_profile(self):
         selected = filedialog.askopenfilename(
             title="Open kiosk profile",
             initialdir=Path.home() / ".ssh/carvera",
             filetypes=(("Kiosk profile", "profile.json"), ("JSON", "*.json")),
         )
-        if not selected:
-            return
+        if selected:
+            self.open_profile(selected)
+
+    def open_profile(self, selected):
         try:
-            self.profile_path = Path(selected).resolve(strict=True)
-            self.profile = profiles.load(self.profile_path)
+            path = Path(selected).resolve(strict=True)
+            profile = profiles.load(path)
+            self.release = None
+            self.selected = None
+            self.confirmed_host = None
+            self.variables["image"].set("")
+            self.profile_path, self.profile = path, profile
             self.variables["host"].set(self.profile.get("host", {}).get("address", self.profile["hostname"] + ".local"))
-            if resume:
-                if self.profile.get("stage") == "verified":
-                    raise ValueError("Completed installations use authenticated settings")
-                value = installer.transaction(self.profile_path, self.profile)
-                self.release = releases.Release.parse(value["release"])
-                status_path = self.profile_path.parent / "card-status.json"
-                status = installer.shared("setup_protocol").read_json(status_path) if status_path.exists() else {}
-                self.mode = (
-                    "configure"
-                    if status.get("id") == self.profile["id"]
-                    and status.get("phase") in {"configuring", "ejecting", "complete"}
-                    else "flash"
-                )
-                self.show_card()
-            elif self.viewer_mode:
+            if self.viewer_mode:
                 self.viewer_page()
+            elif profile["stage"] == "verified":
+                self.finish()
+            elif profile["stage"] == "keys":
+                self.notice(
+                    "This setup was not saved. Start an installation again; the existing key folder is retained.", True
+                )
             else:
-                self.boot_page()
+                self.release = installer.load_release(path, profile)
+                status_path = path.parent / "card-status.json"
+                try:
+                    status = installer.shared("setup_protocol").read_json(status_path)
+                except (OSError, ValueError):
+                    status = {}
+                phase = status.get("phase") if status.get("id") == profile["id"] else None
+                if phase == "complete":
+                    self.card_ready()
+                elif phase == "ejecting":
+                    self.ejection_failed()
+                else:
+                    configuring = phase == "configuring" or (
+                        status.get("id") == profile["id"] and status.get("action") in {"configure", "resume"}
+                    )
+                    self.mode = "configure" if configuring else "flash"
+                    self.resume_page()
         except (OSError, ValueError, KeyError):
             self.notice("This profile could not be opened. Select the original profile.json in your key folder.", True)
+
+    def resume_page(self):
+        parent = self.page(
+            "Start the kiosk",
+            "Continue a saved setup",
+            "If the card is in the Pi, wait for the controller screen, then check laptop access. "
+            "If card preparation was interrupted on this computer, select the card again to retry.",
+        )
+        ttk.Label(parent, text=self.profile["hostname"], style="Mono.TLabel").pack(anchor="w", pady=8)
+        self.button(parent, "Check laptop access", self.boot_page)
+        label = "Retry saving settings" if self.mode == "configure" else "Select and write the card again"
+        self.button(parent, label, self.show_card)
+        self.actions(self.choose_profile, self.close, next_text="Finish later")
 
     def browse(self, variable, *, title, types):
         selected = filedialog.askopenfilename(title=title, filetypes=types)
@@ -156,36 +246,75 @@ class Wizard(Application):
 
     def show_card(self):
         parent = self.page(
-            "Card",
-            "Select a removable card",
-            "Only independently identified removable media are offered. "
-            "If Windows asks to format the Linux partition, choose Cancel.",
+            "Choose a card",
+            "Choose a card",
+            "Select the reader name and capacity of your SD card. If Windows asks to format the card, choose Cancel.",
         )
         ttk.Label(parent, text="Card").pack(anchor="w", pady=8)
         self.card_box = ttk.Combobox(parent, state="readonly", textvariable=self.variables["device"])
         self.card_box.pack(fill="x")
         self.button(parent, "Refresh cards", self.refresh_cards)
         if self.profile is None:
-            ttk.Label(parent, text="Full kiosk release").pack(anchor="w", pady=(16, 8))
+            for label, source in (("Download kiosk software", "download"), ("Use downloaded files", "offline")):
+                ttk.Radiobutton(
+                    parent, text=label, variable=self.variables["source"], value=source, command=self.source_changed
+                ).pack(anchor="w", pady=6)
+            ttk.Label(parent, text="Kiosk software version").pack(anchor="w", pady=(16, 8))
             self.release_box = ttk.Combobox(parent, state="readonly", textvariable=self.variables["release"])
             self.release_box.pack(fill="x")
+            self.release_box.configure(values=[value.version for value in self.catalogue])
             self.release_box.bind("<<ComboboxSelected>>", self.select_release)
             ttk.Checkbutton(parent, text="Include unsigned preview releases", variable=self.previews).pack(anchor="w")
-            self.button(parent, "Find compatible releases", self.find_releases)
-            self.button(parent, "Open offline release metadata", self.offline_metadata)
+            self.button(parent, "Find compatible versions", self.find_releases)
+            self.offline_box = ttk.Frame(parent)
+            self.button(self.offline_box, "Choose downloaded files", self.offline_metadata)
+            if self.variables["source"].get() == "offline":
+                self.offline_box.pack(fill="x")
         if self.release:
             ttk.Label(parent, text=f"Selected release: {self.release.version}", style="Mono.TLabel").pack(
                 anchor="w", pady=12
             )
-        if self.mode == "flash":
-            field(parent, "Offline image (optional; leave empty to download)", self.variables["image"])
+        if self.mode == "flash" and self.profile is not None:
+            field(parent, "Downloaded image (optional; leave empty to download)", self.variables["image"])
             self.button(
                 parent,
                 "Choose image file",
                 lambda: self.browse("image", title="Select matching image", types=(("XZ image", "*.img.xz"),)),
             )
         self.actions(self.home, self.card_continue)
-        self.refresh_cards()
+        # Read Tk variables on the UI thread before starting discovery.
+        online = self.profile is None and self.variables["source"].get() == "download" and self.release is None
+        previews = self.previews.get()
+        protected = [self.profile_path] if self.profile_path else []
+
+        def inspect():
+            cards = devices.inventory(protected)
+            try:
+                catalogue = releases.discover(previews) if online else None
+            except (OSError, ValueError):
+                catalogue = []
+            return cards, catalogue
+
+        def ready(result):
+            cards, catalogue = result
+            self.cards_ready(cards)
+            if catalogue is not None:
+                self.releases_ready(catalogue)
+
+        self.background(inspect, ready, "Finding cards and kiosk software")
+
+    def source_changed(self):
+        self.release = None
+        self.catalogue = []
+        self.release_box.configure(values=[])
+        self.variables["release"].set("")
+        self.variables["image"].set("")
+        if self.variables["source"].get() == "offline":
+            self.offline_box.pack(fill="x")
+            self.notice("Choose setup-release.json and its matching image from the same release.")
+        else:
+            self.offline_box.pack_forget()
+            self.find_releases()
 
     def refresh_cards(self):
         self.background(
@@ -207,17 +336,22 @@ class Wizard(Application):
         )
 
     def find_releases(self):
+        self.variables["source"].set("download")
+        self.variables["image"].set("")
+        self.offline_box.pack_forget()
         previews = self.previews.get()
         self.background(lambda: releases.discover(previews), self.releases_ready, "Finding complete kiosk releases")
 
     def releases_ready(self, values):
         self.catalogue = values
+        self.release = None
+        self.variables["release"].set("")
         self.release_box.configure(values=[release.version for release in values])
         if values:
             self.release_box.current(0)
             self.select_release()
         else:
-            self.notice("No compatible full image is published. App-only releases cannot install a new card.", True)
+            self.notice("No compatible kiosk software was found. Retry finding versions or use downloaded files.", True)
 
     def select_release(self, _event=None):
         self.release = next(
@@ -238,7 +372,14 @@ class Wizard(Application):
             self.catalogue = [self.release]
             self.release_box.configure(values=[self.release.version])
             self.variables["release"].set(self.release.version)
-            self.notice("Offline release loaded. Choose its matching image for installation.")
+            if self.mode == "flash":
+                image = filedialog.askopenfilename(
+                    title="Choose the matching kiosk image",
+                    initialdir=Path(path).parent,
+                    filetypes=(("Kiosk image", "*.img.xz"),),
+                )
+                self.variables["image"].set(image)
+            self.notice("Downloaded files selected. Their contents will be checked before erasing.")
         except (ValueError, OSError, KeyError):
             self.notice("Select matching setup-release.json from a complete kiosk release.", True)
 
@@ -251,65 +392,148 @@ class Wizard(Application):
         if self.selected.capacity < self.release.image.minimum_capacity:
             self.notice("This card is too small for the selected image.", True)
             return
-        if self.profile is not None:
-            self.review()
-        else:
-            self.network_page()
+        if (
+            self.mode == "flash"
+            and self.profile is None
+            and self.variables["source"].get() == "offline"
+            and not self.variables["image"].get()
+        ):
+            self.notice("Choose both setup-release.json and its matching image.", True)
+            return
+        selected = self.selected
+        protected = [self.profile_path] if self.profile_path else []
+
+        def ready(cards):
+            current = next(
+                (
+                    card
+                    for card in cards
+                    if card.eligible
+                    and (card.path, card.identity, card.capacity)
+                    == (selected.path, selected.identity, selected.capacity)
+                ),
+                None,
+            )
+            if current is None:
+                self.cards_ready(cards)
+                self.notice("The card was removed or changed. Select the card again before continuing.", True)
+                return
+            self.selected = current
+            if self.profile is not None:
+                self.review()
+            else:
+                self.network_page()
+
+        self.background(lambda: devices.inventory(protected), ready, "Checking the selected card")
 
     def network_page(self):
         parent = self.page(
-            "Network",
-            "Connect your kiosk",
-            "Choose Ethernet or supported WPA-personal Wi-Fi. "
-            "Network settings are removed from the boot partition after successful setup.",
+            "Set up your Pi",
+            "Set up your Pi",
+            "Name your Pi using lowercase letters, numbers and hyphens. Choose how it will join your network.",
         )
-        ttk.Combobox(
+        field(parent, "Pi name", self.variables["hostname"])
+        self.address_preview = ttk.Label(parent, style="Secondary.TLabel")
+        self.address_preview.pack(anchor="w", pady=8)
+
+        def address(*_args):
+            self.address_preview.configure(text=f"Pi address: {self.variables['hostname'].get()}.local")
+
+        trace = self.variables["hostname"].trace_add("write", address)
+        self.address_preview.bind("<Destroy>", lambda _event: self.variables["hostname"].trace_remove("write", trace))
+        address()
+        network = ttk.Combobox(
             parent, textvariable=self.variables["network"], values=("Ethernet", "Wi-Fi"), state="readonly"
-        ).pack(fill="x")
+        )
+        network.pack(fill="x")
+        self.network_choice = network
+        self.wifi_box = ttk.Frame(parent)
+        network.bind("<<ComboboxSelected>>", lambda _event: self.wifi_visibility())
         for name, label in (
-            ("hostname", "Kiosk name"),
             ("ssid", "Wi-Fi network name"),
             ("country", "Two-letter country code"),
         ):
-            field(parent, label, self.variables[name])
-        field(parent, "Wi-Fi password", self.variables["password"], secret=True)
-        field(parent, "Preferences backup (optional)", self.variables["preferences"])
+            field(self.wifi_box, label, self.variables[name])
+        field(self.wifi_box, "Wi-Fi password", self.variables["password"], secret=True)
+        self.wifi_visibility()
+        advanced = self.advanced(parent, "Restore a settings backup (optional)")
+        field(advanced, "Settings backup", self.variables["preferences"])
         self.button(
-            parent,
-            "Choose preferences backup",
+            advanced,
+            "Choose settings backup",
             lambda: self.browse(
                 "preferences",
                 title="Import preferences",
                 types=(("Preferences archive", "*.tar.gz *.tgz *.tar *.xz *.bz2"),),
             ),
         )
-        self.actions(self.show_card, self.access_page)
+        self.actions(self.show_card, self.network_continue)
+
+    def wifi_visibility(self):
+        if self.variables["network"].get() == "Wi-Fi":
+            self.wifi_box.pack(fill="x", after=self.network_choice)
+        else:
+            self.wifi_box.pack_forget()
+
+    def network_continue(self):
+        if self.valid_network():
+            self.access_page()
+
+    def valid_network(self):
+        request = {
+            "format": 2,
+            "setup_protocol": 1,
+            "id": "0" * 32,
+            "hostname": self.variables["hostname"].get(),
+            "authorized_keys": ["unused"],
+            "admin_public_keys": ["unused"],
+        }
+        if self.variables["network"].get() == "Wi-Fi":
+            request["wifi"] = {name: self.variables[name].get() for name in ("ssid", "password", "country")}
+            request["wifi"]["country"] = request["wifi"]["country"].upper()
+        try:
+            installer.shared("setup_protocol").validate_request(request, lambda _keys: None)
+        except ValueError as error:
+            self.notice(
+                "Use a Pi name with lowercase letters, numbers and internal hyphens."
+                if str(error) == "Use a valid lowercase kiosk hostname"
+                else "Wi-Fi needs a network name, two-letter country code and an 8–63 byte password.",
+                True,
+            )
+            return False
+        return True
 
     def access_page(self):
         parent = self.page(
-            "Access",
-            "Keep control of your kiosk",
-            "Setup creates separate encrypted maintenance and administrator keys "
-            "in a unique folder under your .ssh directory. Administrator access permits full control of the Pi.",
+            "Set up your Pi",
+            "Save an access key passphrase",
+            "This unlocks the keys for Screen Share and Pi administration. Save it somewhere private. "
+            "Setup saves encrypted keys on this computer. You will enter the passphrase again when connecting.",
         )
-        field(parent, "New key passphrase", self.variables["passphrase"], secret=True)
-        field(parent, "Confirm new key passphrase", self.variables["confirmation"], secret=True)
-        ttk.Label(
-            parent,
-            text="Save the passphrase privately. It is never saved in your setup profile.",
-            style="Secondary.TLabel",
-        ).pack(anchor="w", pady=12)
+        field(parent, "Access key passphrase", self.variables["passphrase"], secret=True)
+        field(parent, "Confirm access key passphrase", self.variables["confirmation"], secret=True)
+        advanced = self.advanced(parent, "Use existing access keys (advanced)")
         for role, label in (("maintenance", "Maintenance"), ("administrator", "Administrator")):
-            field(parent, f"Advanced: existing encrypted {label.lower()} key (optional)", self.variables["key_" + role])
+            field(advanced, f"Existing encrypted {label.lower()} key (optional)", self.variables["key_" + role])
             self.button(
-                parent,
+                advanced,
                 f"Choose {label.lower()} key",
                 lambda role=role: self.browse("key_" + role, title="Select encrypted key", types=(("All files", "*"),)),
             )
-            field(parent, f"Existing {label.lower()} key passphrase", self.variables["phrase_" + role], secret=True)
-        self.actions(self.network_page, self.prepare_review, next_text="Create keys and review")
+            field(advanced, f"Existing {label.lower()} key passphrase", self.variables["phrase_" + role], secret=True)
+        self.actions(self.network_page, self.access_review, next_text="Review setup")
+
+    def access_review(self):
+        generated = any(not self.variables["key_" + role].get() for role in profiles.ROLES)
+        phrase = self.variables["passphrase"].get()
+        if generated and (not phrase or phrase != self.variables["confirmation"].get()):
+            self.notice("Enter and confirm the same nonempty access key passphrase.", True)
+            return
+        self.review()
 
     def prepare_review(self):
+        if not self.valid_network():
+            return
         values = {key: variable.get() for key, variable in self.variables.items()}
         wifi = (
             {"ssid": values["ssid"], "password": values["password"], "country": values["country"].upper()}
@@ -327,21 +551,6 @@ class Wizard(Application):
         ):
             self.notice("Enter and confirm a nonempty passphrase for the new keys.", True)
             return
-        probe = {
-            "format": 2,
-            "setup_protocol": 1,
-            "id": "0" * 32,
-            "hostname": values["hostname"],
-            "authorized_keys": ["unused"],
-            "admin_public_keys": ["unused"],
-        }
-        if wifi:
-            probe["wifi"] = wifi
-        try:
-            installer.shared("setup_protocol").validate_request(probe, lambda _keys: None)
-        except ValueError as error:
-            self.notice(str(error), True)
-            return
 
         def prepare():
             path, profile = profiles.create(
@@ -350,22 +559,23 @@ class Wizard(Application):
             installer.prepare(path, profile, release, wifi, values["preferences"] or None)
             return path, profile
 
-        self.background(prepare, self.prepared, "Saving encrypted keys and the private setup transaction")
+        self.background(prepare, self.prepared, "Saving your setup and encrypted access keys")
 
     def prepared(self, result):
         self.profile_path, self.profile = result
-        for key in ("password", "passphrase", "confirmation", "phrase_maintenance", "phrase_administrator"):
-            self.variables[key].set("")
-        self.review()
+        self.clear_secrets()
+        self.install()
 
     def review(self):
         erases = self.mode == "flash"
         parent = self.page(
-            "Review",
-            "Review this card before erasing" if erases else "Review card configuration",
-            "Everything on the selected card will be erased."
+            "Write the card",
+            "Review your setup",
+            "Prepare card saves your setup, downloads and checks the software, then asks for permission to erase this card. "
+            "Your computer may ask for administrator permission to access the card."
             if erases
-            else "Only a fresh v3 card or this exact prepared transaction can be configured. Completed cards are rejected.",
+            else "Prepare card saves your setup and asks for permission to write Pi settings. "
+            "Use a fresh card or retry the original saved setup.",
         )
         panel = ttk.Frame(parent, style="Panel.TFrame", padding=20)
         panel.pack(fill="x", pady=12)
@@ -374,26 +584,31 @@ class Wizard(Application):
             f"Physical device: {self.selected.path}",
             f"Capacity: {self.selected.capacity / 10**9:.1f} GB",
             f"Release: {self.release.version}",
-            f"Kiosk: {self.profile['hostname']}",
-            f"Key folder: {self.profile_path.parent}",
+            f"Pi address: {(self.profile['hostname'] if self.profile else self.variables['hostname'].get())}.local",
         ):
-            ttk.Label(panel, text=text, style="Panel.TLabel", wraplength=900).pack(anchor="w", pady=4)
-        self.agreement = tk.BooleanVar(value=False)
-        ttk.Checkbutton(
-            parent,
-            text="I checked this physical card and approve erasing it."
-            if erases
-            else "I checked this physical card and approve its configuration.",
-            variable=self.agreement,
-            command=lambda: self.next.configure(state="normal" if self.agreement.get() else "disabled"),
-        ).pack(anchor="w", pady=16)
-        self.actions(self.show_card, self.install, next_text="Prepare installation")
-        self.next.configure(state="disabled")
+            self.detail(panel, text, "Panel.TLabel")
+        if self.profile:
+            self.detail(panel, f"Setup folder: {self.profile_path.parent}", "Panel.TLabel")
+        else:
+            network = self.variables["network"].get()
+            if network == "Wi-Fi":
+                network += " · " + self.variables["ssid"].get()
+            self.detail(panel, f"Network: {network}", "Panel.TLabel")
+            backup = self.variables["preferences"].get()
+            self.detail(
+                panel, f"Settings backup: {Path(backup).name if backup else 'Start with defaults'}", "Panel.TLabel"
+            )
+            for role in profiles.ROLES:
+                choice = "Use existing key" if self.variables["key_" + role].get() else "Create new key"
+                self.detail(panel, f"{role.capitalize()} access: {choice}", "Panel.TLabel")
+        self.actions(
+            self.show_card if self.profile else self.access_page,
+            self.install if self.profile else self.prepare_review,
+            next_text="Prepare card",
+        )
         self.back.focus_set()
 
     def install(self):
-        if not self.agreement.get():
-            return
         selected, path, profile, release, action = (
             self.selected,
             self.profile_path,
@@ -403,9 +618,9 @@ class Wizard(Application):
         )
         offline = self.variables["image"].get()
         self.page(
-            "Install",
-            "Installing your kiosk",
-            "Keep the card inserted until ejection completes. Cancellation during flashing leaves an incomplete card.",
+            "Write the card",
+            "Preparing your card",
+            "Keep the card inserted until Setup says it is safe to remove. Cancelling during writing leaves an incomplete card.",
         )
         self.progress_label = ttk.Label(self.form.body, text="Preparing installation")
         self.progress_label.pack(anchor="w", pady=12)
@@ -432,36 +647,73 @@ class Wizard(Application):
             failure=self.install_failed,
         )
 
-    def install_failed(self, _error):
+    def install_failed(self, error):
+        if self.card_operation.is_running():
+            self.page(
+                "Write the card",
+                "Waiting for card access to close",
+                "Keep the card inserted while the card worker finishes cleanup.",
+            )
+            self.actions()
+            self.root.after(500, lambda: self.install_failed(error) if not self.closing else None)
+            return
         phase = self.card_operation.last_phase
-        incomplete = phase in {"configuring", "ejecting"}
+        if phase == "ejecting":
+            self.ejection_failed()
+            return
+        incomplete = phase == "configuring" or self.mode != "flash"
+        before_write = (
+            phase in {None, "staging", "verifying_image", "awaiting_confirmation"}
+            and not self.card_operation.confirmed.is_set()
+        )
+        if incomplete:
+            title = "Pi settings could not be saved"
+            explanation = "Select the same card to retry saving settings with your original keys and configuration."
+        elif before_write:
+            title = "Card preparation stopped"
+            explanation = "Your card has not been erased. Check the downloaded files or approve the card-access prompt, then retry."
+        else:
+            title = "The card is not ready to boot"
+            explanation = (
+                "Writing or checking the card did not finish. Select the card again and confirm erasing it to retry."
+            )
         parent = self.page(
-            "Install",
-            "Configuration incomplete" if incomplete else "Installation incomplete",
-            "Keep the card inserted. The saved profile retains the same keys and configuration. "
-            "Retry configuration without reflashing after a verified flash. If flashing did not finish, explicitly install again.",
+            "Write the card",
+            title,
+            explanation,
         )
-        ttk.Label(parent, text=f"Saved profile: {self.profile_path}", style="Mono.TLabel", wraplength=900).pack(
-            anchor="w", pady=16
+        self.detail(parent, f"Saved profile: {self.profile_path}")
+        if incomplete:
+            self.mode = "configure"
+        self.actions(
+            self.home, self.show_card, next_text="Retry saving settings" if incomplete else "Select card again"
         )
-        self.mode = "configure" if incomplete else "flash"
-        self.actions(self.home, self.show_card, next_text="Retry configuration" if incomplete else "Select card again")
+
+    def ejection_failed(self):
+        self.page(
+            "Write the card",
+            "Eject the prepared card",
+            "Your Pi settings were saved. Close any windows or applications using the card, then use your computer's Eject or Safely Remove control. "
+            "After it confirms removal is safe, remove the card and continue.",
+        )
+        self.button(self.form.body, "Check laptop access", self.boot_page)
+        self.actions(self.home, lambda: self.card_ready(ejected=False), next_text="I safely removed the card")
 
     def confirm_media(self, value):
         selected = value["device"]
         parent = self.page(
-            "Review",
+            "Write the card",
             "Erase this card?" if value["erases"] else "Configure this card?",
             "The image passed verification. Keep this exact card inserted while approving the operation."
             if value["erases"]
             else "Keep this exact card inserted. Only the saved setup transaction will be applied.",
         )
         for text in (selected["description"], selected["path"], f"Capacity: {selected['capacity'] / 10**9:.1f} GB"):
-            ttk.Label(parent, text=text, style="Mono.TLabel").pack(anchor="w", pady=8)
+            self.detail(parent, text)
         self.agreement = tk.BooleanVar(value=False)
         ttk.Checkbutton(
             parent,
-            text="I checked this card and approve erasing all its contents."
+            text="Erase all contents of this card"
             if value["erases"]
             else "I checked this card and approve configuring it.",
             variable=self.agreement,
@@ -471,7 +723,7 @@ class Wizard(Application):
             self.cancel,
             self.confirm_write,
             back_text="Cancel",
-            next_text="Erase and install" if value["erases"] else "Configure card",
+            next_text="Erase and write card" if value["erases"] else "Save Pi settings",
             danger=value["erases"],
         )
         self.next.configure(state="disabled")
@@ -481,71 +733,93 @@ class Wizard(Application):
         if not self.agreement.get():
             return
         self.card_operation.confirm()
-        self.page("Install", "Installing your kiosk", "Keep the selected card inserted until ejection finishes.")
+        self.page("Write the card", "Writing your card", "Keep the selected card inserted until ejection finishes.")
         self.progress_label = ttk.Label(self.form.body, text="Preparing card")
         self.progress_label.pack(anchor="w", pady=12)
         self.progress_bar = ttk.Progressbar(self.form.body, maximum=100)
         self.progress_bar.pack(fill="x", pady=12)
         self.actions(None, self.cancel, next_text="Cancel")
 
-    def card_ready(self):
+    def card_ready(self, ejected=True):
         self.page(
-            "Install",
-            "Your card is ready",
-            "Insert it into the Pi, keep the mill disconnected, then power on. "
-            "Wait for setup to finish on the touchscreen before checking first boot.",
+            "Start the kiosk",
+            "Safe to remove the card" if ejected else "Start the kiosk",
+            "Put the card in the Pi. If you chose Ethernet, plug in the network cable. "
+            "Leave the mill disconnected and power on. First startup can take several minutes. "
+            "Wait for the controller screen to open, then check laptop access for Screen Share and Pi administration.",
         )
+        self.clear_secrets()
         self.variables["host"].set(self.profile["hostname"] + ".local")
-        self.actions(self.home, self.boot_page, next_text="Check first boot")
+        self.actions(self.close, self.boot_page, back_text="Finish later", next_text="Check laptop access")
+        self.notice("Resume later with Continue a saved setup.")
 
     def boot_page(self):
         parent = self.page(
-            "Install",
-            "Check first boot",
-            "The SSH fingerprint must match the one shown on the kiosk touchscreen. "
-            "Do not trust a different or changed key.",
+            "Start the kiosk",
+            "Check laptop access",
+            "Wait for the controller screen on the Pi. On its touchscreen, open "
+            "Settings → System → Overview → Laptop access to find the network address and SSH identity.",
         )
         field(parent, "Kiosk hostname or IP address", self.variables["host"])
-        field(parent, "Maintenance key passphrase", self.variables["passphrase"], secret=True)
-        field(
-            parent,
-            "Administrator key passphrase (leave empty if the same)",
-            self.variables["phrase_administrator"],
-            secret=True,
-        )
-        self.actions(self.home, self.probe_host, next_text="Compare fingerprint")
+        self.confirmed_host = None
+        self.actions(self.close, self.probe_host, back_text="Finish later", next_text="Compare fingerprint")
 
     def probe_host(self):
         address = self.variables["host"].get()
         self.background(
-            lambda: asyncio.run(transport.probe(address)), self.confirm_host, "Reading the Pi's SSH fingerprint"
+            lambda: asyncio.run(transport.probe(address)),
+            self.confirm_host,
+            "Reading the Pi's SSH fingerprint",
+            failure=lambda _error: self.notice(
+                "Could not reach the Pi. Check its power and network, or enter the address shown under Laptop access on its touchscreen.",
+                True,
+            ),
         )
 
     def confirm_host(self, host):
         previous = self.profile.get("host")
         if previous and previous["public"] != host["public"]:
             self.notice(
-                "The host key changed. The saved identity was preserved; check the Pi and network before continuing.",
+                "The Pi's SSH identity has changed. Check the address and touchscreen identity before continuing with this saved setup.",
                 True,
             )
             return
         parent = self.page(
-            "Install", "Compare with the touchscreen", "Only continue if this exact fingerprint appears on your Pi."
+            "Start the kiosk",
+            "Compare with the touchscreen",
+            "On the Pi, open Settings → System → Overview → Laptop access. "
+            "Compare the SHA256 fingerprint under SSH identity with the one below.",
         )
-        ttk.Label(parent, text=host["address"], style="Mono.TLabel").pack(anchor="w", pady=12)
-        ttk.Label(parent, text=host["fingerprint"], style="Mono.TLabel", wraplength=900).pack(anchor="w", pady=16)
+        self.detail(parent, host["address"])
+        self.detail(parent, host["fingerprint"])
         self.agreement = tk.BooleanVar(value=False)
         ttk.Checkbutton(
             parent,
-            text="I compared the fingerprint on the touchscreen and it matches exactly.",
+            text="The fingerprint matches exactly",
             variable=self.agreement,
             command=lambda: self.next.configure(state="normal" if self.agreement.get() else "disabled"),
         ).pack(anchor="w", pady=16)
-        self.actions(self.boot_page, lambda: self.verify(host), next_text="Verify installation")
+        self.actions(self.boot_page, lambda: self.access_check_page(host), next_text="Continue")
         self.next.configure(state="disabled")
 
-    def verify(self, host):
+    def access_check_page(self, host):
         if not self.agreement.get():
+            return
+        self.confirmed_host = host
+        parent = self.page(
+            "Start the kiosk",
+            "Unlock your access keys",
+            "Enter the access key passphrase you saved when preparing the card. "
+            "Setup will check this installation and both access accounts.",
+        )
+        field(parent, "Access key passphrase (maintenance key)", self.variables["passphrase"], secret=True)
+        advanced = self.advanced(parent, "Separate administrator passphrase")
+        field(advanced, "Administrator key passphrase", self.variables["phrase_administrator"], secret=True)
+        self.actions(self.boot_page, self.verify, next_text="Check laptop access")
+
+    def verify(self):
+        host = self.confirmed_host
+        if host is None:
             return
         candidate = {**self.profile, "host": host}
         phrase, admin_phrase = self.variables["passphrase"].get(), self.variables["phrase_administrator"].get()
@@ -556,30 +830,19 @@ class Wizard(Application):
             installer.finish_verification(self.profile_path, candidate)
             return candidate, result
 
-        self.background(operation, self.verified, "Checking installation, both accounts and administrator access")
+        self.background(operation, self.verified, "Checking laptop access", failure=self.access_failed)
+
+    def access_failed(self, error):
+        self.notice(transport.failure_message(error), True)
 
     def verified(self, value):
-        self.profile, result = value
-        self.page(
-            "Install",
-            "Kiosk verified",
-            "Both accounts and administrator access passed verification. "
-            "The controller remains disconnected. Set a private local recovery password and test TTY2 with a keyboard.",
-        )
-        ttk.Label(self.form.body, text=f"Image: {result['image']['version']}", style="Mono.TLabel").pack(
-            anchor="w", pady=4
-        )
-        for component, metadata in result["components"].items():
-            ttk.Label(
-                self.form.body, text=f"{component.capitalize()}: {metadata['version']}", style="Mono.TLabel"
-            ).pack(anchor="w", pady=4)
-        self.button(self.form.body, "Set local recovery password", self.recovery_page)
-        self.actions(self.boot_page, self.finish, next_text="Finish setup")
+        self.profile, _result = value
+        self.finish()
 
     def recovery_page(self):
         parent = self.page(
-            "Install",
-            "Set local recovery password",
+            "Start the kiosk",
+            "Set up offline recovery",
             "This password is for kiosk-admin on the physical keyboard console. "
             "SSH password login remains disabled. Use Ctrl+Alt+F2 to test it, then Ctrl+Alt+F1 to return to the kiosk.",
         )
@@ -594,22 +857,39 @@ class Wizard(Application):
             self.variables["recovery_password"].get(),
             self.variables["recovery_confirmation"].get(),
         )
+        if not password or password != confirmation or any(char in password for char in "\n\r\0:"):
+            self.notice("Enter and confirm the same local recovery password, without newlines or colons.", True)
+            return
+
+        def saved(_result):
+            self.finish()
+            self.notice("Recovery password saved. Test keyboard login with Ctrl+Alt+F2, then return with Ctrl+Alt+F1.")
+
         self.background(
             lambda: asyncio.run(transport.set_recovery_password(self.profile, phrase, password, confirmation)),
-            lambda _result: self.finish(),
+            saved,
             "Setting the local console password over verified SSH",
+            failure=lambda error: self.notice(
+                "Could not set the recovery password. " + transport.failure_message(error), True
+            ),
         )
 
     def finish(self):
         for key in ("passphrase", "phrase_administrator", "recovery_password", "recovery_confirmation"):
             self.variables[key].set("")
         parent = self.page(
-            "Install",
-            "Your kiosk is set up",
-            "Keep your profile and encrypted keys. "
-            "Use the separate Screen Share download for touchscreen access; routine updates remain in the maintenance tools.",
+            "Start the kiosk",
+            "Laptop access verified",
+            "Back up your setup folder and keep its passphrase somewhere private. "
+            "In Screen Share, select this kiosk and enter its maintenance key passphrase. The screen opens in your browser; click Disconnect when finished. "
+            "On the Pi, tap Connect when ready to connect the mill. Opening a USB connection resets the mill.",
         )
         details = profiles.connection_details(self.profile)
+        ttk.Label(parent, text=f"Pi address: {details['address']}", style="Mono.TLabel").pack(anchor="w", pady=8)
+        self.button(parent, "Download Screen Share", self.download_viewer)
+        self.button(parent, "Open setup folder", self.show_folder)
+        self.button(parent, "Set up offline recovery (optional)", self.recovery_page)
+        advanced = self.advanced(parent, "Connection details")
         for text in (
             f"Address: {details['address']}",
             f"Host: {details['host_fingerprint']}",
@@ -618,10 +898,8 @@ class Wizard(Application):
                 for role, item in details["accounts"].items()
             ),
         ):
-            ttk.Label(parent, text=text, style="Mono.TLabel", wraplength=900).pack(anchor="w", pady=8)
-        self.button(parent, "Show key folder", self.show_folder)
-        self.button(parent, "Copy connection details", self.copy_details)
-        self.button(parent, "Download Screen Share", self.download_viewer)
+            self.detail(advanced, text)
+        self.button(advanced, "Copy connection details", self.copy_details)
         self.actions(self.home, self.close, next_text="Close")
 
     def show_folder(self):
@@ -658,30 +936,25 @@ class Wizard(Application):
         self.background(resolve, open_download, "Checking the Screen Share download")
 
     def viewer_page(self):
+        self.variables["passphrase"].set("")
         parent = self.page(
             "",
             "Connect to your kiosk",
-            "Screen sharing allows touchscreen input. "
-            "Connect explicitly when you are ready, then Disconnect to close the owned session.",
+            "The touchscreen opens in your browser and allows input. Click Disconnect here when you are finished.",
         )
         host = self.profile.get("host", {})
-        ttk.Label(parent, text=f"Kiosk: {host.get('address', 'Not verified')}", style="Mono.TLabel").pack(
-            anchor="w", pady=8
+        self.detail(parent, f"Kiosk: {host.get('address', 'Not verified')}")
+        self.detail(
+            parent,
+            host.get("fingerprint", "Choose Continue a saved setup in Carvera Kiosk Setup, then Check laptop access."),
         )
-        ttk.Label(
-            parent,
-            text=host.get("fingerprint", "Complete first-boot verification in Setup."),
-            style="Mono.TLabel",
-            wraplength=900,
-        ).pack(anchor="w", pady=8)
-        ttk.Label(
-            parent,
-            text=f"Maintenance key: {self.profile['keys']['maintenance']['path']}",
-            style="Mono.TLabel",
-            wraplength=900,
-        ).pack(anchor="w", pady=8)
+        self.detail(parent, f"Maintenance key: {self.profile['keys']['maintenance']['path']}")
         field(parent, "Maintenance key passphrase", self.variables["passphrase"], secret=True)
-        self.actions(self.home, self.connect_viewer, next_text="Connect")
+        self.actions(
+            self.choose_profile,
+            self.connect_viewer if self.profile["stage"] == "verified" else None,
+            next_text="Connect",
+        )
         self.notice("Disconnected")
 
     def connect_viewer(self):
@@ -705,17 +978,18 @@ class Wizard(Application):
             lambda _result: self.viewer_page(),
             "Connecting screen sharing",
             allow_cancel=True,
-            failure=lambda _error: self.viewer_failure(),
+            failure=self.viewer_failure,
         )
         self.actions(None, self.cancel, next_text="Disconnect")
 
-    def viewer_failure(self):
+    def viewer_failure(self, error):
         self.viewer_page()
-        self.notice(
-            "Screen sharing ended. Check the kiosk, passphrase and System version, then connect again explicitly.", True
-        )
+        self.notice("Screen sharing ended. " + transport.failure_message(error), True)
 
     def report(self, value):
+        if "bytes" not in value and "percent" not in value:
+            self.messages.put(("progress", value))
+            return
         try:
             self.messages.put_nowait(("progress", value))
         except queue.Full:
@@ -730,6 +1004,14 @@ class Wizard(Application):
         self.back.configure(state="disabled")
         self.next.configure(state="normal" if allow_cancel else "disabled")
         self.on_success, self.on_failure = success, failure
+        self.disabled_widgets = []
+        pending = list(self.form.body.winfo_children())
+        while pending:
+            widget = pending.pop()
+            pending.extend(widget.winfo_children())
+            if isinstance(widget, (ttk.Button, ttk.Entry, ttk.Combobox, ttk.Checkbutton, ttk.Radiobutton)):
+                self.disabled_widgets.append((widget, widget.instate(["disabled"])))
+                widget.state(["disabled"])
 
         def run():
             try:
@@ -751,15 +1033,25 @@ class Wizard(Application):
             if kind == "progress":
                 phase = value.get("phase")
                 if phase == "awaiting_confirmation":
-                    self.confirm_media(value)
+                    if not self.cancel_event.is_set():
+                        self.confirm_media(value)
                     continue
                 self.notice(PHASES.get(phase, "Working"))
                 if hasattr(self, "progress_label") and self.progress_label.winfo_exists():
                     self.progress_label.configure(text=PHASES.get(phase, "Working"))
-                    percent = value.get("percent", 100 * value.get("bytes", 0) / max(1, value.get("total", 1)))
-                    self.progress_bar.configure(value=percent)
+                    measurable = "percent" in value or ("bytes" in value and value.get("total", 0) > 0)
+                    self.progress_bar.stop()
+                    if measurable:
+                        percent = value.get("percent", 100 * value.get("bytes", 0) / max(1, value.get("total", 1)))
+                        self.progress_bar.configure(mode="determinate", value=percent)
+                    else:
+                        self.progress_bar.configure(mode="indeterminate")
+                        self.progress_bar.start()
             else:
                 self.busy = False
+                for widget, disabled in self.disabled_widgets:
+                    if widget.winfo_exists() and not disabled:
+                        widget.state(["!disabled"])
                 self.back.configure(state="normal")
                 self.next.configure(state="normal")
                 if kind == "result":

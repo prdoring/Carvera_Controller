@@ -9,6 +9,29 @@ from pathlib import Path
 from kioskdesktop import profiles
 
 
+class InstallationError(ValueError):
+    """The Pi's installation did not match the saved setup."""
+
+
+def failure_message(error):
+    """Return fixed public guidance without copying private tool output."""
+    import asyncssh
+
+    if isinstance(error, asyncssh.HostKeyNotVerifiable):
+        return "The Pi's SSH identity has changed. Check the address and touchscreen identity before trying again."
+    if isinstance(error, asyncssh.KeyImportError):
+        return "The access key could not be unlocked. Re-enter the passphrase for the selected key."
+    if isinstance(error, asyncssh.PermissionDenied):
+        return "The Pi rejected this access key. Check that you selected the original saved setup for this Pi."
+    if isinstance(error, InstallationError):
+        return "The installation did not pass its checks. Wait for setup to finish on the Pi and check that this is its original saved setup."
+    if isinstance(error, (OSError, asyncssh.ConnectionLost, TimeoutError)):
+        return (
+            "Could not reach the Pi. Check its power, network and the address under Laptop access on its touchscreen."
+        )
+    return "Laptop access could not be checked. Check the saved key files, passphrases and the setup status on the Pi, then retry."
+
+
 async def probe(address: str, *, port=22):
     import asyncssh
 
@@ -90,31 +113,34 @@ async def helper(connection, action: str, value=None, timeout=30):
 async def verify_first_boot(profile, passphrase: str, administrator_passphrase=None, *, port=22):
     connection = await connect(profile, "maintenance", passphrase, port=port)
     try:
-        reply = await helper(connection, "setup-status")
+        try:
+            reply = await helper(connection, "setup-status")
+        except (ValueError, RuntimeError) as error:
+            raise InstallationError("The Pi could not report its installation status") from error
     finally:
         connection.close()
         await connection.wait_closed()
     if reply.get("protocol") != 1 or reply.get("phase") != "complete" or reply.get("id") != profile["id"]:
-        raise ValueError("The Pi has not completed this installation transaction")
+        raise InstallationError("The Pi has not completed this installation transaction")
     image = reply.get("image", {})
     if image.get("format") != "carvera-kiosk-pi4-v3" or image.get("commit") != profile.get("commit"):
-        raise ValueError("The installed image does not match this setup profile")
+        raise InstallationError("The installed image does not match this setup profile")
     if image.get("version") != profile.get("components", {}).get("image") or reply.get("cleanup_pending"):
-        raise ValueError("Image verification or setup cleanup is incomplete")
+        raise InstallationError("Image verification or setup cleanup is incomplete")
     for name in ("controller", "system", "updater"):
         actual = reply.get("components", {}).get(name, {})
         if actual.get("version") != profile.get("components", {}).get(name) or actual.get("commit") != profile.get(
             "commit"
         ):
-            raise ValueError("Installed component identities do not match the selected release")
+            raise InstallationError("Installed component identities do not match the selected release")
     for role in profiles.ROLES:
         if profile["keys"][role]["fingerprint"] not in reply.get("key_fingerprints", {}).get(role, []):
-            raise ValueError("The installed access keys do not match this profile")
+            raise InstallationError("The installed access keys do not match this profile")
     connection = await connect(profile, "administrator", administrator_passphrase or passphrase, port=port)
     try:
-        result = await connection.run("sudo -n id -u", check=True, timeout=15)
-        if result.stdout.strip() != "0":
-            raise ValueError("Administrator sudo verification failed")
+        result = await connection.run("sudo -n id -u", check=False, timeout=15)
+        if result.exit_status != 0 or result.stdout.strip() != "0":
+            raise InstallationError("Administrator sudo verification failed")
     finally:
         connection.close()
         await connection.wait_closed()

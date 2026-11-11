@@ -101,6 +101,17 @@ def main():
                 assert all(
                     abs(actual - target) <= 2 for actual, target in zip(picture.getpixel((1910, 1190)), expected)
                 )
+                status.write_text(json.dumps({"phase": "fresh", "error": "storage"}))
+                app.refresh()
+                assert "storage preparation" in app.message.text
+                assert not app.retry.disabled
+                status.write_text(json.dumps({"phase": "unknown"}))
+                app.refresh()
+                assert "needs recovery" in app.message.text
+                assert app.retry.disabled
+                app.pending_action = "setup-shutdown"
+                app.finished(SimpleNamespace(result=lambda: SimpleNamespace(stdout='{"ok":true}')))
+                assert "Shutting down" in app.feedback.text
             except Exception as error:
                 failures.append(error)
             finally:
@@ -112,7 +123,7 @@ def main():
                 assert "carveracontroller.Controller" not in sys.modules
                 assert not any(name.endswith(("USBStream", "WifiStream")) for name in sys.modules)
                 assert "isolated-test-fingerprint" in app.details.text
-                assert "could not finish" in app.message.text
+                assert "Setup was interrupted" in app.message.text
                 from carveracontroller.ui import theme
 
                 assert Path(theme.__file__).resolve().is_relative_to(presentation)

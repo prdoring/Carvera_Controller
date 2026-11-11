@@ -19,11 +19,14 @@ packages from your own trusted build or a verified release download.
 | `kiosk-admin` | Whole kiosk administration | Full passwordless sudo |
 
 Graphical Setup creates distinct encrypted keys under
-`~/.ssh/carvera/INSTALLATION_ID/`, plus a versioned profile. It shows the exact
-locations after verification. The owner enters a nonempty confirmed passphrase;
-no passphrase is saved. Verification removes temporary local Wi-Fi transaction
-data and retains nonsecret release metadata. Screen Share uses only the selected
-maintenance role and the exact verified host key/installation ID.
+`~/.ssh/carvera/INSTALLATION_ID/`, plus a versioned profile. Choose **Open setup
+folder** after **Check laptop access** succeeds to find the profile and key files. The owner enters a nonempty confirmed passphrase;
+no passphrase is saved. **Check laptop access** removes temporary local Wi-Fi
+transaction data and retains nonsecret release metadata. Screen Share uses only the selected
+maintenance role and the exact verified host key/installation ID. Select the
+kiosk by name in Screen Share and enter the maintenance key passphrase. If
+administrator and maintenance keys have different passphrases, Screen Share
+uses the maintenance passphrase.
 
 For an existing card's CLI migration, keep the existing maintenance key and
 create the additional key on your laptop:
@@ -78,8 +81,11 @@ Pi removes it after successful setup. New setup tools reject old image formats;
 old v2 setup tools reject the distinct v3 format. Initial setup cannot finish
 without the administrator key.
 
-On first boot, verify both logins using their respective keys. The controller
-starts disconnected. Setup completion is root-owned outside app data and boot
+After graphical setup, choose **Check laptop access** in Setup. It checks both
+logins and administrator access after you compare the fingerprint under
+**Settings → System → Overview → Laptop access**. Choose **Finish later** to
+return through **Continue a saved setup**. For CLI preparation, verify both
+logins using their respective keys. The controller starts disconnected. Setup completion is root-owned outside app data and boot
 files. Completed packages cannot be used to add keys again or reset passwords.
 The v3 journal covers hostname, maintenance access, Wi-Fi, preferences and
 administrator access before any of them changes. Prepared retries retain the
@@ -204,8 +210,13 @@ Git and Docker are not required for downloaded packages.
 
 ## Local keyboard fallback
 
-After administrator SSH works, the owner runs `sudo passwd kiosk-admin` in a
-private interactive SSH terminal and enters a console password. SSH password
+After graphical laptop verification, **Set up offline recovery (optional)** in
+Setup sets the local `kiosk-admin` password. Test it with a physical keyboard
+as described below.
+
+Alternatively, after administrator SSH works, the owner can run
+`sudo passwd kiosk-admin` in a private interactive SSH terminal and enter a
+console password. SSH password
 login and root SSH remain disabled. Connect a keyboard to the Pi, press
 Ctrl+Alt+F2, log in as `kiosk-admin`, and run `sudo -n id -u`. Press Ctrl+Alt+F1
 to return to the running kiosk without restarting it. Physically test this

@@ -38,7 +38,9 @@ class SetupStatus(App):
         shell = BoxLayout(orientation="vertical", padding=dp(24), spacing=dp(16))
         shell.add_widget(Paragraph(text=tr._("Kiosk setup"), font_size=sp(24), bold=True))
         panel = Panel()
-        self.message = Paragraph(text=tr._("Initial setup has not finished. The controller is stopped."))
+        self.message = Paragraph(
+            text=tr._("The Pi is finishing setup. Keep it powered and wait for the controller screen to open.")
+        )
         panel.add_widget(self.message)
         self.details = Paragraph(text="", font_name="PlexMono")
         panel.add_widget(self.details)
@@ -62,24 +64,57 @@ class SetupStatus(App):
             if path.stat().st_size > 65536:
                 raise ValueError("Invalid status")
             value = json.loads(path.read_text())
+            if not isinstance(value, dict):
+                raise ValueError("Invalid status")
             phase = value.get("phase", "unknown")
-            fingerprint = "\n".join(value.get("host_fingerprints", []))
-            self.details.text = tr._("Setup stage: {phase}\nSSH fingerprint:\n{fingerprint}").format(
-                phase=phase, fingerprint=fingerprint or tr._("Not available yet")
+            fingerprints = value.get("host_fingerprints", [])
+            if not isinstance(fingerprints, list) or any(not isinstance(item, str) for item in fingerprints):
+                raise ValueError("Invalid identity")
+            fingerprint = "\n".join(fingerprints)
+            stages = {
+                "fresh": tr._("Waiting to apply Pi settings"),
+                "applying": tr._("Applying Pi settings"),
+                "complete": tr._("Pi setup complete"),
+                "unknown": tr._("Setup status needs attention"),
+            }
+            self.details.text = tr._("{stage}\nSSH identity:\n{fingerprint}").format(
+                stage=stages.get(phase, stages["unknown"]), fingerprint=fingerprint or tr._("Not available yet")
             )
-            if value.get("error"):
-                self.message.text = tr._(
-                    "Setup could not finish. Use the same setup profile to recover, or reflash the card."
-                )
+            messages = {
+                "storage": tr._(
+                    "Pi storage preparation did not finish. Choose Retry the same setup and keep the Pi powered. This can take several minutes."
+                ),
+                "interrupted": tr._(
+                    "Setup was interrupted. Choose Retry the same setup to continue with your saved settings and keys."
+                ),
+                "configuration": tr._(
+                    "Pi settings could not be applied. On your computer, open Carvera Kiosk Setup and choose Continue a saved setup."
+                ),
+                "system": tr._(
+                    "Setup needs recovery. Shut down the Pi and open Continue a saved setup in Carvera Kiosk Setup on your computer."
+                ),
+            }
+            self.message.text = messages.get(
+                value.get("error"),
+                tr._("The Pi is finishing setup. Keep it powered and wait for the controller screen to open."),
+            )
+            if phase not in {"fresh", "applying", "complete"}:
+                self.message.text = messages["system"]
+            self.retry.disabled = self.pending or phase not in {"fresh", "applying"}
         except (OSError, ValueError, TypeError):
-            self.details.text = tr._("Setup status is unavailable. Shut down and inspect the card with Kiosk Setup.")
+            self.message.text = tr._(
+                "Setup status is unavailable. Shut down the Pi, then choose Continue a saved setup in Carvera Kiosk Setup on your computer."
+            )
+            self.details.text = ""
+            self.retry.disabled = True
 
     def request(self, action):
         if self.pending:
             return
         self.pending = True
+        self.pending_action = action
         self.retry.disabled = self.shutdown.disabled = True
-        self.feedback.text = tr._("Checking setup…")
+        self.feedback.text = tr._("Shutting down…") if action == "setup-shutdown" else tr._("Retrying the same setup…")
         future = self.executor.submit(
             subprocess.run,
             ["sudo", "-n", "/usr/local/sbin/carvera-recover"],
@@ -98,12 +133,20 @@ class SetupStatus(App):
             result = future.result()
             reply = json.loads(result.stdout)
             self.feedback.text = (
-                tr._("Retrying setup. Storage preparation may take several minutes.")
+                (
+                    tr._("Shutting down…")
+                    if self.pending_action == "setup-shutdown"
+                    else tr._("Retrying setup. Storage preparation may take several minutes.")
+                )
                 if reply.get("ok")
-                else tr._("Setup remains incomplete. Check the card with Kiosk Setup.")
+                else tr._(
+                    "Setup remains incomplete. Choose Continue a saved setup in Carvera Kiosk Setup on your computer."
+                )
             )
         except Exception:
-            self.feedback.text = tr._("Setup remains incomplete. Check the card with Kiosk Setup.")
+            self.feedback.text = tr._(
+                "Setup remains incomplete. Choose Continue a saved setup in Carvera Kiosk Setup on your computer."
+            )
         self.refresh()
 
     def on_stop(self):

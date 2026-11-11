@@ -3023,3 +3023,70 @@ msgstr ""
 #: ../assets/packaging/kiosk/runtime/setup_status_ui.py:106
 msgid "Setup remains incomplete. Check the card with Kiosk Setup."
 msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:41
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:82
+msgid ""
+"The Pi is finishing setup. Keep it powered and wait for the controller "
+"screen to open."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:68
+msgid "Waiting to apply Pi settings"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:69
+msgid "Applying Pi settings"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:70
+msgid "Pi setup complete"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:71
+msgid "Setup status needs attention"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:73
+msgid ""
+"{stage}\n"
+"SSH identity:\n"
+"{fingerprint}"
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:77
+msgid ""
+"Pi storage preparation did not finish. Choose Retry the same setup and keep "
+"the Pi powered. This can take several minutes."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:78
+msgid ""
+"Setup was interrupted. Choose Retry the same setup to continue with your "
+"saved settings and keys."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:79
+msgid ""
+"Pi settings could not be applied. On your computer, open Carvera Kiosk Setup "
+"and choose Continue a saved setup."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:80
+msgid ""
+"Setup needs recovery. Shut down the Pi and open Continue a saved setup in "
+"Carvera Kiosk Setup on your computer."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:85
+msgid ""
+"Setup status is unavailable. Shut down the Pi, then choose Continue a saved "
+"setup in Carvera Kiosk Setup on your computer."
+msgstr ""
+
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:116
+#: ../assets/packaging/kiosk/runtime/setup_status_ui.py:119
+msgid ""
+"Setup remains incomplete. Choose Continue a saved setup in Carvera Kiosk "
+"Setup on your computer."
+msgstr ""

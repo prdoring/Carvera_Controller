@@ -22,7 +22,12 @@ settings, and network connections remain available.
 ## Install from a release
 
 Use the main [graphical setup steps](../../../README.md#install-the-kiosk) or
-[setup guide](../../../docs/kiosk-setup.md). A compatible full release has
+[setup guide](../../../docs/kiosk-setup.md). Choose **Install on an SD card**
+and follow **Choose a card → Set up your Pi → Write the card → Start the kiosk**.
+After the controller opens on the Pi, **Check laptop access** enables Screen Share
+and verifies administration. **Finish later** resumes through **Continue a saved
+setup**. The guide covers checksums, offline files and recovery.
+A compatible full release has
 `setup-release.json`, Setup and Screen Share packages for all three desktop
 targets, a v3 image and separate update artifacts. An app-only release cannot
 install a fresh card. Graphical users do not need Python, OpenSSH, Git, Docker or

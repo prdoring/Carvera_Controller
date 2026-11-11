@@ -291,7 +291,9 @@ class ScrollForm(ttk.Frame):
 
 
 def field(parent, label: str, variable: tk.StringVar, *, secret: bool = False) -> ttk.Entry:
-    ttk.Label(parent, text=label).pack(anchor="w", pady=(12, 6))
+    caption = ttk.Label(parent, text=label, wraplength=900)
+    caption.pack(anchor="w", fill="x", pady=(12, 6))
+    caption.bind("<Configure>", lambda event: caption.configure(wraplength=max(100, event.width)))
     entry = ttk.Entry(parent, textvariable=variable, show="•" if secret else "")
     entry.pack(fill="x")
     theme = getattr(parent.winfo_toplevel(), "_slate", None)

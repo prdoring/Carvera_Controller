@@ -64,3 +64,14 @@ def test_existing_unencrypted_key_is_not_rewritten(tmp_path):
     with pytest.raises(ValueError, match="encrypted"):
         profiles.unlock(key, "passphrase")
     assert key.read_bytes() == original
+
+
+def test_saved_setups_ignore_invalid_profiles_and_distinguish_duplicate_names(tmp_path):
+    first, _value = profiles.create("test-pi", "passphrase", "passphrase", directory=tmp_path)
+    second, _value = profiles.create("test-pi", "passphrase", "passphrase", directory=tmp_path)
+    invalid = tmp_path / "invalid"
+    invalid.mkdir()
+    (invalid / "profile.json").write_text('{"password":"private-value"}')
+    found = profiles.saved(tmp_path)
+    assert {path for path, _value in found} == {first, second}
+    assert len({value["id"] for _path, value in found}) == 2

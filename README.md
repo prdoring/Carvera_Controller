@@ -42,66 +42,70 @@ Features depend on the firmware reported by the machine. Higher USB baud rates r
 
 ## Install the kiosk
 
-Use **Carvera Kiosk Setup** from a [full release](https://github.com/prdoring/Carvera_Controller/releases)
-that contains `setup-release.json`. Legacy and app-only releases cannot install
-this graphical setup. Until a complete compatible release is published, use the
-[developer build instructions](docs/development.md#kiosk-desktop-tools).
+You'll need a Raspberry Pi 4, a touchscreen, a microSD card and reader, and a
+Windows or Linux computer. If you already have a working kiosk, set its card
+aside and use a spare. Setup erases the card you select.
 
-### 1. Open Setup on your computer
+### 1. Download and open Carvera Kiosk Setup
 
-Download the Setup installer for **Windows 11 x64**, or the `.deb` for **Debian
-12+ / Ubuntu 24.04+**, choosing x64 or ARM64 to match your computer. Portable
-downloads are also provided. Verify the download against that release's
-`SHA256SUMS`. Initial Windows downloads are unsigned previews.
+Choose a release with Setup installers from [this fork's releases](https://github.com/prdoring/Carvera_Controller/releases).
+App-only releases contain updates for an existing installation. The filenames
+below use `<version>` for the release's version number.
 
-Open Setup as your normal desktop user. It includes its own runtime and card
-writer; installing Python, Git, Docker, OpenSSH or Raspberry Pi Imager is not
-part of the graphical workflow.
+- **Windows 11 x64** — `carvera-kiosk-setup-<version>-windows-x64.exe` (unsigned preview).
+- **Debian 12+ / Ubuntu 24.04+** — `carvera-kiosk-setup-<version>-linux-x64.deb`
+  or `carvera-kiosk-setup-<version>-linux-arm64.deb`, matching your computer.
 
-### 2. Install and configure a card
+Open **Carvera Kiosk Setup** from your normal desktop account. Setup can download
+the kiosk software for you. See the [setup guide](docs/kiosk-setup.md) for checking
+your download, portable packages, or installing offline. Developer builds are
+described in [development](docs/development.md#kiosk-desktop-tools).
 
-Keep your working card for recovery and insert the new card. Choose **Install
-on a new card**. Follow **Card → Network → Access → Review → Install**:
+### 2. Write the microSD card
 
-- Select the physical card and a compatible full release. Setup can download the
-  image, or use an offline image with matching `setup-release.json`.
-- Choose Ethernet or WPA-personal Wi-Fi, a kiosk name and country. Optionally
-  import an exported preferences backup.
-- Enter and confirm a private passphrase. Setup creates separate encrypted
-  maintenance and administrator keys in a unique folder under your `.ssh` folder.
-  The administrator account has full control of the Pi.
-- Grant the card worker administrator permission when asked. After verification,
-  check the card's identity and capacity again and explicitly approve erasure.
-  Wait for configuration and safe ejection to finish.
+1. Insert the card into your computer. Choose **Install on an SD card**, select
+   the card by its reader name and capacity, and choose **Download kiosk software**.
+2. Name your Pi and choose how it will join your network. If you choose Wi-Fi,
+   enter the network name and password. Create an access key passphrase and save
+   it somewhere private. You'll use it when connecting from your computer later.
+3. Review your choices and click **Prepare card**. Allow the computer's
+   card-access prompt. When Setup shows **Erase and write card**, check the
+   reader name and capacity again before confirming.
+4. Keep the card inserted until Setup says **Safe to remove the card**. If
+   Windows asks to format the card during setup, click **Cancel**.
 
-If Windows asks to format the Linux partition, choose **Cancel**. A completed
-flash followed by failed configuration is reported separately; reopen the saved
-profile to retry configuration without reflashing. Use **Configure an
-already-flashed card** only for a fresh v3 image. Existing kiosks use the
-[migration workflow](docs/kiosk-administration.md#migrate-an-existing-card).
+### 3. Start the Pi
 
-### 3. Check first boot
+Put the card in the Pi. If you chose Ethernet, plug in the network cable. Leave
+the mill disconnected and power on the Pi. First startup can take several
+minutes. Wait for the controller screen to open.
 
-Insert the card into the Pi, keep the mill disconnected, and power on. First
-boot makes the card's available storage usable, applies setup and removes the
-temporary Wi-Fi payload. If setup fails, a limited status screen shows recovery
-information while the controller remains stopped.
+In Setup, choose **Check laptop access** if you plan to use Screen Share or
+maintain the Pi from your computer. You can also choose **Finish later** and
+come back through **Continue a saved setup**.
 
-In Setup, choose **Check first boot** and open the saved profile. Compare the SSH
-fingerprint with the touchscreen before trusting it. Setup checks the installed
-image and component versions, both accounts and administrator access. It can
-set a private local recovery password. Physically test keyboard login with
-**Ctrl+Alt+F2**, then return to the kiosk with **Ctrl+Alt+F1**.
+### 4. Connect the mill when you're ready
 
-The finish screen shows your key locations and connection details, and links to
-the separate **Carvera Kiosk Screen Share** download. Screen Share uses the
-verified profile and maintenance key, with explicit Connect/Disconnect controls.
-See the [setup guide](docs/kiosk-setup.md) for offline setup and recovery.
+The controller starts disconnected. Opening a USB connection resets the mill.
+When the mill is idle and you're ready to connect, tap **Connect** on the
+touchscreen and choose USB or a network connection to the mill.
 
-### 4. Connect the mill when ready
+### Use Screen Share from your computer
 
-The controller starts disconnected. Tap **Connect** and select USB or a network
-connection. **Opening a USB connection resets the mill.**
+1. With your computer and Pi on the same network, choose **Check laptop access**
+   in Setup. Try the suggested Pi address. If it doesn't work, find the Pi's
+   address on the touchscreen under **Settings → System → Overview → Laptop access**.
+2. On that same touchscreen page, find **SSH identity**. Compare the `SHA256:…`
+   fingerprint with the one Setup shows on your computer. Continue only if they
+   match exactly. Enter the access key passphrase you saved when preparing the card.
+3. When Setup says **Laptop access verified**, choose **Download Screen Share**.
+   Open **Carvera Kiosk Screen Share**, select your kiosk, enter the passphrase,
+   and click **Connect**. The touchscreen opens in your browser. Click
+   **Disconnect** in Screen Share when you're done.
+
+If Setup stops partway through, reopen it and choose **Continue a saved setup**.
+See the [setup guide](docs/kiosk-setup.md) for card errors, interrupted first
+startup, separate key passphrases, and offline recovery.
 
 ## Laptop maintenance
 

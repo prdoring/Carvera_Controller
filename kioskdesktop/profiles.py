@@ -146,6 +146,20 @@ def load(path: Path):
     return validate(json.loads(path.read_text(encoding="utf-8")))
 
 
+def saved(directory=None):
+    """List this desktop user's valid local setup profiles."""
+    folder = Path(directory or Path.home() / ".ssh/carvera")
+    result = []
+    for path in folder.glob("*/profile.json"):
+        if path.parent.is_symlink() or path.is_symlink():
+            continue
+        try:
+            result.append((path, load(path)))
+        except (OSError, ValueError, KeyError):
+            continue
+    return sorted(result, key=lambda item: (item[1]["hostname"], str(item[0])))
+
+
 def save(path: Path, value):
     validate(value)
     shared("setup_protocol").write_json(path, value)

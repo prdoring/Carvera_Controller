@@ -57,6 +57,17 @@ def test_verified_handoff_removes_private_setup_inputs_but_retains_release(prepa
     assert all(wifi["password"] not in item.read_text() for item in path.parent.glob("*.json"))
 
 
+def test_failed_new_attempt_does_not_resume_from_an_old_completed_card_record(prepared, tmp_path):
+    path, profile, _release, wifi = prepared
+    status_path = path.parent / "card-status.json"
+    status_path.write_text(json.dumps({"id": profile["id"], "phase": "complete"}))
+    operation = installer.CardOperation()
+    with pytest.raises(OSError):
+        operation.run(None, path, profile, action="flash", image=tmp_path / "missing.img.xz")
+    assert json.loads(status_path.read_text())["phase"] == "preparing"
+    assert wifi["password"] not in status_path.read_text()
+
+
 def test_worker_client_waits_for_physical_confirmation_and_cancels_without_consent(prepared, monkeypatch, tmp_path):
     path, profile, release, _wifi = prepared
     selected = devices.Device("fixture-card", "d" * 64, 8 * 1024**3, "Disposable fixture", "usb", False, False, False)

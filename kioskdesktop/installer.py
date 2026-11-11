@@ -165,6 +165,8 @@ class CardOperation:
         preferences = Path(profile_path).parent / "preferences.tar.gz"
         streams = []
         process = None
+        status_path = Path(profile_path).parent / "card-status.json"
+        shared("setup_protocol").write_json(status_path, {"id": profile["id"], "phase": "preparing", "action": action})
         try:
             image_stream = Path(image).open("rb") if action == "flash" else None
             if image_stream:
@@ -220,7 +222,13 @@ class CardOperation:
                     raise ValueError("A source file changed while being transferred")
             while True:
                 reply = channel.receive()
+                if reply.get("phase") == "complete" and reply.get("id") != profile["id"]:
+                    raise ValueError("The worker completed a different transaction")
                 if reply.get("phase") != "error":
+                    if reply.get("phase") != self.last_phase:
+                        shared("setup_protocol").write_json(
+                            status_path, {"id": profile["id"], "phase": reply["phase"], "action": action}
+                        )
                     self.last_phase = reply.get("phase")
                 if reply.get("phase") == "awaiting_confirmation":
                     if (
@@ -236,18 +244,12 @@ class CardOperation:
                             raise InterruptedError("Card confirmation cancelled or expired")
                     channel.send({"confirm": reply["confirmation"]})
                     continue
-                if reply.get("phase") in {"configuring", "ejecting", "complete"}:
-                    shared("setup_protocol").write_json(
-                        Path(profile_path).parent / "card-status.json", {"id": profile["id"], "phase": reply["phase"]}
-                    )
                 progress(reply)
                 if reply.get("phase") == "error":
                     raise RuntimeError(
                         "The card operation did not finish. Reopen the same profile to retry configuration."
                     )
                 if self.last_phase == "complete":
-                    if reply.get("id") != profile["id"]:
-                        raise ValueError("The worker completed a different transaction")
                     return reply
         finally:
             for stream in streams:
